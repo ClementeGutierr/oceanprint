@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    @apply text-white;
+    font-family: 'Inter', system-ui, sans-serif;
+    overscroll-behavior: none;
+    min-height: 100vh;
+    background: #020c1b; /* fallback; Layout div covers with full gradient */
+  }
+
+  #root {
+    min-height: 100vh;
+    position: relative;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-ocean-cyan to-ocean-light text-ocean-deep font-bold py-3 px-6 rounded-2xl
+           active:scale-95 transition-all duration-150 shadow-lg;
+    box-shadow: 0 4px 20px rgba(0, 180, 216, 0.4);
+  }
+
+  .btn-secondary {
+    @apply border border-ocean-cyan/40 text-ocean-cyan font-semibold py-3 px-6 rounded-2xl
+           active:scale-95 transition-all duration-150;
+    background: rgba(0, 180, 216, 0.08);
+  }
+
+  .card {
+    @apply rounded-3xl p-5;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .card-glow {
+    @apply card;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .input-field {
+    @apply w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white
+           placeholder-white/30 focus:outline-none focus:border-ocean-cyan/60 transition-colors;
+  }
+
+  .nav-tab {
+    @apply flex flex-col items-center gap-1 py-2 px-3 rounded-2xl transition-all duration-200;
+  }
+
+  .nav-tab.active {
+    @apply text-ocean-cyan;
+    background: rgba(0, 180, 216, 0.12);
+  }
+
+  .nav-tab:not(.active) {
+    @apply text-white/40;
+  }
+
+  .progress-bar {
+    @apply relative h-3 rounded-full overflow-hidden;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-1000 ease-out;
+    background: linear-gradient(90deg, #00b4d8, #48cae4, #90e0ef);
+    box-shadow: 0 0 12px rgba(0, 180, 216, 0.6);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full;
+  }
+}
+
+/* Bubbles background */
+.bubbles-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bubble {
+  position: absolute;
+  bottom: -80px;
+  background: radial-gradient(circle at 30% 30%, rgba(144, 224, 239, 0.3), rgba(0, 180, 216, 0.1));
+  border-radius: 50%;
+  border: 1px solid rgba(144, 224, 239, 0.2);
+  animation: bubble linear infinite;
+}
+
+.bubble:nth-child(1) { width: 12px; height: 12px; left: 10%; animation-duration: 9s; animation-delay: 0s; }
+.bubble:nth-child(2) { width: 20px; height: 20px; left: 25%; animation-duration: 12s; animation-delay: 2s; }
+.bubble:nth-child(3) { width: 8px; height: 8px; left: 40%; animation-duration: 7s; animation-delay: 1s; }
+.bubble:nth-child(4) { width: 16px; height: 16px; left: 55%; animation-duration: 11s; animation-delay: 3s; }
+.bubble:nth-child(5) { width: 10px; height: 10px; left: 70%; animation-duration: 8s; animation-delay: 0.5s; }
+.bubble:nth-child(6) { width: 24px; height: 24px; left: 85%; animation-duration: 14s; animation-delay: 4s; }
+.bubble:nth-child(7) { width: 6px; height: 6px; left: 15%; animation-duration: 6s; animation-delay: 1.5s; }
+.bubble:nth-child(8) { width: 18px; height: 18px; left: 50%; animation-duration: 10s; animation-delay: 2.5s; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 180, 216, 0.3); border-radius: 2px; }
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #00b4d8, #48cae4, #90e0ef);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Ocean depth gradient backgrounds */
+.ocean-bg {
+  background: linear-gradient(180deg, #020c1b 0%, #0a1628 40%, #0d2137 100%);
+}
