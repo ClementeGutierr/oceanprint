@@ -206,4 +206,34 @@ router.get('/', authenticateToken, (req, res) => {
   res.json(trips);
 });
 
+// Delete a trip and revert user stats
+router.delete('/:id', authenticateToken, (req, res) => {
+  try {
+    const tripId = parseInt(req.params.id);
+    const trip = db.prepare('SELECT * FROM trips WHERE id = ? AND user_id = ?').get(tripId, req.user.id);
+
+    if (!trip) {
+      return res.status(404).json({ error: 'Viaje no encontrado' });
+    }
+
+    db.prepare('DELETE FROM trips WHERE id = ?').run(tripId);
+
+    // Revert stats (floor at 0 to avoid negatives)
+    db.prepare(`
+      UPDATE users SET
+        total_co2   = MAX(0, total_co2 - ?),
+        trips_count = MAX(0, trips_count - 1),
+        points      = MAX(0, points - 10)
+      WHERE id = ?
+    `).run(trip.co2_total, req.user.id);
+
+    updateUserLevel(req.user.id);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete trip error:', error);
+    res.status(500).json({ error: 'Error eliminando el viaje' });
+  }
+});
+
 module.exports = router;

@@ -29,7 +29,7 @@ router.get('/', authenticateToken, (req, res) => {
   `).all(req.user.id);
 
   const recentTrips = db.prepare(`
-    SELECT origin, destination, co2_total, created_at
+    SELECT id, origin, destination, co2_total, created_at
     FROM trips WHERE user_id = ?
     ORDER BY created_at DESC LIMIT 5
   `).all(req.user.id);

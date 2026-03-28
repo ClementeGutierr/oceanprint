@@ -1,5 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
 
 const LEVEL_ICONS = { flight: '✈️', sea: '🚢', land: '🚗' }
 const LEVEL_LABELS = { flight: 'Vuelo (ida y vuelta)', sea: 'Transporte marítimo', land: 'Transporte terrestre' }
@@ -25,11 +27,26 @@ export default function Results() {
   const { state } = useLocation()
   const navigate = useNavigate()
   const [animated, setAnimated] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const { API, refreshUser } = useAuth()
 
   useEffect(() => {
     if (!state?.result) navigate('/calculator')
     setTimeout(() => setAnimated(true), 100)
   }, [])
+
+  async function handleDeleteTrip() {
+    setDeleting(true)
+    try {
+      await axios.delete(`${API}/trips/${state.result.trip_id}`)
+      refreshUser()
+      navigate('/calculator')
+    } catch (e) {
+      console.error(e)
+      setDeleting(false)
+    }
+  }
 
   if (!state?.result) return null
 
@@ -138,6 +155,42 @@ export default function Results() {
         <button onClick={() => navigate('/calculator')} className="btn-secondary w-full">
           🔄 Calcular otro viaje
         </button>
+
+        {!deleteConfirm ? (
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            className="w-full text-center text-xs py-2 transition-colors"
+            style={{ color: 'rgba(144,224,239,0.25)' }}
+          >
+            Eliminar este registro
+          </button>
+        ) : (
+          <div
+            className="rounded-2xl p-4 animate-scale-in"
+            style={{ background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.2)' }}
+          >
+            <p className="text-white text-sm font-semibold text-center mb-1">¿Eliminar este viaje?</p>
+            <p className="text-ocean-foam/40 text-xs text-center mb-4">
+              Se revertirán los puntos y el CO₂ de tu historial
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="btn-secondary flex-1 py-2 text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteTrip}
+                disabled={deleting}
+                className="flex-1 py-2 text-sm rounded-2xl font-bold active:scale-95 transition-all"
+                style={{ background: 'rgba(255,107,107,0.15)', color: '#ff6b6b', border: '1px solid rgba(255,107,107,0.3)' }}
+              >
+                {deleting ? '...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

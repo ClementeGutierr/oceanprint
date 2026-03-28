@@ -2,6 +2,50 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 
+function DeleteTripModal({ trip, onConfirm, onCancel, loading }) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center px-5"
+      style={{ background: 'rgba(2,12,27,0.92)', backdropFilter: 'blur(8px)' }}
+      onClick={e => e.target === e.currentTarget && onCancel()}
+    >
+      <div
+        className="w-full max-w-sm rounded-3xl p-6 animate-scale-in"
+        style={{ background: 'linear-gradient(180deg,#0d2137,#0a1628)', border: '1px solid rgba(255,107,107,0.2)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="text-center mb-5">
+          <div className="text-4xl mb-3">🗑️</div>
+          <h3 className="text-white font-black text-lg mb-1">¿Eliminar este viaje?</h3>
+          <p className="text-ocean-foam/50 text-sm">
+            {trip.origin} → {trip.destination}
+          </p>
+          <p className="text-ocean-foam/40 text-xs mt-1">{Math.round(trip.co2_total)} kg CO₂</p>
+        </div>
+        <div
+          className="rounded-2xl p-3 mb-5 text-xs text-ocean-foam/50 text-center"
+          style={{ background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.15)' }}
+        >
+          Se revertirán los 10 puntos y el CO₂ de tu historial. Las compensaciones no se ven afectadas.
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="btn-secondary flex-1 py-2.5 text-sm">
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 py-2.5 text-sm rounded-2xl font-bold transition-all active:scale-95"
+            style={{ background: 'rgba(255,107,107,0.15)', color: '#ff6b6b', border: '1px solid rgba(255,107,107,0.3)' }}
+          >
+            {loading ? '...' : 'Sí, eliminar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const LEVELS = ['Plancton', 'Caballito de Mar', 'Tortuga Marina', 'Mantarraya', 'Ballena Azul']
 const LEVEL_ICONS = { 'Plancton': '🔵', 'Caballito de Mar': '🐴', 'Tortuga Marina': '🐢', 'Mantarraya': '🦈', 'Ballena Azul': '🐋' }
 const LEVEL_COLORS = {
@@ -26,14 +70,33 @@ function StatCard({ icon, label, value, sub }) {
 export default function Profile() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const { API, logout } = useAuth()
+  const [tripToDelete, setTripToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const { API, logout, refreshUser } = useAuth()
 
-  useEffect(() => {
+  function loadProfile() {
     axios.get(`${API}/profile`)
       .then(res => setProfile(res.data))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { loadProfile() }, [])
+
+  async function handleDeleteTrip() {
+    if (!tripToDelete) return
+    setDeleting(true)
+    try {
+      await axios.delete(`${API}/trips/${tripToDelete.id}`)
+      setTripToDelete(null)
+      refreshUser()
+      loadProfile()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -184,10 +247,28 @@ export default function Profile() {
                 <span className="text-sm">✈️</span>
                 <span className="text-xs text-white/60 flex-1">{t.origin} → {t.destination}</span>
                 <span className="text-xs font-bold text-ocean-foam/60">{Math.round(t.co2_total)} kg CO₂</span>
+                <button
+                  onClick={() => setTripToDelete(t)}
+                  className="text-ocean-foam/20 hover:text-coral transition-colors ml-1 flex-shrink-0"
+                  title="Eliminar viaje"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </button>
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      {tripToDelete && (
+        <DeleteTripModal
+          trip={tripToDelete}
+          loading={deleting}
+          onConfirm={handleDeleteTrip}
+          onCancel={() => setTripToDelete(null)}
+        />
       )}
     </div>
   )
