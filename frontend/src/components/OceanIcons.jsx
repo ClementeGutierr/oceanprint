@@ -7,6 +7,7 @@ import {
   Plane, Ship, Car, Bus, Trophy, Star, Trash2, Lock, Target,
   Thermometer, Leaf, RefreshCw, CreditCard, Sparkles, Lightbulb,
   Brain, Users, X, Check, Search, Recycle, Globe, Frown, Map,
+  Pencil, Camera, MapPin, AtSign, Phone,
 } from 'lucide-react'
 
 /* ─────────────────────────────────────────────
@@ -41,6 +42,11 @@ export const RecycleIcon      = lucide(Recycle)
 export const GlobeIcon        = lucide(Globe)
 export const FrownIcon        = lucide(Frown)
 export const MapIcon          = lucide(Map)
+export const PencilIcon       = lucide(Pencil)
+export const CameraIcon       = lucide(Camera)
+export const MapPinIcon       = lucide(MapPin)
+export const AtSignIcon       = lucide(AtSign)
+export const PhoneIcon        = lucide(Phone)
 
 /* ─────────────────────────────────────────────
    LEVEL SYSTEM

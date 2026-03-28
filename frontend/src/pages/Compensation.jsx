@@ -130,6 +130,11 @@ function SocialCard({ selected, units, user, result, cardRef }) {
             {pct}% de huella compensada
           </div>
         )}
+        {user?.instagram && (
+          <div style={{ fontSize:'10px', color:'rgba(225,48,108,0.55)', marginTop:'5px', letterSpacing:'0.5px' }}>
+            @{user.instagram}
+          </div>
+        )}
       </div>
 
       {/* Quote */}

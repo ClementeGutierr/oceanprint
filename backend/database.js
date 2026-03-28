@@ -22,6 +22,7 @@ function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+
     CREATE TABLE IF NOT EXISTS trips (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -84,6 +85,17 @@ function initDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `);
+
+  // Safe migrations — add profile columns if they don't exist yet
+  for (const sql of [
+    "ALTER TABLE users ADD COLUMN avatar TEXT",
+    "ALTER TABLE users ADD COLUMN origin_city TEXT",
+    "ALTER TABLE users ADD COLUMN bio TEXT",
+    "ALTER TABLE users ADD COLUMN instagram TEXT",
+    "ALTER TABLE users ADD COLUMN whatsapp TEXT",
+  ]) {
+    try { db.exec(sql) } catch {}
+  }
 
   seedData();
 }

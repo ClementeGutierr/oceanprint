@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
@@ -27,6 +27,8 @@ const LAND_OPTIONS = [
 ]
 
 export default function Calculator() {
+  const { API, refreshUser, user } = useAuth()
+
   const [form, setForm] = useState({
     origin: '',
     destination: '',
@@ -35,9 +37,16 @@ export default function Calculator() {
     sea_hours: 6,
     passengers: 1,
   })
+
+  // Pre-select origin city from user profile on first load
+  useEffect(() => {
+    if (user?.origin_city && ORIGINS.includes(user.origin_city)) {
+      setForm(f => f.origin ? f : { ...f, origin: user.origin_city })
+    }
+  }, [user?.origin_city])
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { API, refreshUser } = useAuth()
   const navigate = useNavigate()
 
   const handleCalculate = async () => {
