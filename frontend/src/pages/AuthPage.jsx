@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Bubbles from '../components/Bubbles'
+import { OceanWaveIcon, DiveMaskIcon } from '../components/OceanIcons'
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -38,7 +39,12 @@ export default function AuthPage() {
       <div className="relative z-10 w-full max-w-sm animate-fade-in">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3" style={{ filter: 'drop-shadow(0 0 20px rgba(0,180,216,0.4))' }}>🌊</div>
+          <div
+            className="flex justify-center mb-3 text-ocean-cyan"
+            style={{ filter: 'drop-shadow(0 0 20px rgba(0,180,216,0.4))' }}
+          >
+            <OceanWaveIcon size={56} />
+          </div>
           <h1 className="text-3xl font-black">
             <span className="gradient-text">Ocean</span>
             <span className="text-white">Print</span>
@@ -116,10 +122,10 @@ export default function AuthPage() {
           >
             {loading ? (
               <span className="inline-block w-5 h-5 border-2 border-ocean-deep/40 border-t-ocean-deep rounded-full animate-spin" />
+            ) : isLogin ? (
+              <><DiveMaskIcon size={18} /> Sumergirse</>
             ) : (
-              <>
-                <span>{isLogin ? '🤿 Sumergirse' : '🌊 Unirse al océano'}</span>
-              </>
+              <><OceanWaveIcon size={18} /> Unirse al océano</>
             )}
           </button>
         </form>

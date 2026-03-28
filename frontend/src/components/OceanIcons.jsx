@@ -1,7 +1,50 @@
 /**
- * OceanIcons — custom SVG icons for marine level system + brand social icons.
- * All icons use currentColor so they inherit color from their parent element.
+ * OceanIcons — custom SVG icons + lucide wrappers for the entire app.
+ * All icons use currentColor so they inherit color from parent CSS.
  */
+
+import {
+  Plane, Ship, Car, Bus, Trophy, Star, Trash2, Lock, Target,
+  Thermometer, Leaf, RefreshCw, CreditCard, Sparkles, Lightbulb,
+  Brain, Users, X, Check, Search, Recycle, Globe, Frown, Map,
+} from 'lucide-react'
+
+/* ─────────────────────────────────────────────
+   LUCIDE-REACT WRAPPERS
+   Normalises lucide to { size, className } interface
+───────────────────────────────────────────── */
+const lucide = (Comp) => ({ size = 24, className = '' }) => (
+  <Comp size={size} strokeWidth={1.5} className={className} />
+)
+
+export const PlaneIcon        = lucide(Plane)
+export const ShipIcon         = lucide(Ship)
+export const CarIcon          = lucide(Car)
+export const BusIcon          = lucide(Bus)
+export const TrophyIcon       = lucide(Trophy)
+export const StarIcon         = lucide(Star)
+export const TrashIcon        = lucide(Trash2)
+export const LockIcon         = lucide(Lock)
+export const TargetIcon       = lucide(Target)
+export const ThermometerIcon  = lucide(Thermometer)
+export const LeafIcon         = lucide(Leaf)
+export const RefreshIcon      = lucide(RefreshCw)
+export const CreditCardIcon   = lucide(CreditCard)
+export const SparklesIcon     = lucide(Sparkles)
+export const LightbulbIcon    = lucide(Lightbulb)
+export const BrainIcon        = lucide(Brain)
+export const UsersIcon        = lucide(Users)
+export const XIcon            = lucide(X)
+export const CheckIcon        = lucide(Check)
+export const SearchIcon       = lucide(Search)
+export const RecycleIcon      = lucide(Recycle)
+export const GlobeIcon        = lucide(Globe)
+export const FrownIcon        = lucide(Frown)
+export const MapIcon          = lucide(Map)
+
+/* ─────────────────────────────────────────────
+   LEVEL SYSTEM
+───────────────────────────────────────────── */
 
 export const LEVEL_COLORS = {
   'Plancton':          '#48cae4',
@@ -11,15 +54,10 @@ export const LEVEL_COLORS = {
   'Ballena Azul':      '#a78bfa',
 }
 
-/* ─────────────────────────────────────────────
-   LEVEL ICONS
-───────────────────────────────────────────── */
-
 /** Plancton — radiolarian / diatom starburst */
 function PlanktonIcon({ size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      {/* 8 radiating spikes */}
       <line x1="12" y1="12" x2="12" y2="1"    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       <line x1="12" y1="12" x2="12" y2="23"   stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       <line x1="12" y1="12" x2="1"  y2="12"   stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -28,7 +66,6 @@ function PlanktonIcon({ size }) {
       <line x1="12" y1="12" x2="19.8" y2="19.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       <line x1="12" y1="12" x2="19.8" y2="4.2"  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       <line x1="12" y1="12" x2="4.2"  y2="19.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      {/* Center body */}
       <circle cx="12" cy="12" r="3.5" />
     </svg>
   )
@@ -39,19 +76,12 @@ function SeahorseIcon({ size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Crown */}
       <path d="M10.5 4.5L10 2.5M12.5 4L12.5 2M14.5 4.5L15 2.5" />
-      {/* Head */}
       <circle cx="12.5" cy="7" r="2.8" />
-      {/* Snout — horizontal, pointing right */}
       <line x1="15.3" y1="7.2" x2="20" y2="7.8" />
-      {/* Neck */}
       <line x1="12.5" y1="9.8" x2="11.5" y2="11" />
-      {/* Body S-curve */}
       <path d="M11.5 11C14 12 15 14 14 16C13 18 10.5 19 9.5 20.5" />
-      {/* Dorsal fin */}
       <path d="M14 14C16 13.2 17 14.2 16 15.2" />
-      {/* Tail curl */}
       <path d="M9.5 20.5C8 21.5 7 23 8.5 23.5C10 24 11.5 23 12 21.8C12.5 20.8 11.8 20.2 10.2 20.8" />
     </svg>
   )
@@ -62,19 +92,12 @@ function TurtleIcon({ size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Shell */}
       <ellipse cx="12" cy="13" rx="5.5" ry="5" />
-      {/* Shell scute pattern */}
       <path d="M12 8L15 10.5L15 15.5L12 18L9 15.5L9 10.5Z" strokeWidth="1" strokeOpacity="0.5"/>
-      {/* Head */}
       <circle cx="12" cy="4" r="2" />
-      {/* Front-left flipper */}
       <path d="M6.5 10C4.5 8.5 2 9 2.5 11C3 12.5 5.5 12 6.5 11" />
-      {/* Front-right flipper */}
       <path d="M17.5 10C19.5 8.5 22 9 21.5 11C21 12.5 18.5 12 17.5 11" />
-      {/* Rear-left flipper */}
       <path d="M7 16.5C5 17 3 18.5 4.5 19.5C6 20.5 7.5 19 7.5 17.5" />
-      {/* Rear-right flipper */}
       <path d="M17 16.5C19 17 21 18.5 19.5 19.5C18 20.5 16.5 19 16.5 17.5" />
     </svg>
   )
@@ -85,15 +108,10 @@ function MantaRayIcon({ size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Main body / wings */}
       <path d="M12 5C16 5.5 22 9.5 22 13C22 15.5 19 17 16 17.5C14 18 12 18 12 18C12 18 10 18 8 17.5C5 17 2 15.5 2 13C2 9.5 8 5.5 12 5Z" />
-      {/* Left cephalic horn (curls forward) */}
       <path d="M8 9C6.5 7 4 6 3 8" />
-      {/* Right cephalic horn */}
       <path d="M16 9C17.5 7 20 6 21 8" />
-      {/* Thin tail */}
       <path d="M12 18C11.5 20 11.8 22.5 12 23.5" />
-      {/* Spine line */}
       <line x1="12" y1="7" x2="12" y2="17" strokeWidth="0.75" strokeOpacity="0.4"/>
     </svg>
   )
@@ -104,17 +122,11 @@ function WhaleIcon({ size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Main body */}
       <path d="M5 12C5 8 8 6 12 6C17 6 22 8.5 22 12C22 14.5 19.5 16 16 16.5C12 17 8 16.5 5 12Z" />
-      {/* Dorsal fin */}
       <path d="M14.5 6C15 4 17 3 17.5 5L17.5 6" />
-      {/* Belly */}
       <path d="M10 16C13 17 16.5 16.5 18.5 15.5" strokeWidth="1" strokeOpacity="0.4"/>
-      {/* Tail flukes — upper */}
       <path d="M5 12C3 10.5 1 10 2 8" />
-      {/* Tail flukes — lower */}
       <path d="M5 12C3 13.5 1 14 2 16" />
-      {/* Eye */}
       <circle cx="19.5" cy="10" r="0.9" fill="currentColor" />
     </svg>
   )
@@ -141,6 +153,175 @@ export function LevelIcon({ level, size = 24, style = {} }) {
     </span>
   )
 }
+
+/* ─────────────────────────────────────────────
+   CUSTOM OCEANIC ICONS
+───────────────────────────────────────────── */
+
+/** CoralIcon — branching coral with rounded tips */
+export function CoralIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21 L12 15" />
+      <path d="M12 15 L8 10" />
+      <path d="M12 15 L16 10" />
+      <path d="M8 10 L6 6" />
+      <path d="M8 10 L10 6" />
+      <path d="M16 10 L14 6" />
+      <path d="M16 10 L18 6" />
+      <path d="M12 15 L12 11" />
+      <path d="M11 21 Q12 23 13 21" />
+    </svg>
+  )
+}
+
+/** TropicalFishIcon — oval body with tail and stripe */
+export function TropicalFishIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="12" rx="6" ry="4" />
+      <path d="M6 12 L2 9 L2 15 Z" />
+      <path d="M9 8 Q12 5 15 8" />
+      <line x1="11" y1="8" x2="11" y2="16" strokeWidth="1" strokeOpacity="0.5" />
+      <circle cx="16" cy="11" r="1" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** DiveMaskIcon — scuba diving mask with strap */
+export function DiveMaskIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="8" width="18" height="10" rx="3" />
+      <rect x="4" y="9" width="6" height="7" rx="2" />
+      <rect x="14" y="9" width="6" height="7" rx="2" />
+      <path d="M10 12.5 L14 12.5" />
+      <path d="M3 11 Q1 8 3 6 Q6 4 8 8" />
+      <path d="M21 11 Q23 8 21 6 Q18 4 16 8" />
+    </svg>
+  )
+}
+
+/** SpeedboatIcon — fast boat with windshield */
+export function SpeedboatIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 16 Q6 13 12 13 Q18 13 22 16 L22 18 Q12 20 2 18 Z" />
+      <path d="M8 13 L10 8 L16 8 L17 13" />
+      <path d="M2 19 Q7 21 12 19 Q17 21 22 19" />
+    </svg>
+  )
+}
+
+/** OceanWaveIcon — stylised ocean wave */
+export function OceanWaveIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 10 Q5 6 8 10 Q11 14 14 10 Q17 6 20 10 Q22 12 23 10" />
+      <path d="M2 16 Q5 12 8 16 Q11 20 14 16 Q17 12 20 16 Q22 18 23 16" />
+    </svg>
+  )
+}
+
+/** WalkingPersonIcon — walking figure */
+export function WalkingPersonIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="13" cy="4" r="2" />
+      <path d="M12 7 L11 13" />
+      <path d="M11 9 L16 11" />
+      <path d="M11 13 L13 18 L16 22" />
+      <path d="M11 13 L9 17 L7 22" />
+    </svg>
+  )
+}
+
+/** IslandIcon — tropical island with palm tree */
+export function IslandIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 17 Q7 13 12 17 Q17 21 22 17" />
+      <path d="M8 17 Q12 11 16 17" />
+      <path d="M12 17 L12 9" />
+      <path d="M12 9 Q8 6 5 8 Q7 11 12 10" />
+      <path d="M12 9 Q16 6 19 8 Q17 11 12 10" />
+    </svg>
+  )
+}
+
+/** MedalIcon — podium medal component (rank 1/2/3) */
+export function MedalIcon({ rank = 1, size = 24 }) {
+  const COLORS = { 1: '#ffd700', 2: '#c0c0c0', 3: '#cd7f32' }
+  const color = COLORS[rank] || 'rgba(255,255,255,0.4)'
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: size, height: size, borderRadius: '50%',
+      background: `${color}18`, border: `1.5px solid ${color}55`,
+      fontSize: Math.round(size * 0.44), fontWeight: 900, color,
+      lineHeight: 1, flexShrink: 0,
+    }}>
+      {rank}
+    </span>
+  )
+}
+
+/* ─────────────────────────────────────────────
+   MISSION ICON MAPPER
+   Maps emoji strings (stored in DB) → SVG components
+───────────────────────────────────────────── */
+const MISSION_ICON_MAP = {
+  '🪸': CoralIcon,
+  '🌊': OceanWaveIcon,
+  '🐠': TropicalFishIcon,
+  '🐡': TropicalFishIcon,
+  '🌍': GlobeIcon,
+  '🐋': WhaleIcon,
+  '🌱': LeafIcon,
+  '🌿': LeafIcon,
+  '🤿': DiveMaskIcon,
+  '♻️': RecycleIcon,
+  '🎯': TargetIcon,
+  '⭐': StarIcon,
+}
+
+/** MissionIcon — renders the correct SVG for a backend-provided emoji string */
+export function MissionIcon({ icon, size = 24, color = 'currentColor' }) {
+  const IconComp = MISSION_ICON_MAP[icon]
+  if (!IconComp) return <span style={{ fontSize: Math.round(size * 0.8), lineHeight: 1 }}>{icon}</span>
+  return (
+    <span style={{ color, display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
+      <IconComp size={size} />
+    </span>
+  )
+}
+
+/** OptionIcon — maps compensation option ID → SVG icon */
+const OPTION_ICON_MAP = {
+  corales:      CoralIcon,
+  manglares:    LeafIcon,
+  limpieza:     RecycleIcon,
+  voluntariado: DiveMaskIcon,
+}
+
+export function OptionIcon({ id, size = 24, color = 'currentColor' }) {
+  const IconComp = OPTION_ICON_MAP[id] || CoralIcon
+  return (
+    <span style={{ color, display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
+      <IconComp size={size} />
+    </span>
+  )
+}
+
+/** CONFETTI_ICONS — for mission completion animation */
+export const CONFETTI_ICONS = [CoralIcon, TropicalFishIcon, StarIcon, OceanWaveIcon, WhaleIcon]
 
 /* ─────────────────────────────────────────────
    SOCIAL / BRAND ICONS

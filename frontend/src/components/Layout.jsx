@@ -3,17 +3,18 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import Bubbles from './Bubbles'
 import { useAuth } from '../context/AuthContext'
-import { LevelIcon } from './OceanIcons'
+import {
+  LevelIcon, MedalIcon, OceanWaveIcon,
+  ThermometerIcon, TargetIcon, LeafIcon, TrophyIcon, DiveMaskIcon,
+} from './OceanIcons'
 
 const navItems = [
-  { to: '/calculator', icon: '🌡️', label: 'Huella' },
-  { to: '/missions', icon: '🎯', label: 'Misiones' },
-  { to: '/compensation', icon: '🌱', label: 'Compensar' },
-  { to: '/leaderboard', icon: '🏆', label: 'Ranking' },
-  { to: '/profile', icon: '🤿', label: 'Perfil' },
+  { to: '/calculator',   Icon: ThermometerIcon, label: 'Huella'   },
+  { to: '/missions',     Icon: TargetIcon,       label: 'Misiones' },
+  { to: '/compensation', Icon: LeafIcon,          label: 'Compensar'},
+  { to: '/leaderboard',  Icon: TrophyIcon,        label: 'Ranking'  },
+  { to: '/profile',      Icon: DiveMaskIcon,      label: 'Perfil'   },
 ]
-
-const RANK_MEDALS = ['🥇', '🥈', '🥉']
 
 function DesktopRightSidebar() {
   const [leaders, setLeaders] = useState([])
@@ -29,8 +30,8 @@ function DesktopRightSidebar() {
     <div className="p-5 flex flex-col gap-5 h-full">
       {/* Leaderboard widget */}
       <div>
-        <p className="text-[10px] text-ocean-cyan/60 font-bold uppercase tracking-widest mb-3">
-          🏆 Top Guardianes
+        <p className="text-[10px] text-ocean-cyan/60 font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <TrophyIcon size={12} /> Top Guardianes
         </p>
         <div className="space-y-1.5">
           {leaders.map((leader, i) => {
@@ -46,7 +47,7 @@ function DesktopRightSidebar() {
                 }
               >
                 <span className="text-sm w-5 text-center flex-shrink-0">
-                  {RANK_MEDALS[i] || `#${i + 1}`}
+                  {i < 3 ? <MedalIcon rank={i + 1} size={18} /> : <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>#{i + 1}</span>}
                 </span>
                 <span className="flex-shrink-0"><LevelIcon level={leader.level} size={18} /></span>
                 <div className="flex-1 min-w-0">
@@ -104,8 +105,9 @@ function DesktopRightSidebar() {
         className="rounded-2xl p-4 mt-auto"
         style={{ background: 'rgba(72,202,228,0.04)', border: '1px solid rgba(72,202,228,0.08)' }}
       >
-        <p className="text-ocean-foam/40 text-xs leading-relaxed">
-          🌊 El océano absorbe el 30% del CO₂ que producimos. Cada viaje calculado es un paso hacia protegerlo.
+        <p className="text-ocean-foam/40 text-xs leading-relaxed flex items-start gap-1.5">
+          <OceanWaveIcon size={14} />
+          El océano absorbe el 30% del CO₂ que producimos. Cada viaje calculado es un paso hacia protegerlo.
         </p>
       </div>
     </div>
@@ -143,7 +145,9 @@ export default function Layout() {
             </p>
             <div className="flex items-center gap-2">
               <span className="text-2xl font-black text-white leading-none">Print</span>
-              <span className="text-xl">🌊</span>
+              <span className="text-ocean-cyan" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <OceanWaveIcon size={22} />
+              </span>
             </div>
           </div>
 
@@ -151,7 +155,7 @@ export default function Layout() {
 
           {/* Nav links */}
           <nav className="flex-1 px-3 space-y-1 py-1">
-            {navItems.map(({ to, icon, label }) => (
+            {navItems.map(({ to, Icon, label }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -166,7 +170,7 @@ export default function Layout() {
                     : { color: 'rgba(255,255,255,0.4)', border: '1px solid transparent' }
                 }
               >
-                <span className="text-xl">{icon}</span>
+                <Icon size={20} />
                 <span className="text-sm font-semibold">{label}</span>
               </NavLink>
             ))}
@@ -219,13 +223,13 @@ export default function Layout() {
             backdropFilter: 'blur(20px)',
           }}
         >
-          {navItems.map(({ to, icon, label }) => (
+          {navItems.map(({ to, Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               className={`nav-tab ${isActive(to) ? 'active' : ''}`}
             >
-              <span className="text-xl">{icon}</span>
+              <Icon size={22} />
               <span className="text-[10px] font-medium">{label}</span>
             </NavLink>
           ))}

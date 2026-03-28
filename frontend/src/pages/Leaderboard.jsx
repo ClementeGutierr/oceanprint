@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
-import { LevelIcon } from '../components/OceanIcons'
+import { LevelIcon, MedalIcon, TrophyIcon, OceanWaveIcon } from '../components/OceanIcons'
 
 const RANK_STYLES = [
-  { bg: 'rgba(255,215,0,0.1)', border: 'rgba(255,215,0,0.3)', numColor: '#ffd700', medal: '🥇' },
-  { bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.3)', numColor: '#c0c0c0', medal: '🥈' },
-  { bg: 'rgba(205,127,50,0.1)', border: 'rgba(205,127,50,0.3)', numColor: '#cd7f32', medal: '🥉' },
+  { bg: 'rgba(255,215,0,0.1)',   border: 'rgba(255,215,0,0.3)',   numColor: '#ffd700' },
+  { bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.3)', numColor: '#c0c0c0' },
+  { bg: 'rgba(205,127,50,0.1)',  border: 'rgba(205,127,50,0.3)',  numColor: '#cd7f32' },
 ]
 
 export default function Leaderboard() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const { API, user } = useAuth()
+  const { API } = useAuth()
 
   useEffect(() => {
     axios.get(`${API}/leaderboard`)
@@ -23,7 +23,9 @@ export default function Leaderboard() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
-      <div className="text-ocean-cyan animate-pulse text-4xl">🏆</div>
+      <div className="text-ocean-cyan animate-pulse">
+        <TrophyIcon size={48} />
+      </div>
     </div>
   )
 
@@ -31,7 +33,9 @@ export default function Leaderboard() {
     <div className="px-5 pt-8 pb-6 animate-fade-in">
       <div className="mb-6">
         <p className="text-ocean-cyan/70 text-xs font-semibold uppercase tracking-widest mb-1">Guardianes del océano</p>
-        <h1 className="text-3xl font-black text-white">Ranking <span className="text-2xl">🏆</span></h1>
+        <h1 className="text-3xl font-black text-white flex items-center gap-2">
+          Ranking <TrophyIcon size={28} />
+        </h1>
         {data?.my_rank && (
           <p className="text-ocean-foam/50 text-sm mt-1">
             Tu posición: <span className="text-ocean-cyan font-bold">#{data.my_rank}</span>
@@ -50,10 +54,10 @@ export default function Leaderboard() {
             >
               <div className="mb-1"><LevelIcon level={data.leaders[1].level} size={24} /></div>
               <p className="text-white font-bold text-xs truncate">{data.leaders[1].name.split(' ')[0]}</p>
-              <p className="text-silver font-black text-sm" style={{ color: '#c0c0c0' }}>{data.leaders[1].points}</p>
-              <p className="text-silver/60 text-[10px]">pts</p>
+              <p className="font-black text-sm" style={{ color: '#c0c0c0' }}>{data.leaders[1].points}</p>
+              <p className="text-[10px]" style={{ color: 'rgba(192,192,192,0.5)' }}>pts</p>
             </div>
-            <div className="text-2xl -mt-1">🥈</div>
+            <div className="flex justify-center mt-1"><MedalIcon rank={2} size={28} /></div>
           </div>
           {/* 1st */}
           <div className="flex-1 text-center">
@@ -66,7 +70,7 @@ export default function Leaderboard() {
               <p className="font-black text-lg" style={{ color: '#ffd700' }}>{data.leaders[0].points}</p>
               <p className="text-[10px]" style={{ color: 'rgba(255,215,0,0.5)' }}>pts</p>
             </div>
-            <div className="text-2xl -mt-1">🥇</div>
+            <div className="flex justify-center mt-1"><MedalIcon rank={1} size={32} /></div>
           </div>
           {/* 3rd */}
           <div className="flex-1 text-center">
@@ -79,7 +83,7 @@ export default function Leaderboard() {
               <p className="font-black text-sm" style={{ color: '#cd7f32' }}>{data.leaders[2].points}</p>
               <p className="text-[10px]" style={{ color: 'rgba(205,127,50,0.5)' }}>pts</p>
             </div>
-            <div className="text-2xl -mt-1">🥉</div>
+            <div className="flex justify-center mt-1"><MedalIcon rank={3} size={24} /></div>
           </div>
         </div>
       )}
@@ -102,12 +106,11 @@ export default function Leaderboard() {
                   : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }
               }
             >
-              <div className="w-8 text-center flex-shrink-0">
-                {rankStyle ? (
-                  <span className="text-lg">{rankStyle.medal}</span>
-                ) : (
-                  <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>#{i + 1}</span>
-                )}
+              <div className="w-8 text-center flex-shrink-0 flex items-center justify-center">
+                {i < 3
+                  ? <MedalIcon rank={i + 1} size={24} />
+                  : <span className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.3)' }}>#{i + 1}</span>
+                }
               </div>
 
               <div className="flex-shrink-0"><LevelIcon level={leader.level} size={22} /></div>
@@ -145,7 +148,9 @@ export default function Leaderboard() {
 
       {!data?.leaders?.length && (
         <div className="text-center py-12 text-ocean-foam/30">
-          <p className="text-4xl mb-3">🌊</p>
+          <div className="flex justify-center mb-3 opacity-30">
+            <OceanWaveIcon size={48} />
+          </div>
           <p>Sé el primero en el ranking</p>
         </div>
       )}

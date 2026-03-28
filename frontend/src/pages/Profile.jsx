@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import { LevelIcon, LEVEL_COLORS } from '../components/OceanIcons'
+import {
+  DiveMaskIcon, TrashIcon, ThermometerIcon, LeafIcon, PlaneIcon, TargetIcon,
+} from '../components/OceanIcons'
 
 function DeleteTripModal({ trip, onConfirm, onCancel, loading }) {
   return (
@@ -16,7 +19,9 @@ function DeleteTripModal({ trip, onConfirm, onCancel, loading }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="text-center mb-5">
-          <div className="text-4xl mb-3">🗑️</div>
+          <div className="flex justify-center mb-3 text-coral">
+            <TrashIcon size={40} />
+          </div>
           <h3 className="text-white font-black text-lg mb-1">¿Eliminar este viaje?</h3>
           <p className="text-ocean-foam/50 text-sm">
             {trip.origin} → {trip.destination}
@@ -49,10 +54,10 @@ function DeleteTripModal({ trip, onConfirm, onCancel, loading }) {
 
 const LEVELS = ['Plancton', 'Caballito de Mar', 'Tortuga Marina', 'Mantarraya', 'Ballena Azul']
 
-function StatCard({ icon, label, value, sub }) {
+function StatCard({ Icon, label, value, sub }) {
   return (
     <div className="rounded-2xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="text-xl mb-1">{icon}</div>
+      <div className="flex justify-center mb-1 text-ocean-cyan/60"><Icon size={20} /></div>
       <p className="text-white font-black text-xl">{value}</p>
       <p className="text-ocean-foam/60 text-xs font-medium">{label}</p>
       {sub && <p className="text-ocean-foam/30 text-[10px] mt-0.5">{sub}</p>}
@@ -93,7 +98,7 @@ export default function Profile() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
-      <div className="text-ocean-cyan animate-pulse text-4xl">🤿</div>
+      <div className="text-ocean-cyan animate-pulse"><DiveMaskIcon size={48} /></div>
     </div>
   )
   if (!profile) return null
@@ -107,7 +112,9 @@ export default function Profile() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <p className="text-ocean-cyan/70 text-xs font-semibold uppercase tracking-widest mb-1">Tu perfil</p>
-          <h1 className="text-3xl font-black text-white">Buceador <span className="text-2xl">🤿</span></h1>
+          <h1 className="text-3xl font-black text-white flex items-center gap-2">
+            Buceador <DiveMaskIcon size={28} />
+          </h1>
         </div>
         <button
           onClick={logout}
@@ -157,7 +164,7 @@ export default function Profile() {
             />
           </div>
           {profile.next_level && (
-            <p className="text-ocean-foam/30 text-[10px] mt-1 text-right">
+            <p className="text-ocean-foam/30 text-[10px] mt-1 text-right flex items-center justify-end gap-1">
               Próximo nivel: {profile.next_level} <LevelIcon level={profile.next_level} size={12} />
             </p>
           )}
@@ -187,10 +194,10 @@ export default function Profile() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <StatCard icon="🌡️" label="CO₂ total" value={`${Math.round(profile.total_co2)} kg`} />
-        <StatCard icon="🌱" label="Compensado" value={`${Math.round(profile.compensated_co2)} kg`} />
-        <StatCard icon="✈️" label="Viajes" value={profile.trips_count} />
-        <StatCard icon="🎯" label="Misiones" value={profile.missions_count} sub="completadas" />
+        <StatCard Icon={ThermometerIcon} label="CO₂ total"  value={`${Math.round(profile.total_co2)} kg`} />
+        <StatCard Icon={LeafIcon}        label="Compensado" value={`${Math.round(profile.compensated_co2)} kg`} />
+        <StatCard Icon={PlaneIcon}       label="Viajes"     value={profile.trips_count} />
+        <StatCard Icon={TargetIcon}      label="Misiones"   value={profile.missions_count} sub="completadas" />
       </div>
 
       {/* CO2 balance card */}
@@ -237,7 +244,7 @@ export default function Profile() {
             {profile.recent_trips.map((t, i) => (
               <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-xl"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <span className="text-sm">✈️</span>
+                <span className="text-ocean-cyan/50"><PlaneIcon size={14} /></span>
                 <span className="text-xs text-white/60 flex-1">{t.origin} → {t.destination}</span>
                 <span className="text-xs font-bold text-ocean-foam/60">{Math.round(t.co2_total)} kg CO₂</span>
                 <button

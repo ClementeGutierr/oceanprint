@@ -2,7 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { Download } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { LevelIcon, WhatsAppIcon, InstagramIcon } from '../components/OceanIcons'
+import {
+  LevelIcon, WhatsAppIcon, InstagramIcon, OptionIcon,
+  DiveMaskIcon, LockIcon, CreditCardIcon, SparklesIcon,
+  OceanWaveIcon, LeafIcon, RefreshIcon,
+} from '../components/OceanIcons'
 
 const OPTION_DETAILS = {
   corales:      { gradient: 'from-pink-500/20 to-rose-400/10',    border: 'rgba(244,114,182,0.3)', glow: 'rgba(244,114,182,0.15)', accent: '#f472b6' },
@@ -81,9 +85,9 @@ function SocialCard({ selected, units, user, result, cardRef }) {
 
       <div style={{ width:'32px', height:'1px', background:'rgba(0,180,216,0.25)', marginBottom:'26px' }} />
 
-      {/* Hero emoji */}
-      <div style={{ fontSize:'80px', marginBottom:'18px', textAlign:'center', lineHeight:'1' }}>
-        {selected.icon}
+      {/* Hero icon */}
+      <div style={{ marginBottom:'18px', textAlign:'center', lineHeight:'1', color: style.accent }}>
+        <OptionIcon id={selected.id} size={80} color={style.accent} />
       </div>
 
       {/* Action */}
@@ -291,7 +295,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                 style={{ background: `linear-gradient(135deg, ${style.glow}, rgba(2,12,27,0.6))`, border: `1px solid ${style.border}` }}
               >
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="text-5xl">{selected.icon}</div>
+                  <div style={{ color: style.accent }}><OptionIcon id={selected.id} size={44} color={style.accent} /></div>
                   <div>
                     <p className="text-white font-black text-lg leading-tight">{selected.name}</p>
                     <p className="text-ocean-foam/50 text-xs mt-0.5">{selected.organization}</p>
@@ -379,7 +383,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                     className="rounded-2xl p-3 flex gap-2 mt-4"
                     style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)' }}
                   >
-                    <span className="text-lg flex-shrink-0">🤿</span>
+                    <span className="flex-shrink-0 text-purple-400"><DiveMaskIcon size={18} /></span>
                     <p className="text-ocean-foam/40 text-xs leading-relaxed">
                       Te contactaremos por email para confirmar tu cupo y darte los detalles de la expedición.
                     </p>
@@ -399,9 +403,9 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                     style={{ background: 'rgba(255,255,255,0.04)' }}
                   >
                     {[
-                      { id: 'tarjeta', label: '💳 Tarjeta' },
-                      { id: 'transferencia', label: '🏦 Transf.' },
-                      { id: 'pse', label: '🔐 PSE' },
+                      { id: 'tarjeta',       Icon: CreditCardIcon, label: 'Tarjeta' },
+                      { id: 'transferencia', Icon: RefreshIcon,     label: 'Transf.' },
+                      { id: 'pse',           Icon: LockIcon,        label: 'PSE'     },
                     ].map(m => (
                       <button
                         key={m.id}
@@ -413,7 +417,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                             : { color: 'rgba(255,255,255,0.35)', border: '1px solid transparent' }
                         }
                       >
-                        {m.label}
+                        <span className="flex items-center justify-center gap-1"><m.Icon size={13} /> {m.label}</span>
                       </button>
                     ))}
                   </div>
@@ -547,7 +551,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                     className="rounded-2xl p-3 flex gap-2.5 mt-4"
                     style={{ background: 'rgba(255,209,102,0.06)', border: '1px solid rgba(255,209,102,0.18)' }}
                   >
-                    <span className="text-sand text-lg flex-shrink-0">🔒</span>
+                    <span className="flex-shrink-0" style={{ color: '#ffd166' }}><LockIcon size={18} /></span>
                     <div>
                       <p className="text-sand text-xs font-semibold mb-0.5">Modo Demo</p>
                       <p className="text-ocean-foam/35 text-xs leading-relaxed">
@@ -567,9 +571,9 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                 {submitting ? (
                   <span className="inline-block w-5 h-5 border-2 border-ocean-deep/40 border-t-ocean-deep rounded-full animate-spin" />
                 ) : isVolunteer ? (
-                  '🤿 Confirmar inscripción'
+                  <><DiveMaskIcon size={18} /> Confirmar inscripción</>
                 ) : (
-                  '💳 Confirmar pago'
+                  <><CreditCardIcon size={18} /> Confirmar pago</>
                 )}
               </button>
               <button onClick={() => setStep(1)} className="w-full text-center text-xs text-ocean-foam/30 mt-3 py-2">
@@ -583,7 +587,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
             <div className="animate-fade-in">
               {/* Celebration header */}
               <div className="text-center mb-6">
-                <div className="text-5xl mb-3 animate-float">🎉</div>
+                <div className="mb-3 animate-float flex justify-center text-green-400"><SparklesIcon size={52} /></div>
                 <h3 className="text-white font-black text-2xl mb-1">¡Compensación lista!</h3>
                 <p className="text-ocean-foam/50 text-sm">
                   +{result.points_earned} pts · -{result.co2_compensated} kg CO₂
@@ -593,7 +597,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                     className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-full text-xs font-semibold"
                     style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)' }}
                   >
-                    🌊 {result.compensation_pct}% de tu huella compensada
+                    <span className="inline-flex items-center gap-1"><OceanWaveIcon size={13} /> {result.compensation_pct}% de tu huella compensada</span>
                   </div>
                 )}
               </div>
@@ -612,8 +616,8 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
               </div>
 
               {/* Share label */}
-              <p className="text-[10px] text-ocean-cyan/50 font-bold uppercase tracking-widest text-center mb-3">
-                Comparte tu impacto 🌊
+              <p className="text-[10px] text-ocean-cyan/50 font-bold uppercase tracking-widest text-center mb-3 flex items-center justify-center gap-1">
+                Comparte tu impacto <OceanWaveIcon size={12} />
               </p>
 
               {/* Share buttons */}
@@ -705,7 +709,7 @@ export default function Compensation() {
     <div className="px-5 pt-8 pb-6 animate-fade-in">
       <div className="mb-6">
         <p className="text-ocean-cyan/70 text-xs font-semibold uppercase tracking-widest mb-1">Restaura el balance</p>
-        <h1 className="text-3xl font-black text-white">Compensar <span className="text-2xl">🌱</span></h1>
+        <h1 className="text-3xl font-black text-white flex items-center gap-2">Compensar <LeafIcon size={28} /></h1>
       </div>
 
       {/* Progress */}
@@ -724,7 +728,7 @@ export default function Compensation() {
         </div>
         {compensationPct >= 100 && (
           <div className="text-center mt-3 text-green-400 font-bold text-sm animate-pulse-glow">
-            🌊 ¡Huella completamente compensada! ¡Eres un guardián del océano!
+            <span className="inline-flex items-center gap-1.5"><OceanWaveIcon size={16} /> ¡Huella completamente compensada! ¡Eres un guardián del océano!</span>
           </div>
         )}
       </div>
@@ -747,7 +751,7 @@ export default function Compensation() {
               }
             >
               <div className="flex items-start gap-3">
-                <span className="text-2xl mt-0.5">{opt.icon}</span>
+                <span className="mt-0.5" style={{ color: (OPTION_DETAILS[opt.id] || OPTION_DETAILS.corales).accent }}><OptionIcon id={opt.id} size={26} color={(OPTION_DETAILS[opt.id] || OPTION_DETAILS.corales).accent} /></span>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
                     <p className="font-bold text-white text-sm">{opt.name}</p>
@@ -809,7 +813,7 @@ export default function Compensation() {
           </div>
 
           <button onClick={() => setShowFlow(true)} className="btn-primary w-full flex items-center justify-center gap-2">
-            {selected.icon} Continuar con la compensación →
+            <OptionIcon id={selected.id} size={18} color="currentColor" /> Continuar con la compensación →
           </button>
         </div>
       )}

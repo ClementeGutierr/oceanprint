@@ -2,23 +2,28 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import {
+  PlaneIcon, ShipIcon, BusIcon, CarIcon, SearchIcon, UsersIcon,
+  ThermometerIcon, IslandIcon, MapIcon,
+  DiveMaskIcon, SpeedboatIcon, XIcon, WalkingPersonIcon,
+} from '../components/OceanIcons'
 
 const ORIGINS = ['Bogotá', 'Medellín', 'Cali', 'Miami', 'New York', 'Ciudad de México', 'Lima']
 const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla del Coco', 'Raja Ampat', 'Providencia']
 
 const SEA_OPTIONS = [
-  { value: 'bote_buceo', label: 'Bote de buceo', icon: '🤿' },
-  { value: 'lancha', label: 'Lancha rápida', icon: '🚤' },
-  { value: 'ferry', label: 'Ferry', icon: '⛴️' },
-  { value: 'none', label: 'Sin transporte marino', icon: '❌' },
+  { value: 'bote_buceo', label: 'Bote de buceo',          Icon: DiveMaskIcon   },
+  { value: 'lancha',     label: 'Lancha rápida',           Icon: SpeedboatIcon  },
+  { value: 'ferry',      label: 'Ferry',                   Icon: ShipIcon       },
+  { value: 'none',       label: 'Sin transporte marino',   Icon: XIcon          },
 ]
 
 const LAND_OPTIONS = [
-  { value: 'van', label: 'Van / Minibus', icon: '🚐' },
-  { value: 'bus', label: 'Bus público', icon: '🚌' },
-  { value: 'taxi', label: 'Taxi / Uber', icon: '🚕' },
-  { value: 'suv', label: 'SUV', icon: '🚙' },
-  { value: 'none', label: 'Caminando', icon: '🚶' },
+  { value: 'van',  label: 'Van / Minibus', Icon: BusIcon           },
+  { value: 'bus',  label: 'Bus público',   Icon: BusIcon           },
+  { value: 'taxi', label: 'Taxi / Uber',   Icon: CarIcon           },
+  { value: 'suv',  label: 'SUV',           Icon: CarIcon           },
+  { value: 'none', label: 'Caminando',     Icon: WalkingPersonIcon },
 ]
 
 export default function Calculator() {
@@ -67,7 +72,7 @@ export default function Calculator() {
               : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
           }
         >
-          <span className="text-lg">{opt.icon}</span>
+          <opt.Icon size={18} />
           <span className="text-xs font-medium leading-tight">{opt.label}</span>
         </button>
       ))}
@@ -79,15 +84,17 @@ export default function Calculator() {
       {/* Header */}
       <div className="mb-6">
         <p className="text-ocean-cyan/70 text-xs font-semibold uppercase tracking-widest mb-1">Calcula tu</p>
-        <h1 className="text-3xl font-black text-white">Huella de Carbono <span className="text-2xl">🌡️</span></h1>
+        <h1 className="text-3xl font-black text-white flex items-center gap-2">
+          Huella de Carbono <ThermometerIcon size={28} />
+        </h1>
         <p className="text-ocean-foam/40 text-sm mt-1">Tu aventura marina, sin rastro en el planeta</p>
       </div>
 
       <div className="space-y-5">
         {/* Origin */}
         <div>
-          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 block">
-            ✈️ Ciudad de Origen
+          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <PlaneIcon size={13} /> Ciudad de Origen
           </label>
           <div className="grid grid-cols-2 gap-2">
             {ORIGINS.map(origin => (
@@ -110,8 +117,8 @@ export default function Calculator() {
 
         {/* Destination */}
         <div>
-          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 block">
-            🏝️ Destino de Buceo
+          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <IslandIcon size={13} /> Destino de Buceo
           </label>
           <div className="grid grid-cols-2 gap-2">
             {DESTINATIONS.map(dest => (
@@ -134,8 +141,8 @@ export default function Calculator() {
 
         {/* Sea transport */}
         <div>
-          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 block">
-            🚢 Transporte Marítimo
+          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <ShipIcon size={13} /> Transporte Marítimo
           </label>
           <OptionGrid
             options={SEA_OPTIONS}
@@ -160,8 +167,8 @@ export default function Calculator() {
 
         {/* Land transport */}
         <div>
-          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 block">
-            🛣️ Transporte Terrestre
+          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <MapIcon size={13} /> Transporte Terrestre
           </label>
           <OptionGrid
             options={LAND_OPTIONS}
@@ -174,7 +181,9 @@ export default function Calculator() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-white">👥 Pasajeros en el grupo</p>
+              <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                <UsersIcon size={15} /> Pasajeros en el grupo
+              </p>
               <p className="text-xs text-ocean-foam/40 mt-0.5">Divide la huella entre todos</p>
             </div>
             <div className="flex items-center gap-3">
@@ -210,7 +219,7 @@ export default function Calculator() {
           {loading ? (
             <span className="inline-block w-5 h-5 border-2 border-ocean-deep/40 border-t-ocean-deep rounded-full animate-spin" />
           ) : (
-            <>🔍 Calcular Huella de Carbono</>
+            <><SearchIcon size={18} /> Calcular Huella de Carbono</>
           )}
         </button>
       </div>

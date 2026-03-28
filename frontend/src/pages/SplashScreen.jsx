@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Bubbles from '../components/Bubbles'
+import { OceanWaveIcon } from '../components/OceanIcons'
 
 export default function SplashScreen() {
   const navigate = useNavigate()
@@ -44,10 +45,10 @@ export default function SplashScreen() {
       >
         {/* Logo */}
         <div
-          className="text-8xl mb-6 animate-float"
+          className="mb-6 animate-float text-ocean-cyan"
           style={{ filter: 'drop-shadow(0 0 30px rgba(0,180,216,0.5))' }}
         >
-          🌊
+          <OceanWaveIcon size={96} />
         </div>
 
         <h1 className="text-5xl font-black tracking-tight mb-2">

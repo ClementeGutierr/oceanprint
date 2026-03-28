@@ -2,8 +2,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import {
+  PlaneIcon, ShipIcon, CarIcon, StarIcon, LeafIcon, RefreshIcon, ThermometerIcon,
+} from '../components/OceanIcons'
 
-const LEVEL_ICONS = { flight: '✈️', sea: '🚢', land: '🚗' }
+const BREAKDOWN_ICONS = { flight: PlaneIcon, sea: ShipIcon, land: CarIcon }
 const LEVEL_LABELS = { flight: 'Vuelo (ida y vuelta)', sea: 'Transporte marítimo', land: 'Transporte terrestre' }
 const LEVEL_COLORS = {
   flight: 'from-blue-500 to-cyan-400',
@@ -17,10 +20,10 @@ function formatCO2(kg) {
 }
 
 function getCarbonContext(kg) {
-  if (kg < 100) return { label: 'Huella muy baja 🌿', color: '#4ade80', desc: 'Equivale a cargar tu smartphone 12,000 veces' }
-  if (kg < 300) return { label: 'Huella moderada 🟡', color: '#fbbf24', desc: `Equivale a ${Math.round(kg / 21)} días de conducir un auto promedio` }
-  if (kg < 600) return { label: 'Huella alta ⚠️', color: '#fb923c', desc: `Equivale a ${Math.round(kg / 0.5)} bolsas plásticas en el océano` }
-  return { label: 'Huella muy alta 🔴', color: '#f87171', desc: `Equivale a ${(kg / 1000 * 0.5).toFixed(1)} toneladas de coral dañado` }
+  if (kg < 100) return { label: 'Huella muy baja', Icon: LeafIcon, color: '#4ade80', desc: 'Equivale a cargar tu smartphone 12,000 veces' }
+  if (kg < 300) return { label: 'Huella moderada', Icon: ThermometerIcon, color: '#fbbf24', desc: `Equivale a ${Math.round(kg / 21)} días de conducir un auto promedio` }
+  if (kg < 600) return { label: 'Huella alta', Icon: ThermometerIcon, color: '#fb923c', desc: `Equivale a ${Math.round(kg / 0.5)} bolsas plásticas en el océano` }
+  return { label: 'Huella muy alta', Icon: ThermometerIcon, color: '#f87171', desc: `Equivale a ${(kg / 1000 * 0.5).toFixed(1)} toneladas de coral dañado` }
 }
 
 export default function Results() {
@@ -97,7 +100,7 @@ export default function Results() {
 
         <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-semibold"
           style={{ background: `${context.color}20`, color: context.color, border: `1px solid ${context.color}40` }}>
-          {context.label}
+          <context.Icon size={13} /> {context.label}
         </div>
         <p className="text-ocean-foam/40 text-xs mt-2">{context.desc}</p>
       </div>
@@ -106,29 +109,32 @@ export default function Results() {
       <div className="card mb-5">
         <h3 className="text-sm font-bold text-ocean-foam/70 uppercase tracking-wider mb-4">Desglose de emisiones</h3>
         <div className="space-y-4">
-          {bars.map(({ key, value, pct }) => (
-            <div key={key}>
-              <div className="flex justify-between items-center mb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">{LEVEL_ICONS[key]}</span>
-                  <span className="text-sm text-white/80">{LEVEL_LABELS[key]}</span>
+          {bars.map(({ key, value, pct }) => {
+            const BarIcon = BREAKDOWN_ICONS[key]
+            return (
+              <div key={key}>
+                <div className="flex justify-between items-center mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <BarIcon size={18} className="text-ocean-cyan/70" />
+                    <span className="text-sm text-white/80">{LEVEL_LABELS[key]}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-ocean-cyan">{formatCO2(value)}</span>
+                    <span className="text-xs text-ocean-foam/40 ml-1">({pct}%)</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-ocean-cyan">{formatCO2(value)}</span>
-                  <span className="text-xs text-ocean-foam/40 ml-1">({pct}%)</span>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: animated ? `${pct}%` : '0%',
+                      transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  />
                 </div>
               </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{
-                    width: animated ? `${pct}%` : '0%',
-                    transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -140,7 +146,9 @@ export default function Results() {
           border: '1px solid rgba(72,202,228,0.2)',
         }}
       >
-        <div className="text-3xl animate-float">⭐</div>
+        <div className="animate-float text-yellow-400">
+          <StarIcon size={32} />
+        </div>
         <div>
           <p className="text-ocean-cyan font-bold">+{points_earned} puntos ganados</p>
           <p className="text-ocean-foam/50 text-xs">Por calcular tu huella de carbono</p>
@@ -149,11 +157,11 @@ export default function Results() {
 
       {/* CTA Buttons */}
       <div className="space-y-3">
-        <button onClick={() => navigate('/compensation')} className="btn-primary w-full">
-          🌱 Compensar mi huella
+        <button onClick={() => navigate('/compensation')} className="btn-primary w-full flex items-center justify-center gap-2">
+          <LeafIcon size={18} /> Compensar mi huella
         </button>
-        <button onClick={() => navigate('/calculator')} className="btn-secondary w-full">
-          🔄 Calcular otro viaje
+        <button onClick={() => navigate('/calculator')} className="btn-secondary w-full flex items-center justify-center gap-2">
+          <RefreshIcon size={18} /> Calcular otro viaje
         </button>
 
         {!deleteConfirm ? (

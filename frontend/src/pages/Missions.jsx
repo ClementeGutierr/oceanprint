@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import {
+  TargetIcon, BrainIcon, XIcon, SparklesIcon, FrownIcon,
+  LightbulbIcon, CheckIcon, MissionIcon, CONFETTI_ICONS,
+} from '../components/OceanIcons'
 
 function QuizModal({ quiz, onClose, onAnswer }) {
   const [selected, setSelected] = useState(null)
@@ -46,12 +50,14 @@ function QuizModal({ quiz, onClose, onAnswer }) {
       >
         <div className="flex justify-between items-start mb-4">
           <div>
-            <span className="badge" style={{ background: 'rgba(0,180,216,0.15)', color: '#48cae4' }}>
-              🧠 Quiz Marino
+            <span className="badge flex items-center gap-1" style={{ background: 'rgba(0,180,216,0.15)', color: '#48cae4' }}>
+              <BrainIcon size={12} /> Quiz Marino
             </span>
             <p className="text-xs text-ocean-foam/40 mt-1">+{quiz.points} puntos si aciertas</p>
           </div>
-          <button onClick={onClose} className="text-ocean-foam/40 text-2xl">✕</button>
+          <button onClick={onClose} className="text-ocean-foam/40 flex items-center justify-center">
+            <XIcon size={22} />
+          </button>
         </div>
 
         <h3 className="text-white font-semibold text-base mb-5 leading-snug">{quiz.question}</h3>
@@ -94,7 +100,12 @@ function QuizModal({ quiz, onClose, onAnswer }) {
           </>
         ) : (
           <div className="text-center">
-            <div className="text-5xl mb-3">{result.correct ? '🎉' : '😔'}</div>
+            <div className="flex justify-center mb-3">
+              {result.correct
+                ? <SparklesIcon size={52} className="text-green-400" />
+                : <FrownIcon size={52} className="text-coral" />
+              }
+            </div>
             <h4 className={`text-xl font-black mb-2 ${result.correct ? 'text-green-400' : 'text-coral'}`}>
               {result.correct ? '¡Correcto!' : 'Incorrecto'}
             </h4>
@@ -106,9 +117,10 @@ function QuizModal({ quiz, onClose, onAnswer }) {
                 La respuesta correcta era: <span className="text-ocean-cyan font-bold">{result.correct_answer}</span>
               </p>
             )}
-            <p className="text-ocean-foam/50 text-xs leading-relaxed mb-4 text-left"
+            <p className="text-ocean-foam/50 text-xs leading-relaxed mb-4 text-left flex items-start gap-1.5"
               style={{ background: 'rgba(0,180,216,0.06)', borderRadius: '12px', padding: '12px' }}>
-              💡 {result.explanation}
+              <LightbulbIcon size={14} className="flex-shrink-0 mt-0.5 text-ocean-cyan/60" />
+              {result.explanation}
             </p>
             <button onClick={onClose} className="btn-primary w-full">Continuar</button>
           </div>
@@ -177,7 +189,7 @@ export default function Missions() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
-      <div className="text-ocean-cyan animate-pulse text-4xl">🎯</div>
+      <TargetIcon size={48} className="text-ocean-cyan animate-pulse" />
     </div>
   )
 
@@ -186,25 +198,31 @@ export default function Missions() {
       {/* Confetti */}
       {confetti && (
         <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute text-2xl animate-confetti"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 0.5}s`,
-              }}
-            >
-              {['🪸', '🐠', '⭐', '🌊', '🐋'][Math.floor(Math.random() * 5)]}
-            </div>
-          ))}
+          {[...Array(20)].map((_, i) => {
+            const ConfettiComp = CONFETTI_ICONS[Math.floor(Math.random() * CONFETTI_ICONS.length)]
+            return (
+              <div
+                key={i}
+                className="absolute animate-confetti text-ocean-cyan"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 0.5}s`,
+                  color: ['#48cae4', '#4ade80', '#fbbf24', '#f472b6', '#a78bfa'][Math.floor(Math.random() * 5)],
+                }}
+              >
+                <ConfettiComp size={24} />
+              </div>
+            )
+          })}
         </div>
       )}
 
       <div className="mb-6">
         <p className="text-ocean-cyan/70 text-xs font-semibold uppercase tracking-widest mb-1">Desafíos</p>
-        <h1 className="text-3xl font-black text-white">Misiones <span className="text-2xl">🎯</span></h1>
+        <h1 className="text-3xl font-black text-white flex items-center gap-2">
+          Misiones <TargetIcon size={28} />
+        </h1>
         <div className="flex items-center gap-3 mt-3">
           <div className="flex-1 progress-bar">
             <div className="progress-fill" style={{ width: `${missions.length > 0 ? (completed / missions.length) * 100 : 0}%` }} />
@@ -236,14 +254,17 @@ export default function Missions() {
               }
             >
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+                className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={
                   mission.completed
-                    ? { background: 'rgba(72,202,228,0.15)' }
-                    : { background: 'rgba(255,255,255,0.06)' }
+                    ? { background: 'rgba(72,202,228,0.15)', color: '#48cae4' }
+                    : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }
                 }
               >
-                {mission.completed ? '✅' : mission.icon}
+                {mission.completed
+                  ? <CheckIcon size={24} />
+                  : <MissionIcon icon={mission.icon} size={24} />
+                }
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
@@ -264,7 +285,7 @@ export default function Missions() {
                 <p className="text-ocean-foam/40 text-xs mt-0.5 leading-snug line-clamp-2">{mission.description}</p>
                 {mission.quiz_id && !mission.completed && (
                   <span className="inline-flex items-center gap-1 text-xs text-ocean-cyan/60 mt-1">
-                    🧠 Requiere quiz marino
+                    <BrainIcon size={12} /> Requiere quiz marino
                   </span>
                 )}
               </div>
