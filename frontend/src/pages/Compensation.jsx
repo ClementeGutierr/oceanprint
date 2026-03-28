@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import { Download } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { LevelIcon, WhatsAppIcon, InstagramIcon } from '../components/OceanIcons'
 
 const OPTION_DETAILS = {
   corales:      { gradient: 'from-pink-500/20 to-rose-400/10',    border: 'rgba(244,114,182,0.3)', glow: 'rgba(244,114,182,0.15)', accent: '#f472b6' },
@@ -9,10 +11,6 @@ const OPTION_DETAILS = {
   voluntariado: { gradient: 'from-purple-500/20 to-violet-400/10', border: 'rgba(167,139,250,0.3)', glow: 'rgba(167,139,250,0.15)', accent: '#a78bfa' },
 }
 
-const LEVEL_ICONS = {
-  'Plancton': '🔵', 'Caballito de Mar': '🐴',
-  'Tortuga Marina': '🐢', 'Mantarraya': '🦈', 'Ballena Azul': '🐋',
-}
 
 const QUOTES = {
   corales:      'Cada coral es una vida. El océano te lo agradece.',
@@ -120,7 +118,8 @@ function SocialCard({ selected, units, user, result, cardRef }) {
           border:'1px solid rgba(0,180,216,0.28)', borderRadius:'20px',
           padding:'3px 14px', fontSize:'11px', color:'#48cae4', fontWeight:'600',
         }}>
-          {LEVEL_ICONS[user?.level] || '🔵'} {user?.level || 'Guardián'}
+          <LevelIcon level={user?.level || 'Plancton'} size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+          {user?.level || 'Guardián'}
         </div>
         {pct > 0 && (
           <div style={{ fontSize:'10px', color:'rgba(74,222,128,0.65)', marginTop:'7px' }}>
@@ -625,7 +624,9 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                   className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 text-xs font-semibold"
                   style={{ background: 'rgba(0,180,216,0.1)', border: '1px solid rgba(0,180,216,0.25)', color: '#48cae4' }}
                 >
-                  <span className="text-xl">{downloading ? '⏳' : '📥'}</span>
+                  {downloading
+                    ? <span className="text-xl">⏳</span>
+                    : <Download size={20} />}
                   {downloading ? 'Generando…' : 'Descargar'}
                 </button>
                 <button
@@ -633,7 +634,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                   className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 text-xs font-semibold"
                   style={{ background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.25)', color: '#25d366' }}
                 >
-                  <span className="text-xl">💬</span>
+                  <WhatsAppIcon size={20} />
                   WhatsApp
                 </button>
                 <button
@@ -641,7 +642,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                   className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 text-xs font-semibold"
                   style={{ background: 'rgba(225,48,108,0.1)', border: '1px solid rgba(225,48,108,0.25)', color: '#e1306c' }}
                 >
-                  <span className="text-xl">📸</span>
+                  <InstagramIcon size={20} />
                   Instagram
                 </button>
               </div>

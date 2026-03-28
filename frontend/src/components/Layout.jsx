@@ -3,6 +3,7 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import Bubbles from './Bubbles'
 import { useAuth } from '../context/AuthContext'
+import { LevelIcon } from './OceanIcons'
 
 const navItems = [
   { to: '/calculator', icon: '🌡️', label: 'Huella' },
@@ -11,14 +12,6 @@ const navItems = [
   { to: '/leaderboard', icon: '🏆', label: 'Ranking' },
   { to: '/profile', icon: '🤿', label: 'Perfil' },
 ]
-
-const LEVEL_ICONS = {
-  'Plancton': '🔵',
-  'Caballito de Mar': '🐴',
-  'Tortuga Marina': '🐢',
-  'Mantarraya': '🦈',
-  'Ballena Azul': '🐋',
-}
 
 const RANK_MEDALS = ['🥇', '🥈', '🥉']
 
@@ -55,7 +48,7 @@ function DesktopRightSidebar() {
                 <span className="text-sm w-5 text-center flex-shrink-0">
                   {RANK_MEDALS[i] || `#${i + 1}`}
                 </span>
-                <span className="text-base flex-shrink-0">{LEVEL_ICONS[leader.level] || '🔵'}</span>
+                <span className="flex-shrink-0"><LevelIcon level={leader.level} size={18} /></span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs font-semibold truncate ${isMe ? 'text-ocean-cyan' : 'text-white/80'}`}>
                     {leader.name.split(' ')[0]}{isMe && ' (tú)'}
@@ -86,7 +79,7 @@ function DesktopRightSidebar() {
             style={{ background: 'rgba(0,180,216,0.05)', border: '1px solid rgba(0,180,216,0.12)' }}
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="text-3xl">{LEVEL_ICONS[user.level] || '🔵'}</div>
+              <div><LevelIcon level={user.level} size={30} /></div>
               <div>
                 <p className="text-white font-bold text-sm leading-tight">{user.name?.split(' ')[0]}</p>
                 <p className="text-xs" style={{ color: '#48cae4' }}>{user.level}</p>

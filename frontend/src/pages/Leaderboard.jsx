@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
-
-const LEVEL_ICONS = {
-  'Plancton': '🔵',
-  'Caballito de Mar': '🐴',
-  'Tortuga Marina': '🐢',
-  'Mantarraya': '🦈',
-  'Ballena Azul': '🐋',
-}
+import { LevelIcon } from '../components/OceanIcons'
 
 const RANK_STYLES = [
   { bg: 'rgba(255,215,0,0.1)', border: 'rgba(255,215,0,0.3)', numColor: '#ffd700', medal: '🥇' },
@@ -55,7 +48,7 @@ export default function Leaderboard() {
               className="rounded-t-2xl py-4 px-2"
               style={{ background: 'rgba(192,192,192,0.08)', border: '1px solid rgba(192,192,192,0.2)', borderBottom: 'none', minHeight: '80px' }}
             >
-              <div className="text-2xl mb-1">{LEVEL_ICONS[data.leaders[1].level] || '🔵'}</div>
+              <div className="mb-1"><LevelIcon level={data.leaders[1].level} size={24} /></div>
               <p className="text-white font-bold text-xs truncate">{data.leaders[1].name.split(' ')[0]}</p>
               <p className="text-silver font-black text-sm" style={{ color: '#c0c0c0' }}>{data.leaders[1].points}</p>
               <p className="text-silver/60 text-[10px]">pts</p>
@@ -68,7 +61,7 @@ export default function Leaderboard() {
               className="rounded-t-2xl py-4 px-2"
               style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.25)', borderBottom: 'none', minHeight: '100px' }}
             >
-              <div className="text-3xl mb-1">{LEVEL_ICONS[data.leaders[0].level] || '🔵'}</div>
+              <div className="mb-1"><LevelIcon level={data.leaders[0].level} size={30} /></div>
               <p className="text-white font-bold text-xs truncate">{data.leaders[0].name.split(' ')[0]}</p>
               <p className="font-black text-lg" style={{ color: '#ffd700' }}>{data.leaders[0].points}</p>
               <p className="text-[10px]" style={{ color: 'rgba(255,215,0,0.5)' }}>pts</p>
@@ -81,7 +74,7 @@ export default function Leaderboard() {
               className="rounded-t-2xl py-4 px-2"
               style={{ background: 'rgba(205,127,50,0.08)', border: '1px solid rgba(205,127,50,0.2)', borderBottom: 'none', minHeight: '65px' }}
             >
-              <div className="text-xl mb-1">{LEVEL_ICONS[data.leaders[2].level] || '🔵'}</div>
+              <div className="mb-1"><LevelIcon level={data.leaders[2].level} size={20} /></div>
               <p className="text-white font-bold text-xs truncate">{data.leaders[2].name.split(' ')[0]}</p>
               <p className="font-black text-sm" style={{ color: '#cd7f32' }}>{data.leaders[2].points}</p>
               <p className="text-[10px]" style={{ color: 'rgba(205,127,50,0.5)' }}>pts</p>
@@ -117,7 +110,7 @@ export default function Leaderboard() {
                 )}
               </div>
 
-              <div className="text-xl flex-shrink-0">{LEVEL_ICONS[leader.level] || '🔵'}</div>
+              <div className="flex-shrink-0"><LevelIcon level={leader.level} size={22} /></div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">

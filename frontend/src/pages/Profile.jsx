@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import { LevelIcon, LEVEL_COLORS } from '../components/OceanIcons'
 
 function DeleteTripModal({ trip, onConfirm, onCancel, loading }) {
   return (
@@ -47,14 +48,6 @@ function DeleteTripModal({ trip, onConfirm, onCancel, loading }) {
 }
 
 const LEVELS = ['Plancton', 'Caballito de Mar', 'Tortuga Marina', 'Mantarraya', 'Ballena Azul']
-const LEVEL_ICONS = { 'Plancton': '🔵', 'Caballito de Mar': '🐴', 'Tortuga Marina': '🐢', 'Mantarraya': '🦈', 'Ballena Azul': '🐋' }
-const LEVEL_COLORS = {
-  'Plancton': '#48cae4',
-  'Caballito de Mar': '#00b4d8',
-  'Tortuga Marina': '#4ade80',
-  'Mantarraya': '#f59e0b',
-  'Ballena Azul': '#a78bfa',
-}
 
 function StatCard({ icon, label, value, sub }) {
   return (
@@ -138,7 +131,7 @@ export default function Profile() {
             className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl animate-float"
             style={{ background: `${levelColor}15`, border: `1px solid ${levelColor}30` }}
           >
-            {LEVEL_ICONS[profile.level] || '🔵'}
+            <LevelIcon level={profile.level} size={36} />
           </div>
           <div>
             <h2 className="text-xl font-black text-white">{profile.name}</h2>
@@ -165,7 +158,7 @@ export default function Profile() {
           </div>
           {profile.next_level && (
             <p className="text-ocean-foam/30 text-[10px] mt-1 text-right">
-              Próximo nivel: {profile.next_level} {LEVEL_ICONS[profile.next_level]}
+              Próximo nivel: {profile.next_level} <LevelIcon level={profile.next_level} size={12} />
             </p>
           )}
         </div>
