@@ -41,7 +41,7 @@ function DesktopRightSidebar() {
         </p>
         <div className="space-y-1.5">
           {leaders.map((leader, i) => {
-            const isMe = leader.id === user?.id
+            const isMe = leader.is_me
             return (
               <div
                 key={leader.id}

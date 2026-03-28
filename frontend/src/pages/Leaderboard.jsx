@@ -94,7 +94,7 @@ export default function Leaderboard() {
       {/* Full list */}
       <div className="space-y-2">
         {data?.leaders?.map((leader, i) => {
-          const isMe = leader.id === user?.id
+          const isMe = leader.is_me
           const rankStyle = i < 3 ? RANK_STYLES[i] : null
 
           return (
@@ -120,10 +120,16 @@ export default function Leaderboard() {
               <div className="text-xl flex-shrink-0">{LEVEL_ICONS[leader.level] || '🔵'}</div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <p className={`font-semibold text-sm truncate ${isMe ? 'text-ocean-cyan' : 'text-white'}`}>
                     {leader.name} {isMe && '(tú)'}
                   </p>
+                  {leader.is_demo && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.25)' }}>
+                      demo
+                    </span>
+                  )}
                 </div>
                 <p className="text-ocean-foam/40 text-xs">{leader.level} · {leader.trips_count} viajes</p>
               </div>
