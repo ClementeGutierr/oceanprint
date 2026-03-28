@@ -4,30 +4,16 @@ import { useAuth } from '../context/AuthContext'
 import { LevelIcon, LEVEL_COLORS } from '../components/OceanIcons'
 import {
   DiveMaskIcon, TrashIcon, ThermometerIcon, LeafIcon, PlaneIcon, TargetIcon,
-  PencilIcon, CameraIcon, MapPinIcon, AtSignIcon, PhoneIcon, CheckIcon,
+  PencilIcon, MapPinIcon, AtSignIcon, CheckIcon,
   WhatsAppIcon, InstagramIcon,
 } from '../components/OceanIcons'
 
-/* ─────────────────────────────────────────────
-   AVATAR HELPERS
-───────────────────────────────────────────── */
-const PRESET_AVATARS = [
-  'Plancton', 'Caballito de Mar', 'Tortuga Marina', 'Mantarraya', 'Ballena Azul',
-]
-
-function ProfileAvatar({ avatar, level, size = 36, className = '' }) {
-  if (avatar && avatar.startsWith('http')) {
-    return (
-      <img
-        src={avatar}
-        alt="avatar"
-        className={className}
-        style={{ width: size, height: size, borderRadius: '12px', objectFit: 'cover' }}
-      />
-    )
-  }
-  const displayLevel = (avatar && PRESET_AVATARS.includes(avatar)) ? avatar : level
-  return <LevelIcon level={displayLevel} size={size} />
+/* Points needed to reach the next level */
+const NEXT_LEVEL_THRESHOLD = {
+  'Plancton':         100,
+  'Caballito de Mar': 300,
+  'Tortuga Marina':   600,
+  'Mantarraya':       1000,
 }
 
 /* ─────────────────────────────────────────────
@@ -37,7 +23,6 @@ function EditProfileModal({ profile, onClose, onSaved }) {
   const { API } = useAuth()
   const [form, setForm] = useState({
     name:        profile.name        || '',
-    avatar:      profile.avatar      || profile.level || 'Plancton',
     origin_city: profile.origin_city || '',
     bio:         profile.bio         || '',
     instagram:   profile.instagram   || '',
@@ -62,7 +47,6 @@ function EditProfileModal({ profile, onClose, onSaved }) {
     try {
       const res = await axios.put(`${API}/profile`, {
         name,
-        avatar:      form.avatar,
         origin_city: form.origin_city.trim(),
         bio:         form.bio.trim(),
         instagram:   form.instagram.trim().replace(/^@/, ''),
@@ -114,45 +98,50 @@ function EditProfileModal({ profile, onClose, onSaved }) {
             </button>
           </div>
 
-          {/* ── AVATAR PICKER ── */}
-          <div className="mb-5">
-            <label className="text-xs text-ocean-foam/50 font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <CameraIcon size={13} /> Avatar
-            </label>
-            <div className="flex gap-2 mb-3">
-              {PRESET_AVATARS.map(lvl => {
-                const color = LEVEL_COLORS[lvl] || '#48cae4'
-                const isSelected = form.avatar === lvl
-                return (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => set('avatar', lvl)}
-                    className="flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl transition-all duration-150"
-                    style={
-                      isSelected
-                        ? { background: `${color}20`, border: `1.5px solid ${color}60` }
-                        : { background: 'rgba(255,255,255,0.04)', border: '1.5px solid transparent' }
-                    }
-                    title={lvl}
-                  >
-                    <LevelIcon level={lvl} size={24} />
-                    {isSelected && (
-                      <span style={{ color, fontSize: 9, fontWeight: 700 }}>
-                        <CheckIcon size={10} />
+          {/* ── AVATAR (nivel actual, solo lectura) ── */}
+          {(() => {
+            const levelColor = LEVEL_COLORS[profile.level] || '#48cae4'
+            const nextLevel  = profile.next_level
+            const ptsNeeded  = nextLevel
+              ? Math.max(0, (NEXT_LEVEL_THRESHOLD[profile.level] || 0) - profile.points)
+              : 0
+            return (
+              <div
+                className="rounded-2xl p-4 mb-5 flex items-center gap-4"
+                style={{ background: `${levelColor}0d`, border: `1px solid ${levelColor}28` }}
+              >
+                {/* Current icon */}
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${levelColor}18`, border: `1px solid ${levelColor}35` }}
+                >
+                  <LevelIcon level={profile.level} size={32} />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-bold text-sm">{profile.level}</p>
+                  <p className="text-ocean-foam/45 text-xs mt-0.5 leading-snug">
+                    Tu avatar cambia al subir de nivel
+                  </p>
+
+                  {nextLevel ? (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className="text-[10px] text-ocean-foam/35">Siguiente:</span>
+                      <LevelIcon level={nextLevel} size={14} />
+                      <span className="text-[10px] font-semibold" style={{ color: LEVEL_COLORS[nextLevel] || '#48cae4' }}>
+                        {nextLevel}
                       </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-            <input
-              className="input-field text-xs"
-              placeholder="O pega una URL de imagen (https://...)"
-              value={form.avatar.startsWith('http') ? form.avatar : ''}
-              onChange={e => set('avatar', e.target.value || profile.level)}
-            />
-          </div>
+                      <span className="text-[10px] text-ocean-foam/30">
+                        · faltan {ptsNeeded} pts
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-ocean-foam/35 mt-1.5">Nivel máximo alcanzado</p>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* ── NOMBRE ── */}
           <div className="mb-4">
@@ -389,9 +378,6 @@ export default function Profile() {
 
   const levelColor = LEVEL_COLORS[profile.level] || '#48cae4'
   const levelIdx   = LEVELS.indexOf(profile.level)
-  const avatarLevel = (profile.avatar && PRESET_AVATARS.includes(profile.avatar))
-    ? profile.avatar
-    : profile.level
 
   return (
     <div className="px-5 pt-8 pb-6 animate-fade-in">
@@ -434,7 +420,7 @@ export default function Profile() {
             className="w-16 h-16 rounded-2xl flex items-center justify-center animate-float flex-shrink-0"
             style={{ background: `${levelColor}15`, border: `1px solid ${levelColor}30` }}
           >
-            <ProfileAvatar avatar={profile.avatar} level={profile.level} size={36} />
+            <LevelIcon level={profile.level} size={36} />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-black text-white">{profile.name}</h2>
