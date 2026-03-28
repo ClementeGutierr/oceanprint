@@ -690,9 +690,6 @@ export default function Compensation() {
   function handleSuccess() {
     refreshUser()
     fetchData()
-    setShowFlow(false)
-    setSelected(null)
-    setUnits(1)
   }
 
   const compensationPct = stats
@@ -822,7 +819,7 @@ export default function Compensation() {
           units={units}
           user={user}
           API={API}
-          onClose={() => setShowFlow(false)}
+          onClose={() => { setShowFlow(false); setSelected(null); setUnits(1) }}
           onSuccess={handleSuccess}
         />
       )}

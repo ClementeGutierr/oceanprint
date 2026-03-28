@@ -90,7 +90,7 @@ function initDatabase() {
 
 function seedData() {
   const missionCount = db.prepare('SELECT COUNT(*) as count FROM missions').get();
-  if (missionCount.count > 0) return;
+  if (missionCount.count === 0) {
 
   const insertMission = db.prepare(
     'INSERT INTO missions (name, description, icon, points, category, quiz_id) VALUES (?, ?, ?, ?, ?, ?)'
@@ -133,6 +133,21 @@ function seedData() {
   for (const quiz of quizzes) {
     insertQuiz.run(...quiz);
   }
+  } // end if (missionCount.count === 0)
+
+  // Seed demo users for leaderboard (idempotent — uses INSERT OR IGNORE)
+  const bcrypt = require('bcryptjs');
+  const demoPwd = bcrypt.hashSync('OceanDemo2025!', 8);
+  const insertUser = db.prepare(
+    'INSERT OR IGNORE INTO users (name, email, password, points, level, total_co2, compensated_co2, trips_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  );
+  [
+    ['Diego Ramos',     'diego@demo.oceanprint.co',     demoPwd, 1050, 'Ballena Azul',     2400, 2100, 18],
+    ['Marina García',   'marina@demo.oceanprint.co',    demoPwd,  850, 'Mantarraya',       1850, 1200, 14],
+    ['Andrés Torres',   'andres@demo.oceanprint.co',    demoPwd,  620, 'Mantarraya',        980,  450,  9],
+    ['Valentina Cruz',  'valentina@demo.oceanprint.co', demoPwd,  320, 'Tortuga Marina',    650,  180,  5],
+    ['Camila Vega',     'camila@demo.oceanprint.co',    demoPwd,  180, 'Caballito de Mar',  420,   90,  3],
+  ].forEach(u => insertUser.run(...u));
 }
 
 module.exports = { db, initDatabase };
