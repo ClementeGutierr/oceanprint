@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { LevelIcon, LEVEL_COLORS } from '../components/OceanIcons'
 import {
   DiveMaskIcon, TrashIcon, ThermometerIcon, LeafIcon, PlaneIcon, TargetIcon,
-  PencilIcon, MapPinIcon, AtSignIcon, CheckIcon,
+  PencilIcon, MapPinIcon, AtSignIcon, CheckIcon, LockIcon, TrophyIcon,
   WhatsAppIcon, InstagramIcon,
 } from '../components/OceanIcons'
 
@@ -318,6 +318,14 @@ function DeleteTripModal({ trip, onConfirm, onCancel, loading }) {
 
 const LEVELS = ['Plancton', 'Caballito de Mar', 'Tortuga Marina', 'Mantarraya', 'Ballena Azul']
 
+const LEVEL_THRESHOLDS = [
+  { name: 'Plancton',         pts: 0    },
+  { name: 'Caballito de Mar', pts: 100  },
+  { name: 'Tortuga Marina',   pts: 300  },
+  { name: 'Mantarraya',       pts: 600  },
+  { name: 'Ballena Azul',     pts: 1000 },
+]
+
 function StatCard({ Icon, label, value, sub }) {
   return (
     <div className="rounded-2xl p-4 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -520,6 +528,95 @@ export default function Profile() {
         <StatCard Icon={LeafIcon}        label="Compensado" value={`${Math.round(profile.compensated_co2)} kg`} />
         <StatCard Icon={PlaneIcon}       label="Viajes"     value={profile.trips_count} />
         <StatCard Icon={TargetIcon}      label="Misiones"   value={profile.missions_count} sub="completadas" />
+      </div>
+
+      {/* ── NIVELES ROADMAP ── */}
+      <div className="mb-5">
+        <h3 className="text-xs text-ocean-foam/50 font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <TrophyIcon size={12} /> Progresión de niveles
+        </h3>
+        <div
+          className="rounded-3xl p-4"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {LEVEL_THRESHOLDS.map((lvl, i) => {
+            const color      = LEVEL_COLORS[lvl.name] || '#48cae4'
+            const isUnlocked = i <= levelIdx
+            const isCurrent  = i === levelIdx
+            const isLast     = i === LEVEL_THRESHOLDS.length - 1
+            return (
+              <div key={lvl.name} className="relative flex gap-3">
+                {/* Left: icon + connector line */}
+                <div className="flex flex-col items-center flex-shrink-0" style={{ width: '44px' }}>
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all"
+                    style={
+                      isCurrent
+                        ? { background: color + '22', border: `2px solid ${color}`, boxShadow: `0 0 16px ${color}40` }
+                        : isUnlocked
+                        ? { background: color + '14', border: `1px solid ${color}35` }
+                        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', opacity: 0.45 }
+                    }
+                  >
+                    <LevelIcon level={lvl.name} size={24} />
+                  </div>
+                  {!isLast && (
+                    <div
+                      className="w-0.5 flex-1 my-1"
+                      style={{
+                        minHeight: '20px',
+                        background: i < levelIdx
+                          ? `linear-gradient(180deg, ${color}60, ${LEVEL_COLORS[LEVEL_THRESHOLDS[i+1].name]}40)`
+                          : 'rgba(255,255,255,0.07)',
+                      }}
+                    />
+                  )}
+                </div>
+
+                {/* Right: info row */}
+                <div
+                  className="flex-1 flex items-center gap-2 rounded-2xl px-3 mb-1 transition-all"
+                  style={{
+                    minHeight: '44px',
+                    marginBottom: isLast ? 0 : '4px',
+                    ...(isCurrent
+                      ? { background: color + '12', border: `1px solid ${color}35` }
+                      : isUnlocked
+                      ? { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }
+                      : { background: 'transparent', border: '1px solid transparent', opacity: 0.4 }
+                    ),
+                  }}
+                >
+                  <div className="flex-1 min-w-0 py-2">
+                    <p className="text-white font-bold text-sm leading-tight">{lvl.name}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: isUnlocked ? color : 'rgba(255,255,255,0.3)' }}>
+                      {lvl.pts === 0 ? 'Nivel inicial · 0 pts' : `${lvl.pts.toLocaleString()} pts`}
+                    </p>
+                  </div>
+
+                  {isCurrent && (
+                    <span
+                      className="flex-shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                      style={{ background: color + '20', color, border: `1px solid ${color}45` }}
+                    >
+                      Actual
+                    </span>
+                  )}
+                  {isUnlocked && !isCurrent && (
+                    <span className="flex-shrink-0" style={{ color: '#4ade80' }}>
+                      <CheckIcon size={15} />
+                    </span>
+                  )}
+                  {!isUnlocked && (
+                    <span className="flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                      <LockIcon size={13} />
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* CO2 balance card */}
