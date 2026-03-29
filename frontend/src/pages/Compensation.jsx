@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import axios from 'axios'
 import { Download } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import {
   LevelIcon, WhatsAppIcon, InstagramIcon, OptionIcon,
   DiveMaskIcon, LockIcon, CreditCardIcon, SparklesIcon,
-  OceanWaveIcon, LeafIcon, RefreshIcon,
+  OceanWaveIcon, LeafIcon, RefreshIcon, XIcon,
 } from '../components/OceanIcons'
 
 const OPTION_DETAILS = {
@@ -234,9 +235,9 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
 
   const STEPS = isVolunteer ? ['Resumen', 'Inscripción', '¡Listo!'] : ['Resumen', 'Pago', '¡Listo!']
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-end justify-center"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
       style={{ background: 'rgba(2,12,27,0.92)', backdropFilter: 'blur(10px)' }}
       onClick={e => step < 3 && e.target === e.currentTarget && onClose()}
     >
@@ -252,16 +253,32 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
       </div>
 
       <div
-        className="w-full max-w-[480px] rounded-t-3xl overflow-y-auto animate-slide-up"
+        className="w-full max-w-[480px] rounded-3xl overflow-y-auto animate-slide-up"
         style={{
-          maxHeight: '92vh',
+          maxHeight: '90vh',
           background: 'linear-gradient(180deg,#0d2137 0%,#0a1628 100%)',
           border: '1px solid rgba(255,255,255,0.07)',
-          borderBottom: 'none',
         }}
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6 pb-10">
+          {/* Header with X button */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <OptionIcon id={selected.id} size={18} color={(OPTION_DETAILS[selected.id] || OPTION_DETAILS.corales).accent} />
+              <span className="text-sm font-bold text-white">{selected.name}</span>
+            </div>
+            {step < 3 && (
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}
+              >
+                <XIcon size={16} />
+              </button>
+            )}
+          </div>
+
           {/* Step indicator */}
           <div className="flex items-center mb-6">
             {STEPS.map((label, i) => (
@@ -667,7 +684,8 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
