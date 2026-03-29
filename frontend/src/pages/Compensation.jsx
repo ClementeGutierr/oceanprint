@@ -157,8 +157,9 @@ function SocialCard({ selected, units, user, result, cardRef }) {
 /* ─────────────────────────────────────────────
    MULTI-STEP FLOW MODAL
 ───────────────────────────────────────────── */
-function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess }) {
+function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   const [step, setStep] = useState(1)
+  const [units, setUnits] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState('tarjeta')
   const [cardForm, setCardForm] = useState({ number: '', name: '', expiry: '', cvv: '' })
   const [volunteerForm, setVolunteerForm] = useState({
@@ -345,6 +346,44 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
                   </div>
                 )}
               </div>
+
+              {/* Units selector */}
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-white mb-3">
+                  ¿Cuántos {selected.unit}s quieres {selected.id === 'voluntariado' ? 'reservar' : 'apoyar'}?
+                </p>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setUnits(Math.max(1, units - 1))}
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0"
+                    style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}
+                  >−</button>
+                  <div className="flex-1 text-center">
+                    <span className="text-3xl font-black gradient-text">{units}</span>
+                    <p className="text-ocean-foam/40 text-xs mt-0.5">{selected.unit}(s)</p>
+                  </div>
+                  <button
+                    onClick={() => setUnits(Math.min(100, units + 1))}
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0"
+                    style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}
+                  >+</button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center mt-3">
+                  <div className="rounded-xl py-2" style={{ background: 'rgba(0,180,216,0.08)' }}>
+                    <p className="text-ocean-cyan font-bold text-sm">-{co2} kg</p>
+                    <p className="text-ocean-foam/40 text-xs">CO₂</p>
+                  </div>
+                  <div className="rounded-xl py-2" style={{ background: 'rgba(255,209,102,0.08)' }}>
+                    <p className="text-sand font-bold text-sm">+{pts} pts</p>
+                    <p className="text-ocean-foam/40 text-xs">Puntos</p>
+                  </div>
+                  <div className="rounded-xl py-2" style={{ background: 'rgba(52,211,153,0.08)' }}>
+                    <p className="text-green-400 font-bold text-sm">{formatCOP(cost)}</p>
+                    <p className="text-ocean-foam/40 text-xs">Costo</p>
+                  </div>
+                </div>
+              </div>
+
               <button onClick={() => setStep(2)} className="btn-primary w-full">
                 Continuar →
               </button>
@@ -695,9 +734,7 @@ function CompensationFlowModal({ selected, units, user, API, onClose, onSuccess 
 export default function Compensation() {
   const [options, setOptions] = useState([])
   const [selected, setSelected] = useState(null)
-  const [units, setUnits] = useState(1)
   const [stats, setStats] = useState(null)
-  const [showFlow, setShowFlow] = useState(false)
   const { API, user, refreshUser } = useAuth()
 
   useEffect(() => { fetchData() }, [])
@@ -723,10 +760,6 @@ export default function Compensation() {
   const compensationPct = stats
     ? (stats.total_co2 > 0 ? Math.min(100, Math.round((stats.compensated_co2 / stats.total_co2) * 100)) : 0)
     : 0
-
-  const co2ToCompensate = selected ? selected.co2_per_unit * units : 0
-  const cost = selected ? selected.cost_per_unit * units : 0
-  const pts  = selected ? selected.points_per_unit * units : 0
 
   return (
     <div className="px-5 pt-8 pb-6 animate-fade-in">
@@ -761,17 +794,12 @@ export default function Compensation() {
       <div className="space-y-3 mb-5">
         {options.map(opt => {
           const style = OPTION_DETAILS[opt.id] || OPTION_DETAILS.corales
-          const isSelected = selected?.id === opt.id
           return (
             <button
               key={opt.id}
-              onClick={() => { setSelected(opt); setUnits(1) }}
+              onClick={() => setSelected(opt)}
               className="w-full text-left rounded-2xl p-4 transition-all duration-200 active:scale-[0.98]"
-              style={
-                isSelected
-                  ? { background: `linear-gradient(135deg, ${style.glow}, rgba(2,12,27,0.4))`, border: `1px solid ${style.border}`, boxShadow: `0 4px 20px ${style.glow}` }
-                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }
-              }
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
               <div className="flex items-start gap-3">
                 <span className="mt-0.5" style={{ color: (OPTION_DETAILS[opt.id] || OPTION_DETAILS.corales).accent }}><OptionIcon id={opt.id} size={26} color={(OPTION_DETAILS[opt.id] || OPTION_DETAILS.corales).accent} /></span>
@@ -795,59 +823,12 @@ export default function Compensation() {
         })}
       </div>
 
-      {/* Units + CTA */}
       {selected && (
-        <div className="card-glow space-y-4 animate-scale-in">
-          <div>
-            <p className="text-sm font-semibold text-white mb-2">
-              ¿Cuántos {selected.unit}s quieres {selected.id === 'voluntariado' ? 'reservar' : 'apoyar'}?
-            </p>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setUnits(Math.max(1, units - 1))}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold"
-                style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}
-              >−</button>
-              <div className="flex-1 text-center">
-                <span className="text-3xl font-black gradient-text">{units}</span>
-                <p className="text-ocean-foam/40 text-xs">{selected.unit}(s)</p>
-              </div>
-              <button
-                onClick={() => setUnits(Math.min(100, units + 1))}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold"
-                style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}
-              >+</button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl py-2" style={{ background: 'rgba(0,180,216,0.08)' }}>
-              <p className="text-ocean-cyan font-bold text-sm">-{co2ToCompensate} kg</p>
-              <p className="text-ocean-foam/40 text-xs">CO₂</p>
-            </div>
-            <div className="rounded-xl py-2" style={{ background: 'rgba(255,209,102,0.08)' }}>
-              <p className="text-sand font-bold text-sm">+{pts} pts</p>
-              <p className="text-ocean-foam/40 text-xs">Puntos</p>
-            </div>
-            <div className="rounded-xl py-2" style={{ background: 'rgba(52,211,153,0.08)' }}>
-              <p className="text-green-400 font-bold text-sm">{formatCOP(cost)}</p>
-              <p className="text-ocean-foam/40 text-xs">Costo</p>
-            </div>
-          </div>
-
-          <button onClick={() => setShowFlow(true)} className="btn-primary w-full flex items-center justify-center gap-2">
-            <OptionIcon id={selected.id} size={18} color="currentColor" /> Continuar con la compensación →
-          </button>
-        </div>
-      )}
-
-      {showFlow && selected && (
         <CompensationFlowModal
           selected={selected}
-          units={units}
           user={user}
           API={API}
-          onClose={() => { setShowFlow(false); setSelected(null); setUnits(1) }}
+          onClose={() => setSelected(null)}
           onSuccess={handleSuccess}
         />
       )}
