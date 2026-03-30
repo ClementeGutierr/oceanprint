@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import {
-  LevelIcon, MedalIcon, TrophyIcon, OceanWaveIcon,
+  LevelIcon, MedalIcon, TrophyIcon, OceanWaveIcon, ThermometerIcon,
 } from '../components/OceanIcons'
 
 const RANK_STYLES = [
@@ -70,6 +70,70 @@ function LeaderRow({ leader, rank, showComp = false }) {
           <p className="text-[10px] text-ocean-foam/30">comp.</p>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── GROUP STATS ────────────────────────────── */
+function GroupStats({ stats }) {
+  if (!stats) return null
+  const pct = stats.compensation_pct ?? 0
+  const emitted = stats.total_co2 ?? 0
+  const compensated = stats.total_compensated ?? 0
+
+  return (
+    <div className="mb-5 animate-fade-in">
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div
+          className="rounded-2xl p-4 text-center"
+          style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)' }}
+        >
+          <div className="flex justify-center mb-1.5" style={{ color: 'rgba(255,107,107,0.7)' }}>
+            <ThermometerIcon size={20} />
+          </div>
+          <p className="text-2xl font-black text-white">{emitted.toLocaleString()}</p>
+          <p className="text-[10px] font-semibold text-ocean-foam/40 uppercase tracking-wider mt-0.5">kg CO₂ emitidos</p>
+        </div>
+        <div
+          className="rounded-2xl p-4 text-center"
+          style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}
+        >
+          <div className="flex justify-center mb-1.5" style={{ color: 'rgba(74,222,128,0.7)' }}>
+            <OceanWaveIcon size={20} />
+          </div>
+          <p className="text-2xl font-black" style={{ color: '#4ade80' }}>{compensated.toLocaleString()}</p>
+          <p className="text-[10px] font-semibold text-ocean-foam/40 uppercase tracking-wider mt-0.5">kg CO₂ compensados</p>
+        </div>
+      </div>
+      <div
+        className="rounded-2xl p-4"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold text-ocean-foam/50">Compensación del grupo</p>
+          <p className="text-lg font-black" style={{ color: pct >= 100 ? '#4ade80' : pct >= 50 ? '#fbbf24' : '#f87171' }}>
+            {pct}%
+          </p>
+        </div>
+        <div className="h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${Math.min(100, pct)}%`,
+              background: pct >= 100
+                ? 'linear-gradient(90deg, #4ade80, #22d3ee)'
+                : pct >= 50
+                ? 'linear-gradient(90deg, #fbbf24, #4ade80)'
+                : 'linear-gradient(90deg, #f87171, #fbbf24)',
+            }}
+          />
+        </div>
+        <p className="text-[10px] text-ocean-foam/30 mt-1.5 text-center">
+          {pct >= 100
+            ? '¡Huella 100% compensada! 🌊'
+            : `Falta ${Math.max(0, 100 - pct)}% para compensar toda la huella grupal`}
+        </p>
+      </div>
     </div>
   )
 }
@@ -160,13 +224,14 @@ function ExpeditionPanel({ expeditionId, API }) {
   )
   if (!data) return null
 
-  const { expedition, leaders, my_rank } = data
+  const { expedition, leaders, my_rank, group_stats } = data
   const today = new Date().toISOString().split('T')[0]
   const isActive = expedition.end_date >= today
   const hasStarted = expedition.start_date <= today
 
   return (
     <div>
+      <GroupStats stats={group_stats} />
       {/* Expedition header */}
       <div
         className="rounded-3xl p-5 mb-5"
@@ -368,6 +433,7 @@ export default function Leaderboard() {
       {/* ── TAB GENERAL ── */}
       {tab === 'general' && generalData && (
         <div>
+          <GroupStats stats={generalData.group_stats} />
           {generalData.my_rank && (
             <p className="text-ocean-foam/50 text-sm mb-4">
               Tu posición: <span className="text-ocean-cyan font-bold">#{generalData.my_rank}</span>

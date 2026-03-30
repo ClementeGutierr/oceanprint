@@ -130,7 +130,9 @@ router.get('/:id/leaderboard', authenticateToken, (req, res) => {
     SELECT
       u.id, u.name, u.level,
       COUNT(t.id) AS trip_count,
-      COUNT(t.id) * 10 AS expedition_points
+      COUNT(t.id) * 10 AS expedition_points,
+      u.total_co2,
+      u.compensated_co2
     FROM expedition_members em
     JOIN users u ON u.id = em.user_id
     LEFT JOIN trips t ON t.user_id = em.user_id AND t.expedition_id = ?
@@ -145,10 +147,24 @@ router.get('/:id/leaderboard', authenticateToken, (req, res) => {
 
   const myEntry = leaders.find(l => l.id === userId);
 
+  const groupStats = db.prepare(`
+    SELECT
+      ROUND(SUM(u.total_co2), 1)       AS total_co2,
+      ROUND(SUM(u.compensated_co2), 1) AS total_compensated,
+      CASE WHEN SUM(u.total_co2) > 0
+        THEN ROUND((SUM(u.compensated_co2) / SUM(u.total_co2)) * 100, 1)
+        ELSE 0
+      END AS compensation_pct
+    FROM expedition_members em
+    JOIN users u ON u.id = em.user_id
+    WHERE em.expedition_id = ?
+  `).get(expeditionId);
+
   res.json({
     expedition,
     leaders,
     my_rank: myEntry?.rank ?? null,
+    group_stats: groupStats,
   });
 });
 
