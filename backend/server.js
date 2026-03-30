@@ -22,6 +22,7 @@ app.use('/api/compensations', require('./routes/compensations'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/expeditions', require('./routes/expeditions'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Health check
 app.get('/api/health', (req, res) => {

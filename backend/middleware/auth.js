@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { db } = require('../database');
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -17,4 +18,14 @@ function authenticateToken(req, res, next) {
   });
 }
 
-module.exports = { authenticateToken };
+function requireAdmin(req, res, next) {
+  authenticateToken(req, res, () => {
+    const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.user.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso de administrador requerido' });
+    }
+    next();
+  });
+}
+
+module.exports = { authenticateToken, requireAdmin };

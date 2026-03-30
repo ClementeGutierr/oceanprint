@@ -104,6 +104,20 @@ function initDatabase() {
       FOREIGN KEY (expedition_id) REFERENCES expeditions(id),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS compensation_options (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      organization TEXT NOT NULL,
+      description TEXT NOT NULL,
+      co2_per_unit REAL NOT NULL,
+      cost_per_unit REAL NOT NULL,
+      unit TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      points_per_unit INTEGER NOT NULL,
+      currency TEXT DEFAULT 'COP',
+      sort_order INTEGER DEFAULT 0
+    );
   `);
 
   // Safe migrations — add columns if they don't exist yet
@@ -114,6 +128,7 @@ function initDatabase() {
     "ALTER TABLE users ADD COLUMN instagram TEXT",
     "ALTER TABLE users ADD COLUMN whatsapp TEXT",
     "ALTER TABLE trips ADD COLUMN expedition_id INTEGER REFERENCES expeditions(id)",
+    "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
   ]) {
     try { db.exec(sql) } catch {}
   }
@@ -168,8 +183,27 @@ function seedData() {
   }
   } // end if (missionCount.count === 0)
 
-  // Seed demo users for leaderboard (idempotent — uses INSERT OR IGNORE)
+  // Seed admin user (idempotent)
   const bcrypt = require('bcryptjs');
+  const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get('admin@divinglife.co');
+  if (!adminExists) {
+    db.prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)")
+      .run('Admin Diving Life', 'admin@divinglife.co', bcrypt.hashSync('divinglife2026', 10), 'admin');
+  }
+
+  // Seed compensation options (idempotent)
+  const compOptCount = db.prepare('SELECT COUNT(*) as count FROM compensation_options').get();
+  if (compOptCount.count === 0) {
+    const insertOpt = db.prepare(
+      'INSERT INTO compensation_options (id, name, organization, description, co2_per_unit, cost_per_unit, unit, icon, points_per_unit, currency, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    insertOpt.run('corales',    'Plantar Corales',     'Fundación Corales de Paz', 'Cada coral plantado captura 0.5 kg CO2/año durante 20+ años en los arrecifes del Caribe', 0.5,  15000, 'coral',       '🪸', 25,  'COP', 1);
+    insertOpt.run('manglares',  'Plantar Manglares',   'Fundación Mar Viva',       'Los manglares secuestran hasta 4x más carbono que los bosques tropicales. Cada árbol captura 12 kg CO2/año', 12, 25000, 'árbol', '🌿', 40, 'COP', 2);
+    insertOpt.run('limpieza',   'Limpieza de Playa',   'Ocean Conservancy',        'Patrocina la recolección de residuos plásticos que afectan la vida marina. Cada jornada remueve 50 kg de plástico', 8, 50000, 'jornada', '♻️', 60, 'COP', 3);
+    insertOpt.run('voluntariado','Voluntariado Marino', 'Diving Life Foundation',   'Participa activamente en expediciones de monitoreo y restauración de ecosistemas marinos', 20, 0, 'expedición', '🤿', 100, 'COP', 4);
+  }
+
+  // Seed demo users for leaderboard (idempotent — uses INSERT OR IGNORE)
   const demoPwd = bcrypt.hashSync('OceanDemo2025!', 8);
   // Demo users use explicit high IDs (9001+) so they never collide with real user IDs
   const insertUser = db.prepare(

@@ -4,56 +4,9 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-const COMPENSATION_OPTIONS = [
-  {
-    id: 'corales',
-    name: 'Plantar Corales',
-    organization: 'Fundación Corales de Paz',
-    description: 'Cada coral plantado captura 0.5 kg CO2/año durante 20+ años en los arrecifes del Caribe',
-    co2_per_unit: 0.5,
-    cost_per_unit: 15000,
-    unit: 'coral',
-    icon: '🪸',
-    points_per_unit: 25,
-    currency: 'COP',
-  },
-  {
-    id: 'manglares',
-    name: 'Plantar Manglares',
-    organization: 'Fundación Mar Viva',
-    description: 'Los manglares secuestran hasta 4x más carbono que los bosques tropicales. Cada árbol captura 12 kg CO2/año',
-    co2_per_unit: 12,
-    cost_per_unit: 25000,
-    unit: 'árbol',
-    icon: '🌿',
-    points_per_unit: 40,
-    currency: 'COP',
-  },
-  {
-    id: 'limpieza',
-    name: 'Limpieza de Playa',
-    organization: 'Ocean Conservancy',
-    description: 'Patrocina la recolección de residuos plásticos que afectan la vida marina. Cada jornada remueve 50 kg de plástico',
-    co2_per_unit: 8,
-    cost_per_unit: 50000,
-    unit: 'jornada',
-    icon: '♻️',
-    points_per_unit: 60,
-    currency: 'COP',
-  },
-  {
-    id: 'voluntariado',
-    name: 'Voluntariado Marino',
-    organization: 'Diving Life Foundation',
-    description: 'Participa activamente en expediciones de monitoreo y restauración de ecosistemas marinos',
-    co2_per_unit: 20,
-    cost_per_unit: 0,
-    unit: 'expedición',
-    icon: '🤿',
-    points_per_unit: 100,
-    currency: 'COP',
-  },
-];
+function getCompensationOptions() {
+  return db.prepare('SELECT * FROM compensation_options ORDER BY sort_order').all();
+}
 
 function updateUserLevel(userId) {
   const user = db.prepare('SELECT points FROM users WHERE id = ?').get(userId);
@@ -67,7 +20,7 @@ function updateUserLevel(userId) {
 
 // Get compensation options
 router.get('/options', authenticateToken, (req, res) => {
-  res.json(COMPENSATION_OPTIONS);
+  res.json(getCompensationOptions());
 });
 
 // Register a compensation
@@ -75,7 +28,7 @@ router.post('/', authenticateToken, (req, res) => {
   try {
     const { type, units = 1 } = req.body;
 
-    const option = COMPENSATION_OPTIONS.find(o => o.id === type);
+    const option = getCompensationOptions().find(o => o.id === type);
     if (!option) {
       return res.status(400).json({ error: 'Tipo de compensación inválido' });
     }

@@ -9,6 +9,7 @@ import Missions from './pages/Missions'
 import Compensation from './pages/Compensation'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
+import AdminApp from './pages/admin/AdminApp'
 
 function AppRoutes() {
   const { user, loading } = useAuth()
@@ -51,9 +52,14 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <Routes>
+        <Route path="/admin/*" element={<AdminApp />} />
+        <Route path="/*" element={
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        } />
+      </Routes>
     </BrowserRouter>
   )
 }
