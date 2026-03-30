@@ -183,24 +183,6 @@ function seedData() {
   }
   } // end if (missionCount.count === 0)
 
-  // Seed demo compensations (idempotent — only checks demo user IDs)
-  const demoCompCount = db.prepare('SELECT COUNT(*) as count FROM compensations WHERE user_id >= 9001').get();
-  if (demoCompCount.count === 0) {
-    const insertComp = db.prepare(
-      'INSERT INTO compensations (user_id, type, organization, co2_compensated, cost, points_earned, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    );
-    // Diego Ramos — Plantar Corales (×2) + Plantar Manglares (×1) → ~2080 kg
-    insertComp.run(9001, 'corales',     'Fundación Corales de Paz', 1000, 30000000, 50000, '2026-01-15 09:00:00');
-    insertComp.run(9001, 'corales',     'Fundación Corales de Paz',  600, 18000000, 30000, '2026-02-10 11:00:00');
-    insertComp.run(9001, 'manglares',   'Fundación Mar Viva',        480,  1000000,  1600, '2026-03-05 10:00:00');
-    // Marina García — Limpieza de Playa (×2) → 1200 kg
-    insertComp.run(9002, 'limpieza',    'Ocean Conservancy',         800,  5000000,  6000, '2026-01-20 14:00:00');
-    insertComp.run(9002, 'limpieza',    'Ocean Conservancy',         400,  2500000,  3000, '2026-02-28 16:00:00');
-    // Andrés Torres — Voluntariado Marino (×2) → 460 kg
-    insertComp.run(9003, 'voluntariado','Diving Life Foundation',    300,        0,  1500, '2026-02-05 08:00:00');
-    insertComp.run(9003, 'voluntariado','Diving Life Foundation',    160,        0,   800, '2026-03-12 15:00:00');
-  }
-
   // Seed admin user (idempotent)
   const bcrypt = require('bcryptjs');
   const adminExists = db.prepare("SELECT id FROM users WHERE email = ?").get('admin@divinglife.co');
@@ -234,6 +216,24 @@ function seedData() {
     [9004, 'Valentina Cruz',  'valentina@demo.oceanprint.co', demoPwd,  320, 'Tortuga Marina',    650,  180,  5],
     [9005, 'Camila Vega',     'camila@demo.oceanprint.co',    demoPwd,  180, 'Caballito de Mar',  420,   90,  3],
   ].forEach(u => insertUser.run(...u));
+
+  // Seed demo compensations — must run AFTER demo users exist (idempotent)
+  const demoCompCount = db.prepare('SELECT COUNT(*) as count FROM compensations WHERE user_id >= 9001').get();
+  if (demoCompCount.count === 0) {
+    const insertComp = db.prepare(
+      'INSERT INTO compensations (user_id, type, organization, co2_compensated, cost, points_earned, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    // Diego Ramos — Plantar Corales (×2) + Plantar Manglares (×1) → ~2080 kg
+    insertComp.run(9001, 'corales',      'Fundación Corales de Paz', 1000, 30000000, 50000, '2026-01-15 09:00:00');
+    insertComp.run(9001, 'corales',      'Fundación Corales de Paz',  600, 18000000, 30000, '2026-02-10 11:00:00');
+    insertComp.run(9001, 'manglares',    'Fundación Mar Viva',        480,  1000000,  1600, '2026-03-05 10:00:00');
+    // Marina García — Limpieza de Playa (×2) → 1200 kg
+    insertComp.run(9002, 'limpieza',     'Ocean Conservancy',         800,  5000000,  6000, '2026-01-20 14:00:00');
+    insertComp.run(9002, 'limpieza',     'Ocean Conservancy',         400,  2500000,  3000, '2026-02-28 16:00:00');
+    // Andrés Torres — Voluntariado Marino (×2) → 460 kg
+    insertComp.run(9003, 'voluntariado', 'Diving Life Foundation',    300,        0,  1500, '2026-02-05 08:00:00');
+    insertComp.run(9003, 'voluntariado', 'Diving Life Foundation',    160,        0,   800, '2026-03-12 15:00:00');
+  }
 
   // Seed demo expeditions (idempotent)
   const expeditionCount = db.prepare('SELECT COUNT(*) as count FROM expeditions').get();
