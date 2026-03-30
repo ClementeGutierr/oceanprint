@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
+import { ThermometerIcon, LeafIcon, TargetIcon, PlaneIcon, ShipIcon, BusIcon, TrophyIcon, MapPinIcon } from '../../components/OceanIcons'
 
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
 const TH = { padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }
@@ -21,6 +22,15 @@ function Bar({ pct, color }) {
     </div>
   )
 }
+
+const OVERVIEW_STATS = (overview, total_compensated, compPct, total) => [
+  { Icon: ThermometerIcon, label: 'Total emitido',     value: `${total.toLocaleString()} kg`,                    color: '#f87171' },
+  { Icon: LeafIcon,        label: 'Total compensado',  value: `${(total_compensated || 0).toLocaleString()} kg`, color: '#4ade80' },
+  { Icon: TargetIcon,      label: 'Compensación global', value: `${compPct}%`,                                   color: compPct >= 75 ? '#4ade80' : compPct >= 40 ? '#fbbf24' : '#f87171' },
+  { Icon: PlaneIcon,       label: 'CO₂ vuelos',        value: `${(overview.co2_flight || 0).toLocaleString()} kg`, color: '#48cae4' },
+  { Icon: ShipIcon,        label: 'CO₂ marino',        value: `${(overview.co2_sea || 0).toLocaleString()} kg`,  color: '#a78bfa' },
+  { Icon: BusIcon,         label: 'CO₂ terrestre',     value: `${(overview.co2_land || 0).toLocaleString()} kg`, color: '#fbbf24' },
+]
 
 export default function AdminEmissions({ token }) {
   const [data, setData] = useState(null)
@@ -48,18 +58,13 @@ export default function AdminEmissions({ token }) {
 
       {/* Overview cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: '14px' }}>
-        {[
-          { icon: '🌡️', label: 'Total emitido', value: `${total.toLocaleString()} kg`, color: '#f87171' },
-          { icon: '🌱', label: 'Total compensado', value: `${(total_compensated || 0).toLocaleString()} kg`, color: '#4ade80' },
-          { icon: '📊', label: 'Compensación global', value: `${compPct}%`, color: compPct >= 75 ? '#4ade80' : compPct >= 40 ? '#fbbf24' : '#f87171' },
-          { icon: '✈️', label: 'CO₂ vuelos', value: `${(overview.co2_flight || 0).toLocaleString()} kg`, color: '#48cae4' },
-          { icon: '⛵', label: 'CO₂ marino', value: `${(overview.co2_sea || 0).toLocaleString()} kg`, color: '#a78bfa' },
-          { icon: '🚌', label: 'CO₂ terrestre', value: `${(overview.co2_land || 0).toLocaleString()} kg`, color: '#fbbf24' },
-        ].map(s => (
-          <div key={s.label} style={{ ...CARD, textAlign: 'center', padding: '16px' }}>
-            <div style={{ fontSize: '24px', marginBottom: '6px' }}>{s.icon}</div>
-            <p style={{ color: s.color, fontSize: '20px', fontWeight: 900, margin: '0 0 4px', lineHeight: 1 }}>{s.value}</p>
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{s.label}</p>
+        {OVERVIEW_STATS(overview, total_compensated, compPct, total).map(({ Icon, label, value, color }) => (
+          <div key={label} style={{ ...CARD, textAlign: 'center', padding: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color }}>
+              <Icon size={24} />
+            </div>
+            <p style={{ color, fontSize: '20px', fontWeight: 900, margin: '0 0 4px', lineHeight: 1 }}>{value}</p>
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{label}</p>
           </div>
         ))}
       </div>
@@ -78,9 +83,9 @@ export default function AdminEmissions({ token }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '14px' }}>
           {[
-            { l: 'Vuelos', v: overview.co2_flight || 0, pct: total > 0 ? Math.round(((overview.co2_flight||0)/total)*100) : 0, c: '#48cae4' },
-            { l: 'Marino', v: overview.co2_sea || 0, pct: total > 0 ? Math.round(((overview.co2_sea||0)/total)*100) : 0, c: '#a78bfa' },
-            { l: 'Terrestre', v: overview.co2_land || 0, pct: total > 0 ? Math.round(((overview.co2_land||0)/total)*100) : 0, c: '#fbbf24' },
+            { l: 'Vuelos',    v: overview.co2_flight || 0, pct: total > 0 ? Math.round(((overview.co2_flight||0)/total)*100) : 0, c: '#48cae4' },
+            { l: 'Marino',    v: overview.co2_sea    || 0, pct: total > 0 ? Math.round(((overview.co2_sea||0)/total)*100)    : 0, c: '#a78bfa' },
+            { l: 'Terrestre', v: overview.co2_land   || 0, pct: total > 0 ? Math.round(((overview.co2_land||0)/total)*100)   : 0, c: '#fbbf24' },
           ].map(s => (
             <div key={s.l} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
               <p style={{ color: s.c, fontSize: '15px', fontWeight: 700, margin: '0 0 2px' }}>{s.pct}%</p>
@@ -93,7 +98,10 @@ export default function AdminEmissions({ token }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '20px' }}>
         {/* By destination */}
         <div style={CARD}>
-          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px' }}>📍 Por destino</h3>
+          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#48cae4' }}><MapPinIcon size={15} /></span>
+            Por destino
+          </h3>
           {by_destination.length === 0 ? <p style={{ color: 'rgba(255,255,255,0.3)' }}>Sin datos</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
@@ -118,7 +126,10 @@ export default function AdminEmissions({ token }) {
 
         {/* By expedition */}
         <div style={CARD}>
-          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px' }}>🏆 Por expedición</h3>
+          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#fbbf24' }}><TrophyIcon size={15} /></span>
+            Por expedición
+          </h3>
           {by_expedition.length === 0 ? <p style={{ color: 'rgba(255,255,255,0.3)' }}>Sin datos</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
@@ -144,7 +155,10 @@ export default function AdminEmissions({ token }) {
 
       {/* Compensations list */}
       <div style={CARD}>
-        <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px' }}>🌱 Historial de compensaciones ({compensations.length})</h3>
+        <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: '#4ade80' }}><LeafIcon size={15} /></span>
+          Historial de compensaciones ({compensations.length})
+        </h3>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
             <thead><tr>

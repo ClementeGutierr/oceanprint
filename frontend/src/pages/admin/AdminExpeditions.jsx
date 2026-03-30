@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
+import { TrophyIcon } from '../../components/OceanIcons'
 
 const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla del Coco', 'Raja Ampat', 'Providencia']
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
@@ -30,9 +31,9 @@ export default function AdminExpeditions({ token }) {
   const [expeditions, setExpeditions] = useState([])
   const [loading, setLoading]       = useState(true)
   const [form, setForm]             = useState(EMPTY_FORM)
-  const [editing, setEditing]       = useState(null)  // null | id
+  const [editing, setEditing]       = useState(null)
   const [showForm, setShowForm]     = useState(false)
-  const [members, setMembers]       = useState(null)  // { expName, list }
+  const [members, setMembers]       = useState(null)
   const [saving, setSaving]         = useState(false)
   const [err, setErr]               = useState('')
   const today = new Date().toISOString().split('T')[0]
@@ -160,7 +161,10 @@ export default function AdminExpeditions({ token }) {
       {/* Table */}
       <div style={CARD}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: 0 }}>🏆 Expediciones ({expeditions.length})</h3>
+          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#fbbf24' }}><TrophyIcon size={16} /></span>
+            Expediciones ({expeditions.length})
+          </h3>
           <button onClick={openCreate} style={BTN}>+ Nueva expedición</button>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -185,7 +189,12 @@ export default function AdminExpeditions({ token }) {
                     <tr key={exp.id} style={{ cursor: 'pointer' }}>
                       <td style={{ ...TD, fontWeight: 600 }}>
                         {exp.name}
-                        {exp.prize_description && <p style={{ fontSize: '11px', color: 'rgba(253,230,138,0.5)', margin: '2px 0 0' }}>🏆 {exp.prize_description.slice(0, 40)}{exp.prize_description.length > 40 ? '…' : ''}</p>}
+                        {exp.prize_description && (
+                          <p style={{ fontSize: '11px', color: 'rgba(253,230,138,0.5)', margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: 'rgba(251,191,36,0.5)', display: 'inline-flex' }}><TrophyIcon size={11} /></span>
+                            {exp.prize_description.slice(0, 40)}{exp.prize_description.length > 40 ? '…' : ''}
+                          </p>
+                        )}
                       </td>
                       <td style={TD}>{exp.destination}</td>
                       <td style={{ ...TD, fontSize: '12px' }}>{fmtDate(exp.start_date)}<br />{fmtDate(exp.end_date)}</td>

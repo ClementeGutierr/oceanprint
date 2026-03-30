@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
+import { UsersIcon, PlaneIcon, ThermometerIcon, LeafIcon, TargetIcon } from '../../components/OceanIcons'
 
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
 const TH = { padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }
@@ -11,10 +12,12 @@ function fmtDate(str) {
   return new Date(str).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function StatCard({ label, value, sub, color = '#00b4d8', icon }) {
+function StatCard({ label, value, sub, color = '#00b4d8', Icon }) {
   return (
     <div style={{ ...CARD, textAlign: 'center' }}>
-      <div style={{ fontSize: '28px', marginBottom: '8px' }}>{icon}</div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', color }}>
+        <Icon size={28} />
+      </div>
       <p style={{ color, fontSize: '28px', fontWeight: 900, margin: '0 0 4px', lineHeight: 1 }}>{value}</p>
       {sub && <p style={{ color, fontSize: '13px', fontWeight: 600, margin: '0 0 6px', opacity: 0.7 }}>{sub}</p>}
       <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{label}</p>
@@ -44,11 +47,11 @@ export default function AdminDashboard({ token }) {
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px' }}>
-        <StatCard icon="👥" label="Usuarios" value={totals.users_count} color="#48cae4" />
-        <StatCard icon="✈️" label="Viajes" value={totals.trips_count} color="#a78bfa" />
-        <StatCard icon="🌡️" label="CO₂ Emitido" value={`${(totals.total_co2 || 0).toLocaleString()}`} sub="kg" color="#f87171" />
-        <StatCard icon="🌱" label="CO₂ Compensado" value={`${(totals.total_compensated || 0).toLocaleString()}`} sub="kg" color="#4ade80" />
-        <StatCard icon="📊" label="Compensación" value={`${pct}%`} color={pct >= 75 ? '#4ade80' : pct >= 40 ? '#fbbf24' : '#f87171'} />
+        <StatCard Icon={UsersIcon}      label="Usuarios"        value={totals.users_count}                              color="#48cae4" />
+        <StatCard Icon={PlaneIcon}      label="Viajes"          value={totals.trips_count}                              color="#a78bfa" />
+        <StatCard Icon={ThermometerIcon} label="CO₂ Emitido"   value={`${(totals.total_co2 || 0).toLocaleString()}`}   sub="kg" color="#f87171" />
+        <StatCard Icon={LeafIcon}       label="CO₂ Compensado" value={`${(totals.total_compensated || 0).toLocaleString()}`} sub="kg" color="#4ade80" />
+        <StatCard Icon={TargetIcon}     label="Compensación"   value={`${pct}%`}                                        color={pct >= 75 ? '#4ade80' : pct >= 40 ? '#fbbf24' : '#f87171'} />
       </div>
 
       {/* Progress bar */}
@@ -73,7 +76,10 @@ export default function AdminDashboard({ token }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
         {/* Recent users */}
         <div style={CARD}>
-          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px' }}>👤 Últimos usuarios registrados</h3>
+          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#48cae4' }}><UsersIcon size={16} /></span>
+            Últimos usuarios registrados
+          </h3>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -104,7 +110,10 @@ export default function AdminDashboard({ token }) {
 
         {/* Recent trips */}
         <div style={CARD}>
-          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px' }}>✈️ Últimos viajes calculados</h3>
+          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#a78bfa' }}><PlaneIcon size={16} /></span>
+            Últimos viajes calculados
+          </h3>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
+import { UsersIcon, TrophyIcon, PlaneIcon, LeafIcon, MapPinIcon } from '../../components/OceanIcons'
 
 const LEVELS = ['Plancton', 'Caballito de Mar', 'Tortuga Marina', 'Mantarraya', 'Ballena Azul']
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
@@ -24,6 +25,15 @@ function levelColor(level) {
 function CompPct({ pct }) {
   const c = pct >= 75 ? '#4ade80' : pct >= 40 ? '#fbbf24' : '#f87171'
   return <span style={{ color: c, fontWeight: 700 }}>{pct}%</span>
+}
+
+function SectionHeader({ Icon, color, children }) {
+  return (
+    <h4 style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <span style={{ color }}><Icon size={13} /></span>
+      {children}
+    </h4>
+  )
 }
 
 function UserModal({ user, onClose }) {
@@ -55,13 +65,18 @@ function UserModal({ user, onClose }) {
           ))}
         </div>
 
-        {user.origin_city && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginBottom: '4px' }}>📍 {user.origin_city}</p>}
+        {user.origin_city && (
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span style={{ color: 'rgba(255,255,255,0.3)', display: 'inline-flex' }}><MapPinIcon size={13} /></span>
+            {user.origin_city}
+          </p>
+        )}
         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginBottom: '20px' }}>Registrado: {fmtDate(user.created_at)}</p>
 
         {/* Expeditions */}
         {user.expeditions?.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
-            <h4 style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>🏆 Expediciones</h4>
+            <SectionHeader Icon={TrophyIcon} color="#c4b5fd">Expediciones</SectionHeader>
             {user.expeditions.map(e => (
               <div key={e.id} style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: '10px', padding: '8px 12px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#c4b5fd', fontSize: '13px', fontWeight: 600 }}>{e.name}</span>
@@ -74,7 +89,7 @@ function UserModal({ user, onClose }) {
         {/* Trips */}
         {user.trips?.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
-            <h4 style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>✈️ Últimos viajes</h4>
+            <SectionHeader Icon={PlaneIcon} color="#a78bfa">Últimos viajes</SectionHeader>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr>
@@ -99,7 +114,7 @@ function UserModal({ user, onClose }) {
         {/* Compensations */}
         {user.compensations?.length > 0 && (
           <div>
-            <h4 style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>🌱 Compensaciones</h4>
+            <SectionHeader Icon={LeafIcon} color="#4ade80">Compensaciones</SectionHeader>
             {user.compensations.map(c => (
               <div key={c.id} style={{ background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.12)', borderRadius: '10px', padding: '8px 12px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -156,7 +171,7 @@ export default function AdminUsers({ token }) {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <input style={{ ...INPUT, flex: '1', minWidth: '180px', width: 'auto' }} placeholder="🔍 Buscar por nombre o email..."
+        <input style={{ ...INPUT, flex: '1', minWidth: '180px', width: 'auto' }} placeholder="Buscar por nombre o email..."
           value={search} onChange={e => setSearch(e.target.value)} />
         <select style={{ ...INPUT, width: 'auto', minWidth: '150px', appearance: 'none', cursor: 'pointer' }} value={level} onChange={e => setLevel(e.target.value)}>
           <option value="">Todos los niveles</option>
@@ -171,7 +186,10 @@ export default function AdminUsers({ token }) {
       {/* Table */}
       <div style={{ ...CARD, padding: '0' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: 0 }}>👥 Usuarios ({loading ? '…' : users.length})</h3>
+          <h3 style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#48cae4' }}><UsersIcon size={16} /></span>
+            Usuarios ({loading ? '…' : users.length})
+          </h3>
           {loadingDetail && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Cargando perfil...</span>}
         </div>
         <div style={{ overflowX: 'auto' }}>

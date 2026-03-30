@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
+import { LeafIcon, StarIcon, BrainIcon, CreditCardIcon, MissionIcon, OptionIcon } from '../../components/OceanIcons'
 
 const TABS = ['Misiones', 'Quizzes', 'Compensaciones']
 const CATEGORIES_MISSION = ['conservacion', 'sostenibilidad', 'ciencia', 'comunidad', 'educacion', 'compensacion', 'voluntariado', 'calculadora']
@@ -103,7 +104,12 @@ function MissionsPanel({ token }) {
             <tbody>
               {items.map(item => (
                 <tr key={item.id}>
-                  <td style={TD}><span style={{ fontSize: '16px', marginRight: '8px' }}>{item.icon}</span><span style={{ fontWeight: 600 }}>{item.name}</span></td>
+                  <td style={TD}>
+                    <span style={{ marginRight: '8px', display: 'inline-flex', verticalAlign: 'middle' }}>
+                      <MissionIcon icon={item.icon} size={16} color="#48cae4" />
+                    </span>
+                    <span style={{ fontWeight: 600 }}>{item.name}</span>
+                  </td>
                   <td style={{ ...TD, fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{item.category}</td>
                   <td style={{ ...TD, color: '#48cae4', fontWeight: 700 }}>{item.points}</td>
                   <td style={{ ...TD, color: '#4ade80' }}>{item.completion_count}</td>
@@ -226,7 +232,10 @@ function QuizzesPanel({ token }) {
                       </div>
                     ))}
                   </div>
-                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0 }}>📖 {item.explanation}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#a78bfa', display: 'inline-flex' }}><BrainIcon size={13} /></span>
+                    {item.explanation}
+                  </p>
                 </div>
               )}
             </div>
@@ -267,7 +276,9 @@ function CompOptionsPanel({ token }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ ...CARD, border: '1px solid rgba(74,222,128,0.2)' }}>
-        <p style={{ color: '#4ade80', fontSize: '13px', margin: '0 0 4px', fontWeight: 600 }}>ℹ️ Opciones de compensación</p>
+        <p style={{ color: '#4ade80', fontSize: '13px', margin: '0 0 4px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <LeafIcon size={14} /> Opciones de compensación
+        </p>
         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0 }}>Edita el precio, kg de CO₂, organización y descripción de cada opción de compensación disponible en la app.</p>
       </div>
 
@@ -276,7 +287,9 @@ function CompOptionsPanel({ token }) {
           {editing === item.id ? (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <h4 style={{ color: '#4ade80', fontWeight: 700, fontSize: '14px', margin: 0 }}>Editando: {item.icon} {item.name}</h4>
+                <h4 style={{ color: '#4ade80', fontWeight: 700, fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <OptionIcon id={item.id} size={16} color="#4ade80" /> Editando: {item.name}
+                </h4>
                 <button onClick={() => setEditing(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '20px' }}>×</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '12px' }}>
@@ -297,7 +310,9 @@ function CompOptionsPanel({ token }) {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-              <div style={{ fontSize: '32px', flexShrink: 0 }}>{item.icon}</div>
+              <div style={{ flexShrink: 0, color: '#4ade80' }}>
+                <OptionIcon id={item.id} size={32} color="#4ade80" />
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
@@ -308,9 +323,18 @@ function CompOptionsPanel({ token }) {
                   <button onClick={() => openEdit(item)} style={BTN_EDIT}>Editar</button>
                 </div>
                 <div style={{ display: 'flex', gap: '16px', marginTop: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>🌱 <b style={{ color: '#4ade80' }}>{item.co2_per_unit} kg</b> CO₂ / {item.unit}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>💰 <b style={{ color: '#fbbf24' }}>{item.cost_per_unit === 0 ? 'Gratis' : `$${Number(item.cost_per_unit).toLocaleString()} COP`}</b> / {item.unit}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>⭐ <b style={{ color: '#48cae4' }}>{item.points_per_unit} pts</b> / {item.unit}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ color: '#4ade80', display: 'inline-flex' }}><LeafIcon size={13} /></span>
+                    <b style={{ color: '#4ade80' }}>{item.co2_per_unit} kg</b> CO₂ / {item.unit}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ color: '#fbbf24', display: 'inline-flex' }}><CreditCardIcon size={13} /></span>
+                    <b style={{ color: '#fbbf24' }}>{item.cost_per_unit === 0 ? 'Gratis' : `$${Number(item.cost_per_unit).toLocaleString()} COP`}</b> / {item.unit}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ color: '#48cae4', display: 'inline-flex' }}><StarIcon size={13} /></span>
+                    <b style={{ color: '#48cae4' }}>{item.points_per_unit} pts</b> / {item.unit}
+                  </span>
                 </div>
               </div>
             </div>
