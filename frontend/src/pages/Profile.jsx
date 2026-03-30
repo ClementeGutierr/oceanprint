@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { LevelIcon, LEVEL_COLORS } from '../components/OceanIcons'
 import {
   DiveMaskIcon, TrashIcon, ThermometerIcon, LeafIcon, PlaneIcon, TargetIcon,
-  PencilIcon, MapPinIcon, AtSignIcon, CheckIcon, LockIcon, TrophyIcon,
+  PencilIcon, MapPinIcon, AtSignIcon, CheckIcon, LockIcon, TrophyIcon, OceanWaveIcon,
   WhatsAppIcon, InstagramIcon,
 } from '../components/OceanIcons'
 
@@ -340,12 +340,20 @@ function StatCard({ Icon, label, value, sub }) {
 /* ─────────────────────────────────────────────
    MAIN PROFILE PAGE
 ───────────────────────────────────────────── */
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const [y, m, d] = dateStr.split('-')
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`
+}
+
 export default function Profile() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tripToDelete, setTripToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [myExpeditions, setMyExpeditions] = useState([])
   const { API, logout, refreshUser } = useAuth()
 
   function loadProfile() {
@@ -355,7 +363,12 @@ export default function Profile() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadProfile() }, [])
+  useEffect(() => {
+    loadProfile()
+    axios.get(`${API}/expeditions/mine`)
+      .then(res => setMyExpeditions(res.data))
+      .catch(console.error)
+  }, [])
 
   async function handleDeleteTrip() {
     if (!tripToDelete) return
@@ -677,6 +690,82 @@ export default function Profile() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── MIS EXPEDICIONES ── */}
+      {myExpeditions.length > 0 && (
+        <div className="mt-5">
+          <h3 className="text-xs text-ocean-foam/50 font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <TrophyIcon size={12} /> Mis Expediciones
+          </h3>
+          <div className="space-y-3">
+            {myExpeditions.map(exp => {
+              const today = new Date().toISOString().split('T')[0]
+              const isActive = exp.end_date >= today
+              const hasStarted = exp.start_date <= today
+              return (
+                <div
+                  key={exp.id}
+                  className="rounded-2xl p-4"
+                  style={
+                    isActive
+                      ? { background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.22)' }
+                      : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }
+                  }
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={
+                        isActive
+                          ? { background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)' }
+                          : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
+                      }
+                    >
+                      <TrophyIcon size={18} style={{ color: isActive ? '#a78bfa' : 'rgba(255,255,255,0.3)' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <p className="text-white font-bold text-sm">{exp.name}</p>
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          style={
+                            isActive && hasStarted
+                              ? { background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }
+                              : isActive
+                              ? { background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }
+                              : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)' }
+                          }
+                        >
+                          {isActive && hasStarted ? 'EN CURSO' : isActive ? 'PRÓXIMA' : 'TERMINADA'}
+                        </span>
+                      </div>
+                      <p className="text-ocean-foam/40 text-xs">
+                        {formatDate(exp.start_date)} – {formatDate(exp.end_date)}
+                        {' · '}{exp.member_count} participante{exp.member_count !== 1 ? 's' : ''}
+                      </p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="rounded-lg px-2.5 py-1 text-center" style={{ background: 'rgba(0,180,216,0.08)' }}>
+                          <p className="text-ocean-cyan font-black text-sm">{exp.my_expedition_points ?? 0}</p>
+                          <p className="text-ocean-foam/35 text-[9px]">pts exp.</p>
+                        </div>
+                        <div className="rounded-lg px-2.5 py-1 text-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <p className="text-white font-black text-sm">{exp.my_trip_count ?? 0}</p>
+                          <p className="text-ocean-foam/35 text-[9px]">viajes</p>
+                        </div>
+                        {exp.prize_description && (
+                          <p className="text-[10px] flex-1 leading-snug" style={{ color: 'rgba(253,230,138,0.55)' }}>
+                            🏆 {exp.prize_description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

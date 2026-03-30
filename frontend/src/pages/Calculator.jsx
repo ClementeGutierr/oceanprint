@@ -6,6 +6,7 @@ import {
   PlaneIcon, ShipIcon, BusIcon, CarIcon, SearchIcon, UsersIcon,
   ThermometerIcon, IslandIcon, MapIcon,
   DiveMaskIcon, SpeedboatIcon, XIcon, WalkingPersonIcon,
+  OceanWaveIcon, TrophyIcon,
 } from '../components/OceanIcons'
 
 const ORIGINS = ['Bogotá', 'Medellín', 'Cali', 'Miami', 'New York', 'Ciudad de México', 'Lima']
@@ -26,6 +27,13 @@ const LAND_OPTIONS = [
   { value: 'none', label: 'Caminando',     Icon: WalkingPersonIcon },
 ]
 
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const [y, m, d] = dateStr.split('-')
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
+}
+
 export default function Calculator() {
   const { API, refreshUser, user } = useAuth()
 
@@ -36,7 +44,13 @@ export default function Calculator() {
     transport_land: 'van',
     sea_hours: 6,
     passengers: 1,
+    expedition_id: null,
   })
+
+  const [expeditions, setExpeditions] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   // Pre-select origin city from user profile on first load
   useEffect(() => {
@@ -45,9 +59,23 @@ export default function Calculator() {
     }
   }, [user?.origin_city])
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
+  // Fetch active expeditions when destination changes
+  useEffect(() => {
+    if (!form.destination) {
+      setExpeditions([])
+      setForm(f => ({ ...f, expedition_id: null }))
+      return
+    }
+    axios.get(`${API}/expeditions/active?destination=${encodeURIComponent(form.destination)}`)
+      .then(res => {
+        setExpeditions(res.data)
+        // Auto-select if user is already a member of one
+        const joined = res.data.find(e => e.is_member)
+        if (joined) setForm(f => ({ ...f, expedition_id: joined.id }))
+        else setForm(f => ({ ...f, expedition_id: null }))
+      })
+      .catch(() => setExpeditions([]))
+  }, [form.destination])
 
   const handleCalculate = async () => {
     if (!form.origin || !form.destination) {
@@ -134,7 +162,7 @@ export default function Calculator() {
               <button
                 key={dest}
                 type="button"
-                onClick={() => setForm({ ...form, destination: dest })}
+                onClick={() => setForm(f => ({ ...f, destination: dest }))}
                 className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150"
                 style={
                   form.destination === dest
@@ -147,6 +175,73 @@ export default function Calculator() {
             ))}
           </div>
         </div>
+
+        {/* Expedition selector — only when there are active expeditions for this destination */}
+        {expeditions.length > 0 && (
+          <div className="animate-fade-in">
+            <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <TrophyIcon size={13} /> Expedición activa
+            </label>
+            <div className="space-y-2">
+              {expeditions.map(exp => {
+                const isSelected = form.expedition_id === exp.id
+                return (
+                  <button
+                    key={exp.id}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, expedition_id: isSelected ? null : exp.id }))}
+                    className="w-full text-left rounded-2xl p-3 transition-all duration-150"
+                    style={
+                      isSelected
+                        ? { background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.45)' }
+                        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }
+                    }
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span style={{ color: isSelected ? '#a78bfa' : 'rgba(255,255,255,0.5)' }}>
+                            <TrophyIcon size={14} />
+                          </span>
+                          <p className="text-sm font-bold" style={{ color: isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.8)' }}>
+                            {exp.name}
+                          </p>
+                        </div>
+                        <p className="text-[11px] text-ocean-foam/40 mt-0.5 ml-5">
+                          {formatDate(exp.start_date)} – {formatDate(exp.end_date)} · {exp.member_count} miembro{exp.member_count !== 1 ? 's' : ''}
+                        </p>
+                        {exp.prize_description && (
+                          <p className="text-[11px] ml-5 mt-0.5" style={{ color: 'rgba(253,230,138,0.6)' }}>
+                            🏆 {exp.prize_description}
+                          </p>
+                        )}
+                      </div>
+                      <div
+                        className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
+                        style={
+                          isSelected
+                            ? { background: '#a78bfa', border: '2px solid #a78bfa' }
+                            : { background: 'transparent', border: '2px solid rgba(255,255,255,0.2)' }
+                        }
+                      >
+                        {isSelected && <span className="text-[10px] text-white font-black">✓</span>}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+              {form.expedition_id && (
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, expedition_id: null }))}
+                  className="w-full text-center text-xs text-ocean-foam/30 py-1.5"
+                >
+                  Calcular sin expedición
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Sea transport */}
         <div>

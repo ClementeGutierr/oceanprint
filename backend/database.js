@@ -84,15 +84,36 @@ function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS expeditions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      invite_code TEXT UNIQUE NOT NULL,
+      prize_description TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS expedition_members (
+      expedition_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (expedition_id, user_id),
+      FOREIGN KEY (expedition_id) REFERENCES expeditions(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
   `);
 
-  // Safe migrations — add profile columns if they don't exist yet
+  // Safe migrations — add columns if they don't exist yet
   for (const sql of [
     "ALTER TABLE users ADD COLUMN avatar TEXT",
     "ALTER TABLE users ADD COLUMN origin_city TEXT",
     "ALTER TABLE users ADD COLUMN bio TEXT",
     "ALTER TABLE users ADD COLUMN instagram TEXT",
     "ALTER TABLE users ADD COLUMN whatsapp TEXT",
+    "ALTER TABLE trips ADD COLUMN expedition_id INTEGER REFERENCES expeditions(id)",
   ]) {
     try { db.exec(sql) } catch {}
   }
@@ -161,6 +182,57 @@ function seedData() {
     [9004, 'Valentina Cruz',  'valentina@demo.oceanprint.co', demoPwd,  320, 'Tortuga Marina',    650,  180,  5],
     [9005, 'Camila Vega',     'camila@demo.oceanprint.co',    demoPwd,  180, 'Caballito de Mar',  420,   90,  3],
   ].forEach(u => insertUser.run(...u));
+
+  // Seed demo expeditions (idempotent)
+  const expeditionCount = db.prepare('SELECT COUNT(*) as count FROM expeditions').get();
+  if (expeditionCount.count === 0) {
+    const insertExp = db.prepare(
+      'INSERT INTO expeditions (name, destination, start_date, end_date, invite_code, prize_description) VALUES (?, ?, ?, ?, ?, ?)'
+    );
+
+    const malpelo = insertExp.run(
+      'Malpelo - Marzo 2026',
+      'Isla Malpelo',
+      '2026-03-01',
+      '2026-03-31',
+      'MALPELO-MAR26',
+      'Fotos submarinas gratis del viaje con el fotógrafo oficial de Diving Life'
+    );
+
+    const galapagos = insertExp.run(
+      'Galápagos - Abril 2026',
+      'Galápagos',
+      '2026-04-01',
+      '2026-04-30',
+      'GALAP-ABR26',
+      '15% de descuento en tu próximo viaje con Diving Life'
+    );
+
+    // Add demo users as members of Malpelo expedition
+    const insertMember = db.prepare(
+      'INSERT OR IGNORE INTO expedition_members (expedition_id, user_id) VALUES (?, ?)'
+    );
+    [9001, 9002, 9003, 9004, 9005].forEach(uid => {
+      insertMember.run(malpelo.lastInsertRowid, uid);
+    });
+
+    // Seed demo trips for the Malpelo expedition so the leaderboard has real data
+    const insertTrip = db.prepare(
+      'INSERT INTO trips (user_id, origin, destination, transport_flight, transport_sea, transport_land, co2_flight, co2_sea, co2_land, co2_total, passengers, expedition_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    const expId = malpelo.lastInsertRowid;
+    [
+      [9001, 'Bogotá',   'Isla Malpelo', 'economica', 'bote_buceo', 'van', 255, 75, 6, 336, 1, expId, '2026-03-05 10:00:00'],
+      [9001, 'Bogotá',   'Isla Malpelo', 'economica', 'bote_buceo', 'van', 255, 75, 6, 336, 1, expId, '2026-03-15 10:00:00'],
+      [9001, 'Bogotá',   'Isla Malpelo', 'economica', 'bote_buceo', 'van', 255, 75, 6, 336, 1, expId, '2026-03-22 10:00:00'],
+      [9002, 'Medellín', 'Isla Malpelo', 'economica', 'bote_buceo', 'van', 290, 75, 7, 372, 1, expId, '2026-03-04 10:00:00'],
+      [9002, 'Medellín', 'Isla Malpelo', 'economica', 'bote_buceo', 'van', 290, 75, 7, 372, 1, expId, '2026-03-18 10:00:00'],
+      [9003, 'Cali',     'Isla Malpelo', 'economica', 'bote_buceo', 'van', 194, 75, 5, 274, 1, expId, '2026-03-07 10:00:00'],
+      [9003, 'Cali',     'Isla Malpelo', 'economica', 'bote_buceo', 'van', 194, 75, 5, 274, 1, expId, '2026-03-20 10:00:00'],
+      [9004, 'Bogotá',   'Isla Malpelo', 'economica', 'bote_buceo', 'van', 255, 75, 6, 336, 1, expId, '2026-03-10 10:00:00'],
+      [9005, 'Bogotá',   'Isla Malpelo', 'economica', 'lancha',     'van', 255, 51, 6, 312, 1, expId, '2026-03-12 10:00:00'],
+    ].forEach(t => insertTrip.run(...t));
+  }
 }
 
 module.exports = { db, initDatabase };

@@ -110,6 +110,7 @@ router.post('/calculate', authenticateToken, (req, res) => {
       sea_hours = 6,
       transport_land = 'van',
       passengers = 1,
+      expedition_id = null,
     } = req.body;
 
     if (!origin || !destination) {
@@ -139,18 +140,33 @@ router.post('/calculate', authenticateToken, (req, res) => {
 
     const co2Total = co2Flight + co2Sea + co2Land;
 
+    // Validate expedition_id if provided (must exist and user must be a member)
+    let validExpeditionId = null;
+    if (expedition_id) {
+      const exp = db.prepare(
+        'SELECT id FROM expeditions WHERE id = ? AND end_date >= date("now")'
+      ).get(expedition_id);
+      if (exp) {
+        const isMember = db.prepare(
+          'SELECT COUNT(*) as count FROM expedition_members WHERE expedition_id = ? AND user_id = ?'
+        ).get(expedition_id, req.user.id);
+        if (isMember.count > 0) validExpeditionId = expedition_id;
+      }
+    }
+
     // Save trip
     const result = db.prepare(`
       INSERT INTO trips (user_id, origin, destination, transport_flight, transport_sea, transport_land,
-        co2_flight, co2_sea, co2_land, co2_total, passengers)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        co2_flight, co2_sea, co2_land, co2_total, passengers, expedition_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       req.user.id, origin, destination, transport_flight, transport_sea, transport_land,
       Math.round(co2Flight * 100) / 100,
       Math.round(co2Sea * 100) / 100,
       Math.round(co2Land * 100) / 100,
       Math.round(co2Total * 100) / 100,
-      passengers
+      passengers,
+      validExpeditionId
     );
 
     // Update user stats
@@ -193,6 +209,7 @@ router.post('/calculate', authenticateToken, (req, res) => {
         land: co2Total > 0 ? Math.round((co2Land / co2Total) * 100) : 0,
       },
       points_earned: 10,
+      expedition_id: validExpeditionId,
     });
   } catch (error) {
     console.error('Calculate error:', error);
