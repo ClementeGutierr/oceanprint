@@ -4,7 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-const PROFILE_FIELDS = 'id, name, email, points, level, total_co2, compensated_co2, trips_count, created_at, avatar, origin_city, bio, instagram, whatsapp';
+const PROFILE_FIELDS = 'id, name, email, points, level, total_co2, compensated_co2, trips_count, created_at, avatar, origin_city, bio, instagram, whatsapp, role';
 
 router.get('/', authenticateToken, (req, res) => {
   const user = db.prepare(`SELECT ${PROFILE_FIELDS} FROM users WHERE id = ?`).get(req.user.id);

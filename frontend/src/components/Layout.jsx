@@ -176,6 +176,20 @@ export default function Layout() {
             ))}
           </nav>
 
+          {/* Admin link */}
+          {user?.role === 'admin' && (
+            <div className="px-3 pb-2">
+              <a
+                href="/admin"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200"
+                style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', color: '#c4b5fd', textDecoration: 'none' }}
+              >
+                <span style={{ fontSize: '16px' }}>⚙️</span>
+                Panel Admin
+              </a>
+            </div>
+          )}
+
           {/* Footer */}
           <div className="px-5 py-4">
             <p className="text-ocean-foam/20 text-[10px]">Guardianes del Océano · v1.0</p>
@@ -203,6 +217,26 @@ export default function Layout() {
         </aside>
 
       </div>
+
+      {/* Admin floating pill — mobile only, admin users */}
+      {user?.role === 'admin' && (
+        <a
+          href="/admin"
+          className="md:hidden fixed z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+          style={{
+            bottom: '88px', right: '16px',
+            background: 'rgba(167,139,250,0.18)',
+            border: '1px solid rgba(167,139,250,0.4)',
+            color: '#c4b5fd',
+            textDecoration: 'none',
+            backdropFilter: 'blur(12px)',
+            fontSize: '12px',
+            fontWeight: 700,
+          }}
+        >
+          <span style={{ fontSize: '14px' }}>⚙️</span> Admin
+        </a>
+      )}
 
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           BOTTOM NAV — mobile only (hidden on md+)
