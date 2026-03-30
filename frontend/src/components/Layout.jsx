@@ -116,6 +116,7 @@ function DesktopRightSidebar() {
 
 export default function Layout() {
   const location = useLocation()
+  const { user } = useAuth()
 
   const isActive = (to) =>
     location.pathname === to ||
