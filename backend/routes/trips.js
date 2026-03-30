@@ -143,9 +143,10 @@ router.post('/calculate', authenticateToken, (req, res) => {
     // Validate expedition_id if provided (must exist and user must be a member)
     let validExpeditionId = null;
     if (expedition_id) {
+      const today = new Date().toISOString().split('T')[0];
       const exp = db.prepare(
-        'SELECT id FROM expeditions WHERE id = ? AND end_date >= date("now")'
-      ).get(expedition_id);
+        'SELECT id FROM expeditions WHERE id = ? AND end_date >= ?'
+      ).get(expedition_id, today);
       if (exp) {
         const isMember = db.prepare(
           'SELECT COUNT(*) as count FROM expedition_members WHERE expedition_id = ? AND user_id = ?'
