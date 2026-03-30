@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import SplashScreen from './pages/SplashScreen'
 import AuthPage from './pages/AuthPage'
@@ -49,17 +49,20 @@ function AppRoutes() {
   )
 }
 
+function RoutedApp() {
+  const location = useLocation()
+  if (location.pathname.startsWith('/admin')) {
+    return <AdminApp />
+  }
+  return <AppRoutes />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/admin/*" element={<AdminApp />} />
-        <Route path="/*" element={
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        } />
-      </Routes>
+      <AuthProvider>
+        <RoutedApp />
+      </AuthProvider>
     </BrowserRouter>
   )
 }
