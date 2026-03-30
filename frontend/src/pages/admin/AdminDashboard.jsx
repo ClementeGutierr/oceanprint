@@ -45,6 +45,11 @@ export default function AdminDashboard({ token }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
+      {/* Subtitle */}
+      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', margin: 0 }}>
+        Resumen general de la plataforma — métricas clave y actividad reciente.
+      </p>
+
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px' }}>
         <StatCard Icon={UsersIcon}      label="Usuarios"        value={totals.users_count}                              color="#48cae4" />

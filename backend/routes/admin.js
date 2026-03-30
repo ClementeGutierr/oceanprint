@@ -151,15 +151,30 @@ router.get('/expeditions/:id/members', (req, res) => {
 
 // ── EMISSIONS ─────────────────────────────────────────────
 router.get('/emissions', (req, res) => {
-  const overview = db.prepare(`
+  // Use users table for totals — same source as Dashboard, includes demo users
+  const userTotals = db.prepare(`
+    SELECT
+      ROUND(COALESCE(SUM(total_co2), 0), 1) AS co2_total,
+      ROUND(COALESCE(SUM(compensated_co2), 0), 1) AS total_compensated
+    FROM users WHERE role != 'admin'
+  `).get();
+
+  // Breakdown by transport type (from trips table — best effort, excludes pre-set demo data)
+  const tripBreakdown = db.prepare(`
     SELECT ROUND(COALESCE(SUM(co2_flight),0),1) AS co2_flight,
       ROUND(COALESCE(SUM(co2_sea),0),1) AS co2_sea,
-      ROUND(COALESCE(SUM(co2_land),0),1) AS co2_land,
-      ROUND(COALESCE(SUM(co2_total),0),1) AS co2_total
+      ROUND(COALESCE(SUM(co2_land),0),1) AS co2_land
     FROM trips
   `).get();
 
-  const totalComp = db.prepare('SELECT ROUND(COALESCE(SUM(co2_compensated),0),1) AS total FROM compensations').get();
+  const overview = {
+    co2_flight: tripBreakdown.co2_flight,
+    co2_sea:    tripBreakdown.co2_sea,
+    co2_land:   tripBreakdown.co2_land,
+    co2_total:  userTotals.co2_total,
+  };
+
+  const totalComp = { total: userTotals.total_compensated };
 
   const byDestination = db.prepare(`
     SELECT destination, COUNT(*) AS trips, ROUND(SUM(co2_total),1) AS total_co2

@@ -14,11 +14,11 @@ function fmtDate(str) {
 
 function Bar({ pct, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{ flex: 1, height: '6px', borderRadius: '99px', background: 'rgba(255,255,255,0.06)', overflow: 'hidden', minWidth: '60px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ flex: 1, height: '6px', borderRadius: '99px', background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${Math.min(100, pct)}%`, background: color, borderRadius: '99px' }} />
       </div>
-      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', minWidth: '36px', textAlign: 'right' }}>{Math.round(pct)}%</span>
+      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', width: '30px', textAlign: 'right', flexShrink: 0 }}>{Math.round(pct)}%</span>
     </div>
   )
 }
@@ -55,6 +55,11 @@ export default function AdminEmissions({ token }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+      {/* Subtitle */}
+      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', margin: 0 }}>
+        Análisis detallado de emisiones y compensaciones — desgloses por destino, expedición e historial completo.
+      </p>
 
       {/* Overview cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: '14px' }}>
@@ -103,12 +108,12 @@ export default function AdminEmissions({ token }) {
             Por destino
           </h3>
           {by_destination.length === 0 ? <p style={{ color: 'rgba(255,255,255,0.3)' }}>Sin datos</p> : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <thead><tr>
                 <th style={TH}>Destino</th>
-                <th style={TH}>Viajes</th>
-                <th style={TH}>CO₂</th>
-                <th style={{ ...TH, width: '120px' }}>%</th>
+                <th style={{ ...TH, width: '52px' }}>Viajes</th>
+                <th style={{ ...TH, width: '90px' }}>CO₂</th>
+                <th style={{ ...TH, width: '90px' }}>%</th>
               </tr></thead>
               <tbody>
                 {by_destination.map(d => (
@@ -131,12 +136,12 @@ export default function AdminEmissions({ token }) {
             Por expedición
           </h3>
           {by_expedition.length === 0 ? <p style={{ color: 'rgba(255,255,255,0.3)' }}>Sin datos</p> : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <thead><tr>
                 <th style={TH}>Expedición</th>
-                <th style={TH}>Viajes</th>
-                <th style={TH}>CO₂</th>
-                <th style={{ ...TH, width: '120px' }}>%</th>
+                <th style={{ ...TH, width: '52px' }}>Viajes</th>
+                <th style={{ ...TH, width: '90px' }}>CO₂</th>
+                <th style={{ ...TH, width: '90px' }}>%</th>
               </tr></thead>
               <tbody>
                 {by_expedition.map((e, i) => (
