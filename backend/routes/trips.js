@@ -185,14 +185,16 @@ router.post('/calculate', authenticateToken, (req, res) => {
     db.prepare('UPDATE users SET points = points + 10 WHERE id = ?').run(req.user.id);
     updateUserLevel(req.user.id);
 
-    // Check mission: Buceador Consciente (5 trips)
+    // Check mission: Buceador Consciente (5 trips) — award points only if newly completed
     const tripsCount = db.prepare('SELECT trips_count FROM users WHERE id = ?').get(req.user.id);
     if (tripsCount.trips_count >= 5) {
-      const mission = db.prepare('SELECT id FROM missions WHERE name = ?').get('Buceador Consciente');
+      const mission = db.prepare('SELECT id, points FROM missions WHERE name = ?').get('Buceador Consciente');
       if (mission) {
-        try {
-          db.prepare('INSERT OR IGNORE INTO user_missions (user_id, mission_id) VALUES (?, ?)').run(req.user.id, mission.id);
-        } catch (e) {}
+        const r = db.prepare('INSERT OR IGNORE INTO user_missions (user_id, mission_id) VALUES (?, ?)').run(req.user.id, mission.id);
+        if (r.changes > 0) {
+          db.prepare('UPDATE users SET points = points + ? WHERE id = ?').run(mission.points, req.user.id);
+          updateUserLevel(req.user.id);
+        }
       }
     }
 

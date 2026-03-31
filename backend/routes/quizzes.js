@@ -58,11 +58,15 @@ router.post('/:id/answer', authenticateToken, (req, res) => {
       db.prepare('UPDATE users SET points = points + ? WHERE id = ?').run(pointsEarned, req.user.id);
       updateUserLevel(req.user.id);
 
-      // Check Ritual del Océano mission (quiz ID 4 with 100%)
-      if (parseInt(id) === 4) {
-        const mission = db.prepare("SELECT id FROM missions WHERE name = 'Ritual del Océano'").get();
-        if (mission) {
-          db.prepare('INSERT OR IGNORE INTO user_missions (user_id, mission_id) VALUES (?, ?)').run(req.user.id, mission.id);
+      // Complete any 'educacion' mission that requires answering this specific quiz — award points only if newly completed
+      const linkedMission = db.prepare(
+        "SELECT id, points FROM missions WHERE quiz_id = ? AND category = 'educacion'"
+      ).get(parseInt(id));
+      if (linkedMission) {
+        const r = db.prepare('INSERT OR IGNORE INTO user_missions (user_id, mission_id) VALUES (?, ?)').run(req.user.id, linkedMission.id);
+        if (r.changes > 0) {
+          db.prepare('UPDATE users SET points = points + ? WHERE id = ?').run(linkedMission.points, req.user.id);
+          updateUserLevel(req.user.id);
         }
       }
     }

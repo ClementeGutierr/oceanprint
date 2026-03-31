@@ -4,7 +4,7 @@ import { API_BASE, authCfg } from './AdminApp'
 import { LeafIcon, StarIcon, BrainIcon, CreditCardIcon, MissionIcon, OptionIcon } from '../../components/OceanIcons'
 
 const TABS = ['Misiones', 'Quizzes', 'Compensaciones']
-const CATEGORIES_MISSION = ['conservacion', 'sostenibilidad', 'ciencia', 'comunidad', 'educacion', 'compensacion', 'voluntariado', 'calculadora']
+const CATEGORIES_MISSION = ['conservacion', 'sostenibilidad', 'ciencia', 'comunidad', 'educacion', 'compensacion', 'voluntariado', 'calculadora', 'social']
 const CATEGORIES_QUIZ = ['conservacion', 'sostenibilidad', 'fauna', 'emisiones', 'buceo']
 const CORRECT_OPTIONS = ['A', 'B', 'C', 'D']
 

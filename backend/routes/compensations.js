@@ -47,11 +47,15 @@ router.post('/', authenticateToken, (req, res) => {
 
     updateUserLevel(req.user.id);
 
-    // Check Compensador Activo mission (compensate >= 1000 kg = 1 ton in one action)
+    // Check Compensador Activo mission (compensate >= 1000 kg = 1 ton in one action) — award points only if newly completed
     if (co2Compensated >= 1000) {
-      const mission = db.prepare("SELECT id FROM missions WHERE name = 'Compensador Activo'").get();
+      const mission = db.prepare("SELECT id, points FROM missions WHERE name = 'Compensador Activo'").get();
       if (mission) {
-        db.prepare('INSERT OR IGNORE INTO user_missions (user_id, mission_id) VALUES (?, ?)').run(req.user.id, mission.id);
+        const r = db.prepare('INSERT OR IGNORE INTO user_missions (user_id, mission_id) VALUES (?, ?)').run(req.user.id, mission.id);
+        if (r.changes > 0) {
+          db.prepare('UPDATE users SET points = points + ? WHERE id = ?').run(mission.points, req.user.id);
+          updateUserLevel(req.user.id);
+        }
       }
     }
 

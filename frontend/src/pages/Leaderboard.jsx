@@ -54,8 +54,10 @@ function LeaderRow({ leader, rank, showComp = false }) {
         </div>
         <p className="text-ocean-foam/40 text-xs">
           {leader.level}
-          {leader.trip_count !== undefined && ` · ${leader.trip_count} viaje${leader.trip_count !== 1 ? 's' : ''}`}
-          {leader.trips_count !== undefined && ` · ${leader.trips_count} viajes`}
+          {(() => {
+            const count = leader.trip_count ?? leader.trips_count
+            return count > 0 ? ` · ${count} viaje${count !== 1 ? 's' : ''}` : null
+          })()}
         </p>
       </div>
       <div className="text-right flex-shrink-0">

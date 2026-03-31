@@ -396,7 +396,12 @@ export default function Missions() {
   }
 
   async function completeMission(id, evidence = null) {
-    await axios.post(`${API}/missions/${id}/complete`, { evidence })
+    try {
+      await axios.post(`${API}/missions/${id}/complete`, { evidence })
+    } catch (e) {
+      // 409 = already completed (e.g. auto-completed by quiz endpoint) — still refresh UI
+      if (e.response?.status !== 409) throw e
+    }
     setConfetti(true)
     setTimeout(() => setConfetti(false), 2000)
     refreshUser()
@@ -477,7 +482,7 @@ export default function Missions() {
 
       <div className="space-y-3">
         {missions.map(mission => {
-          const isAuto = mission.category === 'compensacion' || mission.category === 'calculadora'
+          const isAuto = mission.category === 'compensacion' || mission.category === 'calculadora' || mission.category === 'social'
           const progressHint = !mission.completed && isAuto && mission.category !== 'social'
             ? mission.category === 'compensacion'
               ? `${Math.min(1000, user?.compensated_co2 || 0).toLocaleString()} / 1 000 kg compensados`
