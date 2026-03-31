@@ -543,14 +543,14 @@ export default function Missions() {
                   )}
 
                   {/* Quiz badge */}
-                  {mission.quiz_id && !mission.completed && (
+                  {!!mission.quiz_id && !mission.completed && (
                     <span className="inline-flex items-center gap-1 text-xs text-ocean-cyan/60 mt-1">
                       <BrainIcon size={12} /> Requiere quiz marino
                     </span>
                   )}
 
                   {/* Completed: date + evidence */}
-                  {mission.completed && (
+                  {!!mission.completed && (
                     <div className="mt-1 space-y-0.5">
                       {mission.completed_at && (
                         <p className="text-xs text-ocean-cyan/50">{fmtDate(mission.completed_at)}</p>
