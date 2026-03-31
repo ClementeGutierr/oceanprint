@@ -167,8 +167,14 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   })
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
-  const [downloading, setDownloading] = useState(false)
+  const [shareLoading, setShareLoading] = useState(null) // 'wa' | 'ig' | 'copy' | 'dl'
+  const [toast, setToast] = useState(null)
   const socialCardRef = useRef(null)
+
+  function showToast(msg, duration = 3500) {
+    setToast(msg)
+    setTimeout(() => setToast(null), duration)
+  }
 
   const isVolunteer = selected.id === 'voluntariado'
   const co2 = selected.co2_per_unit * units
@@ -194,50 +200,125 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
     try { await axios.post(`${API}/compensations/shared`) } catch {}
   }
 
+  async function getCanvas() {
+    const html2canvas = (await import('html2canvas')).default
+    return html2canvas(socialCardRef.current, {
+      backgroundColor: null, useCORS: true, scale: 2, logging: false,
+    })
+  }
+
   async function downloadCard() {
-    if (!socialCardRef.current || downloading) return
-    setDownloading(true)
+    if (!socialCardRef.current || shareLoading) return
+    setShareLoading('dl')
     try {
-      const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(socialCardRef.current, {
-        backgroundColor: null, useCORS: true, scale: 2, logging: false,
-      })
+      const canvas = await getCanvas()
       const url = canvas.toDataURL('image/png')
       const a = document.createElement('a')
       a.href = url
       a.download = 'oceanprint-compensacion.png'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
       markShared()
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setDownloading(false)
-    }
+    } catch (e) { console.error(e) }
+    finally { setShareLoading(null) }
   }
 
-  function shareWhatsApp() {
+  async function copyToClipboard() {
+    if (!socialCardRef.current || shareLoading) return
+    setShareLoading('copy')
+    try {
+      const canvas = await getCanvas()
+      await new Promise(resolve => canvas.toBlob(async blob => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+          showToast('✅ Imagen copiada al portapapeles')
+          markShared()
+        } catch {
+          // Clipboard API blocked — fall back to download
+          const url = canvas.toDataURL('image/png')
+          const a = document.createElement('a')
+          a.href = url; a.download = 'oceanprint-compensacion.png'
+          document.body.appendChild(a); a.click(); document.body.removeChild(a)
+          showToast('Imagen descargada')
+        }
+        resolve()
+      }, 'image/png'))
+    } catch (e) { console.error(e) }
+    finally { setShareLoading(null) }
+  }
+
+  async function shareWhatsApp() {
+    if (!socialCardRef.current || shareLoading) return
+    setShareLoading('wa')
     const co2n = result?.co2_compensated ?? co2
     const pct  = result?.compensation_pct ?? 0
     const text = [
-      `🌊 *Acabo de compensar ${co2n} kg de CO₂*`,
+      `🌊 *Compensé ${co2n} kg de CO₂* con Diving Life`,
       ``,
-      `${selected.icon} ${getActionText(selected, units)}`,
-      `con ${selected.organization}`,
+      `${getActionText(selected, units)} con ${selected.organization}`,
       ``,
-      `📊 Soy *${user?.level || 'Guardián'}* y llevo el *${pct}%* de mi huella compensada.`,
+      `📊 Soy *${user?.level || 'Guardián'}* — llevo el *${pct}%* de mi huella compensada.`,
       ``,
-      `🐠 ¡Únete y protege el océano!`,
-      `👉 oceanprint.co`,
+      `🐠 ¡Únete y protege el océano! 👉 oceanprint.co`,
     ].join('\n')
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
-    markShared()
+
+    try {
+      if (navigator.share) {
+        // Mobile: Web Share API — try with image first
+        const canvas = await getCanvas()
+        await new Promise(resolve => canvas.toBlob(async blob => {
+          const file = new File([blob], 'oceanprint-compensacion.png', { type: 'image/png' })
+          try {
+            await navigator.share({
+              files: navigator.canShare?.({ files: [file] }) ? [file] : undefined,
+              text: `Compensé ${co2n} kg de CO₂ con Diving Life 🌊 Calcula tu huella en oceanprint.co`,
+            })
+          } catch (e) {
+            if (e.name !== 'AbortError') {
+              try { await navigator.share({ text }) } catch {}
+            }
+          }
+          resolve()
+        }, 'image/png'))
+      } else {
+        // Desktop: download image + open WhatsApp Web
+        const canvas = await getCanvas()
+        const url = canvas.toDataURL('image/png')
+        const a = document.createElement('a')
+        a.href = url; a.download = 'oceanprint-compensacion.png'
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+      }
+      markShared()
+    } catch (e) { console.error(e) }
+    finally { setShareLoading(null) }
   }
 
   async function shareInstagram() {
-    // Download the image — Instagram requires manual upload from camera roll
-    await downloadCard()
+    if (!socialCardRef.current || shareLoading) return
+    setShareLoading('ig')
+    try {
+      const canvas = await getCanvas()
+      await new Promise(resolve => canvas.toBlob(async blob => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        } catch {}
+        resolve()
+      }, 'image/png'))
+    } catch (e) { console.error(e) }
+    finally { setShareLoading(null) }
+
+    showToast('📋 Imagen copiada. Ábrela en Instagram y pégala en tu Story.', 4000)
+    markShared()
+
+    setTimeout(() => {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        window.location.href = 'instagram://story-camera'
+        setTimeout(() => window.open('https://www.instagram.com/', '_blank'), 1500)
+      } else {
+        window.open('https://www.instagram.com/', '_blank')
+      }
+    }, 2000)
   }
 
   const STEPS = isVolunteer ? ['Resumen', 'Inscripción', '¡Listo!'] : ['Resumen', 'Pago', '¡Listo!']
@@ -789,45 +870,74 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
                 </div>
               </div>
 
+              {/* Toast */}
+              {toast && (
+                <div
+                  className="mb-3 px-4 py-2.5 rounded-2xl text-xs font-semibold text-center animate-fade-in"
+                  style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.25)', color: '#4ade80' }}
+                >
+                  {toast}
+                </div>
+              )}
+
               {/* Share label */}
               <p className="text-[10px] text-ocean-cyan/50 font-bold uppercase tracking-widest text-center mb-3 flex items-center justify-center gap-1">
                 Comparte tu impacto <OceanWaveIcon size={12} />
               </p>
 
-              {/* Share buttons */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                <button
-                  onClick={downloadCard}
-                  disabled={downloading}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 text-xs font-semibold"
-                  style={{ background: 'rgba(0,180,216,0.1)', border: '1px solid rgba(0,180,216,0.25)', color: '#48cae4' }}
-                >
-                  {downloading
-                    ? <span className="text-xl">⏳</span>
-                    : <Download size={20} />}
-                  {downloading ? 'Generando…' : 'Descargar'}
-                </button>
+              {/* Share buttons — 3 cols */}
+              <div className="grid grid-cols-3 gap-2 mb-2">
                 <button
                   onClick={shareWhatsApp}
+                  disabled={!!shareLoading}
                   className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 text-xs font-semibold"
                   style={{ background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.25)', color: '#25d366' }}
                 >
-                  <WhatsAppIcon size={20} />
+                  {shareLoading === 'wa'
+                    ? <span className="inline-block w-5 h-5 border-2 border-green-600/30 border-t-green-400 rounded-full animate-spin" />
+                    : <WhatsAppIcon size={20} />}
                   WhatsApp
                 </button>
                 <button
                   onClick={shareInstagram}
+                  disabled={!!shareLoading}
                   className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 text-xs font-semibold"
                   style={{ background: 'rgba(225,48,108,0.1)', border: '1px solid rgba(225,48,108,0.25)', color: '#e1306c' }}
                 >
-                  <InstagramIcon size={20} />
+                  {shareLoading === 'ig'
+                    ? <span className="inline-block w-5 h-5 border-2 border-pink-600/30 border-t-pink-400 rounded-full animate-spin" />
+                    : <InstagramIcon size={20} />}
                   Instagram
+                </button>
+                <button
+                  onClick={copyToClipboard}
+                  disabled={!!shareLoading}
+                  className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95 text-xs font-semibold"
+                  style={{ background: 'rgba(0,180,216,0.1)', border: '1px solid rgba(0,180,216,0.25)', color: '#48cae4' }}
+                >
+                  {shareLoading === 'copy'
+                    ? <span className="inline-block w-5 h-5 border-2 border-cyan-600/30 border-t-cyan-400 rounded-full animate-spin" />
+                    : <Download size={20} />}
+                  Copiar
                 </button>
               </div>
 
-              <p className="text-ocean-foam/25 text-[10px] text-center mb-4">
-                Instagram: descarga la imagen y compártela desde tu galería
-              </p>
+              {/* Instagram caption suggestion */}
+              <div className="rounded-xl px-3 py-2 mb-3" style={{ background: 'rgba(225,48,108,0.05)', border: '1px solid rgba(225,48,108,0.12)' }}>
+                <p className="text-[10px] text-ocean-foam/30 mb-1 font-semibold uppercase tracking-wide">Caption sugerido para Instagram</p>
+                <p className="text-[11px] text-ocean-foam/50 leading-relaxed select-all">
+                  Compensé {result?.co2_compensated ?? co2} kg de CO₂ con @divinglife.co 🌊🐢 #OceanPrint #ConservacionMarina
+                </p>
+              </div>
+
+              {/* Download fallback link */}
+              <button
+                onClick={downloadCard}
+                disabled={!!shareLoading}
+                className="w-full text-center text-[11px] text-ocean-foam/30 hover:text-ocean-foam/50 transition-colors py-1 mb-3"
+              >
+                {shareLoading === 'dl' ? 'Descargando…' : '↓ Descargar imagen'}
+              </button>
 
               <button onClick={onClose} className="btn-primary w-full">
                 Continuar →
