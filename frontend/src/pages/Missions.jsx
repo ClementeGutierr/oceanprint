@@ -47,7 +47,7 @@ function QuizModal({ quiz, onClose, onAnswer }) {
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-[480px] rounded-t-3xl p-6 pb-10 animate-slide-up"
+        className="w-full max-w-[480px] rounded-t-3xl p-6 pb-10 animate-slide-up max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
         style={{
           background: 'linear-gradient(180deg, #0d2137 0%, #0a1628 100%)',

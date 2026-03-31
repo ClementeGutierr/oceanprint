@@ -138,17 +138,16 @@ function SocialCard({ selected, units, user, result, cardRef }) {
         )}
       </div>
 
-      {/* Quote */}
-      <div style={{ flex:1 }} />
-      <p style={{ fontSize:'11px', color:'rgba(144,224,239,0.35)', fontStyle:'italic',
-        lineHeight:'1.55', textAlign:'center', marginBottom:'14px',
-        padding:'0 8px', margin:'0 0 14px' }}>
-        "{QUOTES[selected.id]}"
-      </p>
-
-      <div style={{ width:'32px', height:'1px', background:'rgba(0,180,216,0.18)', marginBottom:'10px' }} />
-      <div style={{ fontSize:'8px', color:'rgba(144,224,239,0.2)', letterSpacing:'2px', textTransform:'uppercase' }}>
-        oceanprint.co · divinglife.co
+      {/* Quote + footer — pinned to bottom via absolute positioning */}
+      <div style={{ position:'absolute', bottom:'28px', left:'28px', right:'28px', textAlign:'center' }}>
+        <p style={{ fontSize:'11px', color:'rgba(144,224,239,0.35)', fontStyle:'italic',
+          lineHeight:'1.55', margin:'0 0 12px', padding:'0 8px' }}>
+          "{QUOTES[selected.id]}"
+        </p>
+        <div style={{ width:'32px', height:'1px', background:'rgba(0,180,216,0.18)', margin:'0 auto 10px' }} />
+        <div style={{ fontSize:'8px', color:'rgba(144,224,239,0.2)', letterSpacing:'2px', textTransform:'uppercase' }}>
+          oceanprint.co · divinglife.co
+        </div>
       </div>
     </div>
   )
@@ -203,7 +202,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   async function getCanvas() {
     const html2canvas = (await import('html2canvas')).default
     return html2canvas(socialCardRef.current, {
-      backgroundColor: null, useCORS: true, scale: 2, logging: false,
+      backgroundColor: null, useCORS: true, scale: 3, logging: false,
     })
   }
 
@@ -330,7 +329,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
       onClick={e => step < 3 && e.target === e.currentTarget && onClose()}
     >
       {/* Hidden full-size card for html2canvas */}
-      <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1 }}>
+      <div style={{ position: 'fixed', top: '-9999px', left: 0, zIndex: -1 }}>
         <SocialCard
           cardRef={socialCardRef}
           selected={selected}

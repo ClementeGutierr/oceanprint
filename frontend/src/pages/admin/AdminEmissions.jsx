@@ -62,7 +62,7 @@ export default function AdminEmissions({ token }) {
       </p>
 
       {/* Overview cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+      <div className="admin-overview-grid">
         {OVERVIEW_STATS(overview, total_compensated, compPct, total).map(({ Icon, label, value, color }) => (
           <div key={label} style={{ ...CARD, textAlign: 'center', padding: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color }}>
@@ -100,7 +100,7 @@ export default function AdminEmissions({ token }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div className="admin-table-grid">
         {/* By destination */}
         <div style={CARD}>
           <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
