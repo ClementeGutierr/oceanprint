@@ -51,7 +51,7 @@ export default function AdminDashboard({ token }) {
       </p>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
         <StatCard Icon={UsersIcon}      label="Usuarios"        value={totals.users_count}                              color="#48cae4" />
         <StatCard Icon={PlaneIcon}      label="Viajes"          value={totals.trips_count}                              color="#a78bfa" />
         <StatCard Icon={ThermometerIcon} label="CO₂ Emitido"   value={`${(totals.total_co2 || 0).toLocaleString()}`}   sub="kg" color="#f87171" />
@@ -78,7 +78,7 @@ export default function AdminDashboard({ token }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Recent users */}
         <div style={CARD}>
           <h3 style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>

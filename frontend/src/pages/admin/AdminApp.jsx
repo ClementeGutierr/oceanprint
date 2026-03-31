@@ -188,8 +188,8 @@ export default function AdminApp() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          <div className="max-w-6xl mx-auto">
+        <main className="flex-1 overflow-y-auto" style={{ padding: '32px 40px' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             {section === 'dashboard'   && <AdminDashboard   token={token} />}
             {section === 'expeditions' && <AdminExpeditions token={token} />}
             {section === 'users'       && <AdminUsers       token={token} />}
