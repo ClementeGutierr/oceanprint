@@ -139,15 +139,17 @@ function QuizModal({ quiz, onClose, onAnswer }) {
 
 // ── Locked mission modal (auto-complete missions) ───────────────────────────
 function LockedModal({ mission, user, onClose }) {
+  const isSocial       = mission.category === 'social'
   const isCompensacion = mission.category === 'compensacion'
-  const current = isCompensacion ? (user?.compensated_co2 || 0) : (user?.trips_count || 0)
-  const target  = isCompensacion ? 1000 : 5
-  const pct     = Math.min(100, Math.round((current / target) * 100))
+
+  const current = isCompensacion ? (user?.compensated_co2 || 0) : mission.category === 'calculadora' ? (user?.trips_count || 0) : null
+  const target  = isCompensacion ? 1000 : mission.category === 'calculadora' ? 5 : null
+  const pct     = (current !== null && target) ? Math.min(100, Math.round((current / target) * 100)) : null
   const unit    = isCompensacion ? 'kg compensados' : 'viajes calculados'
   const Icon    = isCompensacion ? LeafIcon : ThermometerIcon
-  const color   = isCompensacion ? '#4ade80' : '#48cae4'
-  const cta     = isCompensacion ? 'Compensar CO₂' : 'Calcular un viaje'
-  const ctaHref = isCompensacion ? '/compensar' : '/calcular'
+  const color   = isCompensacion ? '#4ade80' : isSocial ? '#a78bfa' : '#48cae4'
+  const cta     = isCompensacion ? 'Compensar CO₂' : isSocial ? 'Ir a Compensar' : 'Calcular un viaje'
+  const ctaHref = isCompensacion || isSocial ? '/compensar' : '/calcular'
 
   return (
     <div
@@ -183,20 +185,28 @@ function LockedModal({ mission, user, onClose }) {
 
         <p className="text-ocean-foam/60 text-sm leading-relaxed mb-5">{mission.description}</p>
 
-        <div className="mb-5">
-          <div className="flex justify-between mb-2">
-            <span className="text-xs text-ocean-foam/40">Tu progreso</span>
-            <span className="text-xs font-bold" style={{ color }}>{current.toLocaleString()} / {target.toLocaleString()} {unit}</span>
+        {pct !== null ? (
+          <div className="mb-5">
+            <div className="flex justify-between mb-2">
+              <span className="text-xs text-ocean-foam/40">Tu progreso</span>
+              <span className="text-xs font-bold" style={{ color }}>{current.toLocaleString()} / {target.toLocaleString()} {unit}</span>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${pct}%`, background: color }} />
+            </div>
+            <p className="text-xs text-ocean-foam/30 mt-1.5">
+              {pct < 100
+                ? `Faltan ${(target - current).toLocaleString()} ${unit} para desbloquear`
+                : 'Condición cumplida — se desbloqueará automáticamente'}
+            </p>
           </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${pct}%`, background: color }} />
+        ) : (
+          <div className="mb-5 rounded-2xl p-3" style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)' }}>
+            <p className="text-xs text-ocean-foam/50 leading-relaxed">
+              Esta misión se desbloquea automáticamente cuando compartes tu compensación en WhatsApp o descargas la tarjeta para Instagram desde la sección <span className="text-purple-400 font-semibold">Compensar</span>.
+            </p>
           </div>
-          <p className="text-xs text-ocean-foam/30 mt-1.5">
-            {pct < 100
-              ? `Faltan ${(target - current).toLocaleString()} ${unit} para desbloquear`
-              : 'Condición cumplida — se desbloqueará automáticamente'}
-          </p>
-        </div>
+        )}
 
         <a
           href={ctaHref}
@@ -397,7 +407,7 @@ export default function Missions() {
     if (mission.completed) return
 
     // Auto-complete missions — show locked/progress modal
-    if (mission.category === 'compensacion' || mission.category === 'calculadora') {
+    if (['compensacion', 'calculadora', 'social'].includes(mission.category)) {
       setLockedMission(mission)
       return
     }
@@ -468,7 +478,7 @@ export default function Missions() {
       <div className="space-y-3">
         {missions.map(mission => {
           const isAuto = mission.category === 'compensacion' || mission.category === 'calculadora'
-          const progressHint = !mission.completed && isAuto
+          const progressHint = !mission.completed && isAuto && mission.category !== 'social'
             ? mission.category === 'compensacion'
               ? `${Math.min(1000, user?.compensated_co2 || 0).toLocaleString()} / 1 000 kg compensados`
               : `${Math.min(5, user?.trips_count || 0)} / 5 viajes calculados`

@@ -190,6 +190,10 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
     }
   }
 
+  async function markShared() {
+    try { await axios.post(`${API}/compensations/shared`) } catch {}
+  }
+
   async function downloadCard() {
     if (!socialCardRef.current || downloading) return
     setDownloading(true)
@@ -205,6 +209,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
+      markShared()
     } catch (e) {
       console.error(e)
     } finally {
@@ -227,6 +232,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
       `👉 oceanprint.co`,
     ].join('\n')
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+    markShared()
   }
 
   async function shareInstagram() {
@@ -397,13 +403,44 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
           {step === 2 && (
             <div className="animate-fade-in">
               {isVolunteer ? (
-                /* Volunteer registration form */
+                /* Volunteer registration + guarantee card form */
                 <div>
-                  <h3 className="text-white font-black text-lg mb-1">Inscripción</h3>
-                  <p className="text-ocean-foam/50 text-sm mb-5">
-                    Completa tus datos para reservar tu cupo en la expedición marina
+                  <h3 className="text-white font-black text-lg mb-1">Inscripción al voluntariado</h3>
+                  <p className="text-ocean-foam/50 text-sm mb-4">
+                    Completa tus datos y agrega una tarjeta como garantía de asistencia
                   </p>
-                  <div className="space-y-3">
+
+                  {/* Guarantee policy notice */}
+                  <div
+                    className="rounded-2xl p-4 mb-5"
+                    style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.3)' }}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <DiveMaskIcon size={18} style={{ color: '#a78bfa', flexShrink: 0 }} />
+                      <p className="text-purple-300 font-bold text-sm">Garantía de asistencia</p>
+                    </div>
+                    <p className="text-ocean-foam/60 text-xs leading-relaxed mb-3">
+                      El voluntariado marino es <span className="text-green-400 font-bold">gratuito</span>, pero para garantizar tu asistencia y respetar el cupo que ocupas, se requiere una tarjeta como garantía:
+                    </p>
+                    <div className="space-y-2 mb-3">
+                      {[
+                        { icon: '✅', text: 'Si asistes al voluntariado: no se realiza ningún cobro', color: '#4ade80' },
+                        { icon: '⚠️', text: 'Si cancelas con más de 7 días de anticipación: se cobra $100.000 COP', color: '#fbbf24' },
+                        { icon: '❌', text: 'Si no cancelas o cancelas con menos de 7 días: se cobra $150.000 COP', color: '#f87171' },
+                      ].map(({ icon, text, color }) => (
+                        <div key={icon} className="flex items-start gap-2">
+                          <span className="text-xs flex-shrink-0 mt-0.5">{icon}</span>
+                          <p className="text-xs leading-relaxed" style={{ color }}>{text}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-ocean-foam/35 text-[10px] leading-relaxed border-t border-white/5 pt-2">
+                      Esta política existe para proteger los cupos limitados del voluntariado y asegurar que las fundaciones aliadas puedan planificar sus actividades de conservación.
+                    </p>
+                  </div>
+
+                  {/* Registration fields */}
+                  <div className="space-y-3 mb-5">
                     <div>
                       <label className="text-xs text-ocean-foam/50 font-semibold uppercase tracking-wider mb-1.5 block">
                         Nombre completo
@@ -440,14 +477,90 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
                       />
                     </div>
                   </div>
+
+                  {/* Guarantee card section */}
+                  <p className="text-xs text-ocean-foam/50 font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <CreditCardIcon size={13} /> Tarjeta de garantía <span className="text-purple-400/60 normal-case font-normal">(no se realizará ningún cobro al inscribirte)</span>
+                  </p>
+
+                  {/* Visual card */}
                   <div
-                    className="rounded-2xl p-3 flex gap-2 mt-4"
-                    style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)' }}
+                    className="relative rounded-2xl p-5 mb-4 overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg,#4c1d95 0%,#7c3aed 60%,#a78bfa 100%)',
+                      height: '160px',
+                      boxShadow: '0 8px 32px rgba(124,58,237,0.35)',
+                    }}
                   >
-                    <span className="flex-shrink-0 text-purple-400"><DiveMaskIcon size={18} /></span>
-                    <p className="text-ocean-foam/40 text-xs leading-relaxed">
-                      Te contactaremos por email para confirmar tu cupo y darte los detalles de la expedición.
-                    </p>
+                    <div style={{ position:'absolute', width:'180px', height:'180px', borderRadius:'50%',
+                      background:'rgba(255,255,255,0.06)', top:'-60px', right:'-40px' }} />
+                    <div style={{ position:'absolute', width:'120px', height:'120px', borderRadius:'50%',
+                      background:'rgba(255,255,255,0.04)', bottom:'-40px', left:'20px' }} />
+                    <div className="absolute top-4 right-5 flex gap-[-6px]">
+                      <div className="w-7 h-7 rounded-full" style={{ background: 'rgba(255,130,0,0.85)' }} />
+                      <div className="w-7 h-7 rounded-full -ml-3" style={{ background: 'rgba(220,0,0,0.6)' }} />
+                    </div>
+                    <div className="absolute top-3 left-5 text-white/40 text-[9px] font-bold tracking-widest uppercase">Garantía · Ocean Print</div>
+                    <div className="absolute top-10 left-5 text-white font-mono text-base tracking-widest drop-shadow">
+                      {formatCardNumber(cardForm.number) || '•••• •••• •••• ••••'}
+                    </div>
+                    <div className="absolute bottom-4 left-5">
+                      <div className="text-white/40 text-[9px] uppercase tracking-wider">Titular</div>
+                      <div className="text-white text-sm font-mono uppercase truncate max-w-[160px]">
+                        {cardForm.name || 'NOMBRE APELLIDO'}
+                      </div>
+                    </div>
+                    <div className="absolute bottom-4 right-5 text-right">
+                      <div className="text-white/40 text-[9px] uppercase tracking-wider">Vence</div>
+                      <div className="text-white text-sm font-mono">{cardForm.expiry || 'MM/AA'}</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <input
+                      className="input-field font-mono"
+                      placeholder="0000 0000 0000 0000"
+                      value={cardForm.number}
+                      onChange={e => setCardForm(f => ({ ...f, number: formatCardNumber(e.target.value) }))}
+                      maxLength={19}
+                    />
+                    <input
+                      className="input-field"
+                      placeholder="Nombre como aparece en la tarjeta"
+                      value={cardForm.name}
+                      onChange={e => setCardForm(f => ({ ...f, name: e.target.value.toUpperCase() }))}
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        className="input-field font-mono"
+                        placeholder="MM/AA"
+                        value={cardForm.expiry}
+                        onChange={e => setCardForm(f => ({ ...f, expiry: formatExpiry(e.target.value) }))}
+                        maxLength={5}
+                      />
+                      <input
+                        className="input-field font-mono"
+                        placeholder="CVV"
+                        value={cardForm.cvv}
+                        onChange={e => setCardForm(f => ({ ...f, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                        maxLength={4}
+                        type="password"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Demo banner */}
+                  <div
+                    className="rounded-2xl p-3 flex gap-2.5 mt-4"
+                    style={{ background: 'rgba(255,209,102,0.06)', border: '1px solid rgba(255,209,102,0.18)' }}
+                  >
+                    <span className="flex-shrink-0" style={{ color: '#ffd166' }}><LockIcon size={18} /></span>
+                    <div>
+                      <p className="text-sand text-xs font-semibold mb-0.5">Modo Demo — Solo garantía</p>
+                      <p className="text-ocean-foam/35 text-xs leading-relaxed">
+                        En producción se tokenizará la tarjeta de forma segura. No se realiza ningún cobro al inscribirte. Los datos no son almacenados.
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -632,7 +745,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
                 {submitting ? (
                   <span className="inline-block w-5 h-5 border-2 border-ocean-deep/40 border-t-ocean-deep rounded-full animate-spin" />
                 ) : isVolunteer ? (
-                  <><DiveMaskIcon size={18} /> Confirmar inscripción</>
+                  <><DiveMaskIcon size={18} /> Confirmar inscripción (sin cobro)</>
                 ) : (
                   <><CreditCardIcon size={18} /> Confirmar pago</>
                 )}

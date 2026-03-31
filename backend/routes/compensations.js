@@ -74,6 +74,12 @@ router.post('/', authenticateToken, (req, res) => {
   }
 });
 
+// Mark that user has shared a compensation post (triggers "Embajador Digital" mission)
+router.post('/shared', authenticateToken, (req, res) => {
+  db.prepare('UPDATE users SET has_shared_post = 1 WHERE id = ?').run(req.user.id);
+  res.json({ success: true });
+});
+
 // Get user compensations history
 router.get('/', authenticateToken, (req, res) => {
   const compensations = db.prepare(`

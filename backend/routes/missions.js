@@ -6,6 +6,12 @@ const router = express.Router();
 
 // Migration: add evidence column if it doesn't exist yet
 try { db.exec('ALTER TABLE user_missions ADD COLUMN evidence TEXT') } catch {}
+// Migration: track social shares for "Embajador Digital" mission
+try { db.exec('ALTER TABLE users ADD COLUMN has_shared_post INTEGER DEFAULT 0') } catch {}
+// Migration: rename "Embajador Oceánico" → "Embajador Digital" in existing DBs
+try {
+  db.exec(`UPDATE missions SET name='Embajador Digital', description='Comparte tu compensación en WhatsApp o descarga la tarjeta para Instagram', icon='📣', category='social' WHERE name='Embajador Oceánico'`)
+} catch {}
 
 function updateUserLevel(userId) {
   const user = db.prepare('SELECT points FROM users WHERE id = ?').get(userId);
@@ -20,14 +26,16 @@ function updateUserLevel(userId) {
 // Auto-complete missions that depend on real platform data.
 // Called on every GET /missions so they unlock as soon as conditions are met.
 function autoCompleteMissions(userId) {
-  const user = db.prepare('SELECT trips_count, compensated_co2 FROM users WHERE id = ?').get(userId);
+  const user = db.prepare('SELECT trips_count, compensated_co2, has_shared_post FROM users WHERE id = ?').get(userId);
   if (!user) return;
 
   const checks = [
     // "Compensador Activo" — user has compensated >= 1000 kg total
-    { category: 'compensacion', met: (user.compensated_co2 || 0) >= 1000 },
+    { category: 'compensacion', met: (user.compensated_co2  || 0) >= 1000 },
     // "Buceador Consciente" — user has calculated >= 5 trips
-    { category: 'calculadora',  met: (user.trips_count   || 0) >= 5  },
+    { category: 'calculadora',  met: (user.trips_count     || 0) >= 5    },
+    // "Embajador Digital" — user has shared a compensation post
+    { category: 'social',       met: (user.has_shared_post || 0) >= 1    },
   ];
 
   for (const { category, met } of checks) {
@@ -69,7 +77,7 @@ router.post('/:id/complete', authenticateToken, (req, res) => {
     if (!mission) return res.status(404).json({ error: 'Misión no encontrada' });
 
     // Auto-complete categories cannot be triggered manually
-    if (mission.category === 'compensacion' || mission.category === 'calculadora') {
+    if (['compensacion', 'calculadora', 'social'].includes(mission.category)) {
       return res.status(403).json({ error: 'Esta misión se completa automáticamente al usar la plataforma' });
     }
 
