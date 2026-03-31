@@ -118,7 +118,9 @@ router.post('/calculate', authenticateToken, (req, res) => {
     }
 
     const distanceKey = `${origin}-${destination}`;
-    const flightDistance = DISTANCES[distanceKey] || 2000;
+    // Check DB first (Excel-imported routes), fall back to hardcoded table
+    const dbRoute = db.prepare('SELECT distancia_km, distancia_local_km FROM emission_routes WHERE origen=? AND destino=?').get(origin, destination);
+    const flightDistance = dbRoute?.distancia_km ?? DISTANCES[distanceKey] ?? 2000;
 
     // CO2 flight (round trip)
     const flightFactor = getFlightFactor(flightDistance);
@@ -128,7 +130,8 @@ router.post('/calculate', authenticateToken, (req, res) => {
     const seaFactor = SEA_FACTORS[transport_sea] || 0;
     let co2Sea = 0;
     if (transport_sea === 'ferry') {
-      co2Sea = (LOCAL_DISTANCES[destination] || 20) * 2 * seaFactor;
+      const localDist = dbRoute?.distancia_local_km ?? LOCAL_DISTANCES[destination] ?? 20;
+      co2Sea = localDist * 2 * seaFactor;
     } else {
       co2Sea = seaFactor * (sea_hours || 6);
     }

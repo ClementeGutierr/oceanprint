@@ -120,6 +120,19 @@ function initDatabase() {
     );
   `);
 
+  // Emission routes table (populated via Excel import)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS emission_routes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      origen TEXT NOT NULL,
+      destino TEXT NOT NULL,
+      distancia_km REAL NOT NULL,
+      distancia_local_km REAL DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(origen, destino)
+    )
+  `);
+
   // Safe migrations — add columns if they don't exist yet
   for (const sql of [
     "ALTER TABLE users ADD COLUMN avatar TEXT",

@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import axios from 'axios'
 import {
-  OceanWaveIcon, TrophyIcon, UsersIcon, LeafIcon, PencilIcon, ThermometerIcon,
+  OceanWaveIcon, TrophyIcon, UsersIcon, LeafIcon, PencilIcon, ThermometerIcon, RefreshIcon,
 } from '../../components/OceanIcons'
 import AdminDashboard   from './AdminDashboard'
 import AdminExpeditions from './AdminExpeditions'
 import AdminUsers       from './AdminUsers'
 import AdminEmissions   from './AdminEmissions'
 import AdminContent     from './AdminContent'
+import AdminImport      from './AdminImport'
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 export function authCfg(token) {
@@ -15,11 +16,12 @@ export function authCfg(token) {
 }
 
 const NAV = [
-  { id: 'dashboard',   label: 'Dashboard',   Icon: OceanWaveIcon  },
-  { id: 'expeditions', label: 'Expediciones', Icon: TrophyIcon     },
-  { id: 'users',       label: 'Usuarios',     Icon: UsersIcon      },
-  { id: 'emissions',   label: 'Emisiones',    Icon: LeafIcon       },
-  { id: 'content',     label: 'Contenido',    Icon: PencilIcon     },
+  { id: 'dashboard',   label: 'Dashboard',      Icon: OceanWaveIcon  },
+  { id: 'expeditions', label: 'Expediciones',   Icon: TrophyIcon     },
+  { id: 'users',       label: 'Usuarios',       Icon: UsersIcon      },
+  { id: 'emissions',   label: 'Emisiones',      Icon: LeafIcon       },
+  { id: 'content',     label: 'Contenido',      Icon: PencilIcon     },
+  { id: 'import',      label: 'Importar Datos', Icon: RefreshIcon    },
 ]
 
 export default function AdminApp() {
@@ -195,6 +197,7 @@ export default function AdminApp() {
             {section === 'users'       && <AdminUsers       token={token} />}
             {section === 'emissions'   && <AdminEmissions   token={token} />}
             {section === 'content'     && <AdminContent     token={token} />}
+            {section === 'import'      && <AdminImport      token={token} />}
           </div>
         </main>
       </div>

@@ -1,6 +1,10 @@
 const express = require('express');
+const multer  = require('multer');
+const XLSX    = require('xlsx');
 const { db } = require('../database');
 const { requireAdmin } = require('../middleware/auth');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -275,6 +279,90 @@ router.put('/compensation-options/:id', (req, res) => {
   db.prepare('UPDATE compensation_options SET name=?, organization=?, description=?, co2_per_unit=?, cost_per_unit=?, unit=?, icon=?, points_per_unit=? WHERE id=?')
     .run(name, organization, description, parseFloat(co2_per_unit), parseFloat(cost_per_unit), unit, icon, parseInt(points_per_unit), id);
   res.json(db.prepare('SELECT * FROM compensation_options WHERE id = ?').get(id));
+});
+
+// ── EXCEL IMPORT ──────────────────────────────────────────
+router.get('/emission-routes', (req, res) => {
+  const routes = db.prepare('SELECT * FROM emission_routes ORDER BY origen, destino').all();
+  res.json(routes);
+});
+
+router.post('/import-excel', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+
+    const upsert = db.prepare(`
+      INSERT INTO emission_routes (origen, destino, distancia_km, distancia_local_km)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(origen, destino) DO UPDATE SET
+        distancia_km       = excluded.distancia_km,
+        distancia_local_km = excluded.distancia_local_km,
+        updated_at         = CURRENT_TIMESTAMP
+    `);
+
+    let imported = 0, updated = 0, skipped = 0;
+    const errors = [];
+
+    // Column aliases accepted (case-insensitive)
+    const COL = {
+      origen:             ['origen', 'origin', 'ciudad_origen', 'desde'],
+      destino:            ['destino', 'destination', 'ciudad_destino', 'hasta'],
+      distancia_km:       ['distancia_km', 'distancia', 'distance_km', 'distance', 'km'],
+      distancia_local_km: ['distancia_local_km', 'distancia_local', 'local_km', 'local'],
+    };
+
+    function findCol(headers, aliases) {
+      return headers.findIndex(h => aliases.includes(String(h).toLowerCase().trim()));
+    }
+
+    for (const sheetName of wb.SheetNames) {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
+      if (rows.length < 2) continue;
+
+      const rawHeaders = rows[0].map(h => String(h).toLowerCase().trim());
+      const iOrigen    = findCol(rawHeaders, COL.origen);
+      const iDestino   = findCol(rawHeaders, COL.destino);
+      const iDist      = findCol(rawHeaders, COL.distancia_km);
+      const iLocal     = findCol(rawHeaders, COL.distancia_local_km);
+
+      if (iOrigen === -1 || iDestino === -1 || iDist === -1) {
+        errors.push(`Hoja "${sheetName}": faltan columnas obligatorias (origen, destino, distancia_km)`);
+        continue;
+      }
+
+      const doImport = db.transaction(() => {
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r];
+          const origen  = String(row[iOrigen]  || '').trim();
+          const destino = String(row[iDestino] || '').trim();
+          const distKm  = parseFloat(row[iDist]);
+          const localKm = iLocal >= 0 ? parseFloat(row[iLocal] || 0) : 0;
+
+          if (!origen || !destino || isNaN(distKm) || distKm <= 0) { skipped++; continue; }
+
+          const existing = db.prepare('SELECT id FROM emission_routes WHERE origen=? AND destino=?').get(origen, destino);
+          upsert.run(origen, destino, distKm, isNaN(localKm) ? 0 : localKm);
+          existing ? updated++ : imported++;
+        }
+      });
+      doImport();
+    }
+
+    res.json({
+      success: true,
+      sheets_processed: wb.SheetNames.length,
+      imported,
+      updated,
+      skipped,
+      errors,
+      total_routes: db.prepare('SELECT COUNT(*) as n FROM emission_routes').get().n,
+    });
+  } catch (err) {
+    console.error('Import error:', err);
+    res.status(500).json({ error: 'Error procesando el archivo: ' + err.message });
+  }
 });
 
 module.exports = router;
