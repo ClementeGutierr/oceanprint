@@ -81,6 +81,16 @@ function updateUserLevel(userId) {
   db.prepare('UPDATE users SET level = ? WHERE id = ?').run(level, userId);
 }
 
+// Get available stopovers for a route
+router.get('/stopovers', (req, res) => {
+  const { origin, destination } = req.query;
+  if (!origin || !destination) return res.json([]);
+  const rows = db.prepare(
+    'SELECT stopover_city, dist_origin_stopover, dist_stopover_dest FROM route_stopovers WHERE origin=? AND destination=? ORDER BY stopover_city'
+  ).all(origin, destination);
+  res.json(rows);
+});
+
 // Calculate carbon footprint
 router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
   try {
@@ -88,6 +98,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       origin, destination,
       passengers = 1,
       expedition_id = null,
+      stopover_city = null,
       // Multi-segment format (new)
       sea_segments: rawSeaSegs,
       land_segments: rawLandSegs,
@@ -109,8 +120,24 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
     const dbRoute = db.prepare('SELECT distancia_km, distancia_local_km FROM emission_routes WHERE origen=? AND destino=?').get(origin, destination);
     const flightDistance = dbRoute?.distancia_km ?? DISTANCES[distanceKey] ?? 2000;
 
-    // CO2 flight (round trip)
-    const co2Flight = flightDistance * 2 * getFlightFactor(flightDistance);
+    // CO2 flight (round trip) — with optional stopover
+    let co2Flight;
+    if (stopover_city && stopover_city !== '_generic') {
+      const sv = db.prepare('SELECT dist_origin_stopover, dist_stopover_dest FROM route_stopovers WHERE origin=? AND destination=? AND stopover_city=?')
+        .get(origin, destination, stopover_city);
+      if (sv) {
+        const d1 = sv.dist_origin_stopover;
+        const d2 = sv.dist_stopover_dest;
+        co2Flight = (d1 * getFlightFactor(d1) + d2 * getFlightFactor(d2)) * 2;
+      } else {
+        // Named stopover not found — fall back to 20% extra
+        co2Flight = flightDistance * 2 * getFlightFactor(flightDistance) * 1.2;
+      }
+    } else if (stopover_city === '_generic') {
+      co2Flight = flightDistance * 2 * getFlightFactor(flightDistance) * 1.2;
+    } else {
+      co2Flight = flightDistance * 2 * getFlightFactor(flightDistance);
+    }
 
     // CO2 sea — sum all segments
     let co2Sea = 0;
@@ -216,6 +243,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       },
       points_earned: 10,
       expedition_id: validExpeditionId,
+      stopover_city: stopover_city || null,
       mission_completed: missionCompleted,
     });
   } catch (error) {

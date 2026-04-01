@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
 import { UsersIcon, TrophyIcon, PlaneIcon, LeafIcon, MapPinIcon } from '../../components/OceanIcons'
+import AdminSelect from './AdminSelect'
 
 const LEVELS = ['Plancton', 'Caballito de Mar', 'Tortuga Marina', 'Mantarraya', 'Ballena Azul']
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
@@ -173,14 +174,18 @@ export default function AdminUsers({ token }) {
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
         <input style={{ ...INPUT, flex: '1', minWidth: '180px', width: 'auto' }} placeholder="Buscar por nombre o email..."
           value={search} onChange={e => setSearch(e.target.value)} />
-        <select style={{ ...INPUT, width: 'auto', minWidth: '150px', appearance: 'none', cursor: 'pointer' }} value={level} onChange={e => setLevel(e.target.value)}>
-          <option value="">Todos los niveles</option>
-          {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-        </select>
-        <select style={{ ...INPUT, width: 'auto', minWidth: '180px', appearance: 'none', cursor: 'pointer' }} value={expFilter} onChange={e => setExpFilter(e.target.value)}>
-          <option value="">Todas las expediciones</option>
-          {expeditions.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-        </select>
+        <AdminSelect
+          value={level}
+          onChange={v => setLevel(v)}
+          options={[{ value: '', label: 'Todos los niveles' }, ...LEVELS.map(l => ({ value: l, label: l }))]}
+          style={{ width: 'auto', minWidth: '150px' }}
+        />
+        <AdminSelect
+          value={expFilter}
+          onChange={v => setExpFilter(v)}
+          options={[{ value: '', label: 'Todas las expediciones' }, ...expeditions.map(e => ({ value: String(e.id), label: e.name }))]}
+          style={{ width: 'auto', minWidth: '180px' }}
+        />
       </div>
 
       {/* Table */}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
 import { TrophyIcon } from '../../components/OceanIcons'
+import AdminSelect from './AdminSelect'
 
 const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla del Coco', 'Raja Ampat', 'Providencia']
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
@@ -189,9 +190,7 @@ export default function AdminExpeditions({ token }) {
             </div>
             <div>
               <label style={LABEL}>Destino</label>
-              <select style={INPUT} value={form.destination} onChange={e => handleFormChange('destination', e.target.value)}>
-                {DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <AdminSelect value={form.destination} onChange={v => handleFormChange('destination', v)} options={DESTINATIONS} />
             </div>
             <div>
               <label style={LABEL}>Código de invitación</label>
@@ -219,9 +218,7 @@ export default function AdminExpeditions({ token }) {
               <label style={LABEL}>Transportes marítimos fijos (opcional)</label>
               {form.sea_transports.map((seg, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, sea_transports: s })) }}>
-                    {SEA_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
+                  <AdminSelect style={{ flex: 1 }} value={seg.type} onChange={v => { const s = [...form.sea_transports]; s[i] = { ...s[i], type: v }; setForm(f => ({ ...f, sea_transports: s })) }} options={SEA_TYPES} />
                   <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.hours} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], hours: parseFloat(e.target.value) || 0 }; setForm(f => ({ ...f, sea_transports: s })) }} placeholder="h" min={0} />
                   <button onClick={() => setForm(f => ({ ...f, sea_transports: f.sea_transports.filter((_, j) => j !== i) }))} style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', padding: '6px 10px', color: '#f87171', cursor: 'pointer', fontSize: '13px', flexShrink: 0 }}>×</button>
                 </div>
@@ -235,9 +232,7 @@ export default function AdminExpeditions({ token }) {
               <label style={LABEL}>Transportes terrestres fijos (opcional)</label>
               {form.land_transports.map((seg, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, land_transports: s })) }}>
-                    {LAND_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
+                  <AdminSelect style={{ flex: 1 }} value={seg.type} onChange={v => { const s = [...form.land_transports]; s[i] = { ...s[i], type: v }; setForm(f => ({ ...f, land_transports: s })) }} options={LAND_TYPES} />
                   <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.km ?? ''} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], km: e.target.value !== '' ? parseFloat(e.target.value) : null }; setForm(f => ({ ...f, land_transports: s })) }} placeholder="km" min={0} />
                   <button onClick={() => setForm(f => ({ ...f, land_transports: f.land_transports.filter((_, j) => j !== i) }))} style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', padding: '6px 10px', color: '#f87171', cursor: 'pointer', fontSize: '13px', flexShrink: 0 }}>×</button>
                 </div>

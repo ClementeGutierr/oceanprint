@@ -377,6 +377,115 @@ router.put('/compensation-options/:id', (req, res) => {
   res.json(db.prepare('SELECT * FROM compensation_options WHERE id = ?').get(id));
 });
 
+// ── DESTINATIONS ──────────────────────────────────────────
+router.get('/destinations', (req, res) => {
+  res.json(db.prepare('SELECT * FROM destinations ORDER BY sort_order, name').all());
+});
+
+router.post('/destinations', (req, res) => {
+  const { name, country = '', icon = '🌊', local_km = 0, dive_hours = 6, sort_order = 0 } = req.body;
+  if (!name) return res.status(400).json({ error: 'Nombre requerido' });
+  try {
+    const r = db.prepare('INSERT INTO destinations (name, country, icon, local_km, dive_hours, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(name, country, icon, parseFloat(local_km) || 0, parseFloat(dive_hours) || 6, parseInt(sort_order) || 0);
+    res.status(201).json(db.prepare('SELECT * FROM destinations WHERE id = ?').get(r.lastInsertRowid));
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El destino ya existe' });
+    res.status(500).json({ error: 'Error creando destino' });
+  }
+});
+
+router.put('/destinations/:id', (req, res) => {
+  const { name, country = '', icon = '🌊', local_km = 0, dive_hours = 6, sort_order = 0 } = req.body;
+  const id = parseInt(req.params.id);
+  try {
+    db.prepare('UPDATE destinations SET name=?, country=?, icon=?, local_km=?, dive_hours=?, sort_order=? WHERE id=?')
+      .run(name, country, icon, parseFloat(local_km) || 0, parseFloat(dive_hours) || 6, parseInt(sort_order) || 0, id);
+    res.json(db.prepare('SELECT * FROM destinations WHERE id = ?').get(id));
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El destino ya existe' });
+    res.status(500).json({ error: 'Error actualizando destino' });
+  }
+});
+
+router.delete('/destinations/:id', (req, res) => {
+  db.prepare('DELETE FROM destinations WHERE id = ?').run(parseInt(req.params.id));
+  res.json({ success: true });
+});
+
+// ── ORIGINS ───────────────────────────────────────────────
+router.get('/origins', (req, res) => {
+  res.json(db.prepare('SELECT * FROM origins ORDER BY sort_order, name').all());
+});
+
+router.post('/origins', (req, res) => {
+  const { name, country = '', sort_order = 0 } = req.body;
+  if (!name) return res.status(400).json({ error: 'Nombre requerido' });
+  try {
+    const r = db.prepare('INSERT INTO origins (name, country, sort_order) VALUES (?, ?, ?)')
+      .run(name, country, parseInt(sort_order) || 0);
+    res.status(201).json(db.prepare('SELECT * FROM origins WHERE id = ?').get(r.lastInsertRowid));
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El origen ya existe' });
+    res.status(500).json({ error: 'Error creando origen' });
+  }
+});
+
+router.put('/origins/:id', (req, res) => {
+  const { name, country = '', sort_order = 0 } = req.body;
+  const id = parseInt(req.params.id);
+  try {
+    db.prepare('UPDATE origins SET name=?, country=?, sort_order=? WHERE id=?')
+      .run(name, country, parseInt(sort_order) || 0, id);
+    res.json(db.prepare('SELECT * FROM origins WHERE id = ?').get(id));
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El origen ya existe' });
+    res.status(500).json({ error: 'Error actualizando origen' });
+  }
+});
+
+router.delete('/origins/:id', (req, res) => {
+  db.prepare('DELETE FROM origins WHERE id = ?').run(parseInt(req.params.id));
+  res.json({ success: true });
+});
+
+// ── STOPOVERS ─────────────────────────────────────────────
+router.get('/stopovers', (req, res) => {
+  res.json(db.prepare('SELECT * FROM route_stopovers ORDER BY origin, destination, stopover_city').all());
+});
+
+router.post('/stopovers', (req, res) => {
+  const { origin, destination, stopover_city, dist_origin_stopover, dist_stopover_dest } = req.body;
+  if (!origin || !destination || !stopover_city || !dist_origin_stopover || !dist_stopover_dest)
+    return res.status(400).json({ error: 'Todos los campos son requeridos' });
+  try {
+    const r = db.prepare('INSERT INTO route_stopovers (origin, destination, stopover_city, dist_origin_stopover, dist_stopover_dest) VALUES (?, ?, ?, ?, ?)')
+      .run(origin, destination, stopover_city, parseFloat(dist_origin_stopover), parseFloat(dist_stopover_dest));
+    res.status(201).json(db.prepare('SELECT * FROM route_stopovers WHERE id = ?').get(r.lastInsertRowid));
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'Esta escala ya existe para esa ruta' });
+    res.status(500).json({ error: 'Error creando escala' });
+  }
+});
+
+router.put('/stopovers/:id', (req, res) => {
+  const { origin, destination, stopover_city, dist_origin_stopover, dist_stopover_dest } = req.body;
+  const id = parseInt(req.params.id);
+  try {
+    db.prepare('UPDATE route_stopovers SET origin=?, destination=?, stopover_city=?, dist_origin_stopover=?, dist_stopover_dest=? WHERE id=?')
+      .run(origin, destination, stopover_city, parseFloat(dist_origin_stopover), parseFloat(dist_stopover_dest), id);
+    res.json(db.prepare('SELECT * FROM route_stopovers WHERE id = ?').get(id));
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'Esta escala ya existe para esa ruta' });
+    res.status(500).json({ error: 'Error actualizando escala' });
+  }
+});
+
+router.delete('/stopovers/:id', (req, res) => {
+  db.prepare('DELETE FROM route_stopovers WHERE id = ?').run(parseInt(req.params.id));
+  res.json({ success: true });
+});
+
 // ── EXCEL IMPORT ──────────────────────────────────────────
 router.get('/emission-routes', (req, res) => {
   const routes = db.prepare('SELECT * FROM emission_routes ORDER BY origen, destino').all();

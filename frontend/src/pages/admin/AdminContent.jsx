@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
 import { LeafIcon, StarIcon, BrainIcon, CreditCardIcon, MissionIcon, OptionIcon } from '../../components/OceanIcons'
+import AdminSelect from './AdminSelect'
 
 const TABS = ['Misiones', 'Quizzes', 'Compensaciones']
 const CATEGORIES_MISSION = ['conservacion', 'sostenibilidad', 'ciencia', 'comunidad', 'educacion', 'compensacion', 'voluntariado', 'calculadora', 'social']
@@ -71,9 +72,7 @@ function MissionsPanel({ token }) {
             <div><label style={LABEL}>Puntos</label><input type="number" style={INPUT} value={form.points} onChange={e => setForm({ ...form, points: e.target.value })} /></div>
             <div>
               <label style={LABEL}>Categoría</label>
-              <select style={{ ...INPUT, appearance: 'none' }} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                {CATEGORIES_MISSION.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <AdminSelect value={form.category} onChange={v => setForm({ ...form, category: v })} options={CATEGORIES_MISSION} />
             </div>
             <div><label style={LABEL}>Quiz ID (opcional)</label><input type="number" style={INPUT} value={form.quiz_id} onChange={e => setForm({ ...form, quiz_id: e.target.value })} placeholder="ID del quiz asociado" /></div>
             <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Descripción</label><input style={INPUT} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
@@ -182,15 +181,11 @@ function QuizzesPanel({ token }) {
             <div><label style={LABEL}>Opción D</label><input style={INPUT} value={form.option_d} onChange={e => setForm({ ...form, option_d: e.target.value })} /></div>
             <div>
               <label style={LABEL}>Respuesta correcta</label>
-              <select style={{ ...INPUT, appearance: 'none' }} value={form.correct_answer} onChange={e => setForm({ ...form, correct_answer: e.target.value })}>
-                {CORRECT_OPTIONS.map(o => <option key={o} value={o}>Opción {o}</option>)}
-              </select>
+              <AdminSelect value={form.correct_answer} onChange={v => setForm({ ...form, correct_answer: v })} options={CORRECT_OPTIONS.map(o => ({ value: o, label: `Opción ${o}` }))} />
             </div>
             <div>
               <label style={LABEL}>Categoría</label>
-              <select style={{ ...INPUT, appearance: 'none' }} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                {CATEGORIES_QUIZ.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <AdminSelect value={form.category} onChange={v => setForm({ ...form, category: v })} options={CATEGORIES_QUIZ} />
             </div>
             <div><label style={LABEL}>Puntos</label><input type="number" style={INPUT} value={form.points} onChange={e => setForm({ ...form, points: e.target.value })} /></div>
             <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Explicación</label><textarea style={{ ...INPUT, height: '80px', resize: 'vertical' }} value={form.explanation} onChange={e => setForm({ ...form, explanation: e.target.value })} /></div>

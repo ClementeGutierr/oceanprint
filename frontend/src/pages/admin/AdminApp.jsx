@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios'
 import {
-  OceanWaveIcon, TrophyIcon, UsersIcon, LeafIcon, PencilIcon, ThermometerIcon, RefreshIcon,
+  OceanWaveIcon, TrophyIcon, UsersIcon, LeafIcon, PencilIcon, ThermometerIcon, RefreshIcon, MapPinIcon,
 } from '../../components/OceanIcons'
 import AdminDashboard   from './AdminDashboard'
 import AdminExpeditions from './AdminExpeditions'
@@ -9,6 +9,7 @@ import AdminUsers       from './AdminUsers'
 import AdminEmissions   from './AdminEmissions'
 import AdminContent     from './AdminContent'
 import AdminImport      from './AdminImport'
+import AdminRoutes      from './AdminRoutes'
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 export function authCfg(token) {
@@ -16,12 +17,13 @@ export function authCfg(token) {
 }
 
 const NAV = [
-  { id: 'dashboard',   label: 'Dashboard',      Icon: OceanWaveIcon  },
-  { id: 'expeditions', label: 'Expediciones',   Icon: TrophyIcon     },
-  { id: 'users',       label: 'Usuarios',       Icon: UsersIcon      },
-  { id: 'emissions',   label: 'Emisiones',      Icon: LeafIcon       },
-  { id: 'content',     label: 'Contenido',      Icon: PencilIcon     },
-  { id: 'import',      label: 'Importar Datos', Icon: RefreshIcon    },
+  { id: 'dashboard',   label: 'Dashboard',       Icon: OceanWaveIcon  },
+  { id: 'expeditions', label: 'Expediciones',    Icon: TrophyIcon     },
+  { id: 'users',       label: 'Usuarios',        Icon: UsersIcon      },
+  { id: 'emissions',   label: 'Emisiones',       Icon: LeafIcon       },
+  { id: 'routes',      label: 'Destinos y Rutas',Icon: MapPinIcon     },
+  { id: 'content',     label: 'Contenido',       Icon: PencilIcon     },
+  { id: 'import',      label: 'Importar Datos',  Icon: RefreshIcon    },
 ]
 
 export default function AdminApp() {
@@ -196,6 +198,7 @@ export default function AdminApp() {
             {section === 'expeditions' && <AdminExpeditions token={token} />}
             {section === 'users'       && <AdminUsers       token={token} />}
             {section === 'emissions'   && <AdminEmissions   token={token} />}
+            {section === 'routes'      && <AdminRoutes      token={token} />}
             {section === 'content'     && <AdminContent     token={token} />}
             {section === 'import'      && <AdminImport      token={token} />}
           </div>

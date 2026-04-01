@@ -133,6 +133,42 @@ function initDatabase() {
     )
   `);
 
+  // Destinations catalogue
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS destinations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      country TEXT NOT NULL DEFAULT '',
+      icon TEXT NOT NULL DEFAULT '🌊',
+      local_km REAL DEFAULT 0,
+      dive_hours REAL DEFAULT 6,
+      sort_order INTEGER DEFAULT 0
+    )
+  `);
+
+  // Origins catalogue
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS origins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      country TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER DEFAULT 0
+    )
+  `);
+
+  // Stopover routes for layover CO2 calculation
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS route_stopovers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      origin TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      stopover_city TEXT NOT NULL,
+      dist_origin_stopover REAL NOT NULL,
+      dist_stopover_dest REAL NOT NULL,
+      UNIQUE(origin, destination, stopover_city)
+    )
+  `);
+
   // Safe migrations — add columns if they don't exist yet
   for (const sql of [
     "ALTER TABLE users ADD COLUMN avatar TEXT",
@@ -198,6 +234,47 @@ function seedData() {
     insertQuiz.run(...quiz);
   }
   } // end if (missionCount.count === 0)
+
+  // Seed destinations (idempotent)
+  const destCount = db.prepare('SELECT COUNT(*) as count FROM destinations').get();
+  if (destCount.count === 0) {
+    const insD = db.prepare('INSERT OR IGNORE INTO destinations (name, country, icon, local_km, dive_hours, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
+    insD.run('Galápagos',           'Ecuador',    '🦈', 25, 6, 1);
+    insD.run('Isla Malpelo',        'Colombia',   '🦈',  0, 8, 2);
+    insD.run('Islas Revillagigedo', 'México',     '🦈', 15, 6, 3);
+    insD.run('Isla del Coco',       'Costa Rica', '🦈',  0, 8, 4);
+    insD.run('Raja Ampat',          'Indonesia',  '🐙', 30, 6, 5);
+    insD.run('Providencia',         'Colombia',   '🦀', 20, 4, 6);
+  }
+
+  // Seed origins (idempotent)
+  const origCount = db.prepare('SELECT COUNT(*) as count FROM origins').get();
+  if (origCount.count === 0) {
+    const insO = db.prepare('INSERT OR IGNORE INTO origins (name, country, sort_order) VALUES (?, ?, ?)');
+    insO.run('Bogotá',           'Colombia', 1);
+    insO.run('Medellín',         'Colombia', 2);
+    insO.run('Cali',             'Colombia', 3);
+    insO.run('Miami',            'EEUU',     4);
+    insO.run('New York',         'EEUU',     5);
+    insO.run('Ciudad de México', 'México',   6);
+    insO.run('Lima',             'Perú',     7);
+  }
+
+  // Seed stopovers (idempotent)
+  const stopCount = db.prepare('SELECT COUNT(*) as count FROM route_stopovers').get();
+  if (stopCount.count === 0) {
+    const insS = db.prepare('INSERT OR IGNORE INTO route_stopovers (origin, destination, stopover_city, dist_origin_stopover, dist_stopover_dest) VALUES (?, ?, ?, ?, ?)');
+    insS.run('Bogotá',           'Galápagos',           'Guayaquil',       780,  1400);
+    insS.run('Bogotá',           'Galápagos',           'Quito',           700,  1350);
+    insS.run('Medellín',         'Galápagos',           'Bogotá',          380,  2100);
+    insS.run('Medellín',         'Galápagos',           'Guayaquil',       900,  1400);
+    insS.run('Cali',             'Galápagos',           'Guayaquil',       540,  1400);
+    insS.run('Bogotá',           'Isla del Coco',       'San José',       1000,   590);
+    insS.run('Bogotá',           'Islas Revillagigedo', 'Ciudad de México', 2800, 800);
+    insS.run('New York',         'Raja Ampat',          'Tokyo',          10800, 6300);
+    insS.run('Miami',            'Raja Ampat',          'Singapore',      16800, 2900);
+    insS.run('Lima',             'Galápagos',           'Guayaquil',        900, 1400);
+  }
 
   // Seed admin user (idempotent)
   const bcrypt = require('bcryptjs');

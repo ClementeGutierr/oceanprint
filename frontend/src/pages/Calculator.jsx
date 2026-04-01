@@ -158,6 +158,9 @@ export default function Calculator() {
   const [expeditions, setExpeditions] = useState([])
   const [selectedExpId, setSelectedExpId] = useState(null)
   const [expeditionLocked, setExpeditionLocked] = useState(false)
+  const [hasLayover, setHasLayover] = useState(false)
+  const [stopovers, setStopovers] = useState([])
+  const [selectedStopover, setSelectedStopover] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -167,6 +170,20 @@ export default function Calculator() {
       setOrigin(user.origin_city)
     }
   }, [user?.origin_city])
+
+  // Fetch stopovers when origin + destination change
+  useEffect(() => {
+    if (!origin || !destination) { setStopovers([]); setSelectedStopover(null); return }
+    axios.get(`${API}/trips/stopovers?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`)
+      .then(r => setStopovers(r.data))
+      .catch(() => setStopovers([]))
+    setSelectedStopover(null)
+  }, [origin, destination])
+
+  // Reset layover when expedition locked
+  useEffect(() => {
+    if (expeditionLocked) { setHasLayover(false); setSelectedStopover(null) }
+  }, [expeditionLocked])
 
   // Fetch active expeditions when destination changes
   useEffect(() => {
@@ -241,6 +258,7 @@ export default function Calculator() {
         land_segments: landSegments,
         passengers,
         expedition_id: selectedExpId,
+        stopover_city: hasLayover ? (selectedStopover || '_generic') : null,
       })
       refreshUser()
       navigate('/results', { state: { result: res.data, origin, destination } })
@@ -311,6 +329,67 @@ export default function Calculator() {
             ))}
           </div>
         </div>
+
+        {/* Layover toggle */}
+        {origin && destination && !expeditionLocked && (
+          <div className="card animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <PlaneIcon size={15} /> Vuelo con escala
+                </p>
+                <p className="text-xs text-ocean-foam/40 mt-0.5">¿Tu vuelo hace una parada?</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setHasLayover(h => !h); setSelectedStopover(null) }}
+                style={{
+                  width: '42px', height: '24px', borderRadius: '12px', border: 'none',
+                  cursor: 'pointer', position: 'relative', flexShrink: 0,
+                  background: hasLayover ? '#00b4d8' : 'rgba(255,255,255,0.12)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <span style={{
+                  position: 'absolute', top: '4px', width: '16px', height: '16px',
+                  borderRadius: '50%', background: 'white', transition: 'left 0.2s',
+                  left: hasLayover ? '22px' : '4px',
+                }} />
+              </button>
+            </div>
+
+            {hasLayover && (
+              <div style={{ marginTop: '12px' }}>
+                {stopovers.length > 0 ? (
+                  <>
+                    <p className="text-xs text-ocean-foam/50 mb-2 font-semibold uppercase tracking-wider">Ciudad de escala:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {stopovers.map(s => (
+                        <button key={s.stopover_city} type="button"
+                          onClick={() => setSelectedStopover(prev => prev === s.stopover_city ? null : s.stopover_city)}
+                          className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150 text-left"
+                          style={selectedStopover === s.stopover_city
+                            ? { background: 'rgba(0,180,216,0.2)', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
+                            : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }
+                          }>
+                          <span className="block font-semibold">{s.stopover_city}</span>
+                          <span className="text-[10px] opacity-60">{s.dist_origin_stopover.toLocaleString()} + {s.dist_stopover_dest.toLocaleString()} km</span>
+                        </button>
+                      ))}
+                    </div>
+                    {!selectedStopover && (
+                      <p className="text-xs text-ocean-foam/35 mt-2">Sin ciudad seleccionada: se aplicará un 20% adicional al cálculo.</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-ocean-foam/40 leading-relaxed">
+                    No hay escalas registradas para esta ruta. Se aplicará un <strong className="text-ocean-foam/60">20% adicional</strong> al CO₂ de vuelo.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Expedition selector */}
         {expeditions.length > 0 && (
