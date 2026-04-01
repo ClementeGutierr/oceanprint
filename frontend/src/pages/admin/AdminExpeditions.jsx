@@ -7,7 +7,7 @@ const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
 const TH = { padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }
 const TD = { padding: '12px 14px', fontSize: '13px', color: 'rgba(255,255,255,0.8)', borderBottom: '1px solid rgba(255,255,255,0.04)' }
-const INPUT = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '9px 12px', color: 'white', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }
+const INPUT = { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '9px 12px', color: 'white', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box', colorScheme: 'dark' }
 const BTN = { background: 'linear-gradient(135deg,#00b4d8,#48cae4)', border: 'none', borderRadius: '10px', padding: '9px 18px', color: '#040d18', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }
 const LABEL = { display: 'block', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }
 
@@ -189,7 +189,7 @@ export default function AdminExpeditions({ token }) {
             </div>
             <div>
               <label style={LABEL}>Destino</label>
-              <select style={{ ...INPUT, colorScheme: 'dark' }} value={form.destination} onChange={e => handleFormChange('destination', e.target.value)}>
+              <select style={INPUT} value={form.destination} onChange={e => handleFormChange('destination', e.target.value)}>
                 {DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
@@ -219,7 +219,7 @@ export default function AdminExpeditions({ token }) {
               <label style={LABEL}>Transportes marítimos fijos (opcional)</label>
               {form.sea_transports.map((seg, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                  <select style={{ ...INPUT, flex: 1, colorScheme: 'dark' }} value={seg.type} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, sea_transports: s })) }}>
+                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, sea_transports: s })) }}>
                     {SEA_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.hours} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], hours: parseFloat(e.target.value) || 0 }; setForm(f => ({ ...f, sea_transports: s })) }} placeholder="h" min={0} />
@@ -235,7 +235,7 @@ export default function AdminExpeditions({ token }) {
               <label style={LABEL}>Transportes terrestres fijos (opcional)</label>
               {form.land_transports.map((seg, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                  <select style={{ ...INPUT, flex: 1, colorScheme: 'dark' }} value={seg.type} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, land_transports: s })) }}>
+                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, land_transports: s })) }}>
                     {LAND_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.km ?? ''} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], km: e.target.value !== '' ? parseFloat(e.target.value) : null }; setForm(f => ({ ...f, land_transports: s })) }} placeholder="km" min={0} />
