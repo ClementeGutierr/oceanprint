@@ -134,6 +134,11 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       co2Land += dist * 2 * factor;
     }
 
+    // Divide shared-vehicle emissions by passenger count
+    const pax = Math.max(1, passengers);
+    co2Sea  = co2Sea  / pax;
+    co2Land = co2Land / pax;
+
     const co2Total = co2Flight + co2Sea + co2Land;
 
     // Validate expedition_id

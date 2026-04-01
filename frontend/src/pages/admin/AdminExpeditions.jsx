@@ -47,6 +47,9 @@ export default function AdminExpeditions({ token }) {
   const [members, setMembers]       = useState(null)
   const [saving, setSaving]         = useState(false)
   const [err, setErr]               = useState('')
+  const [origTransports, setOrigTransports] = useState(null)
+  const [showRecalcPrompt, setShowRecalcPrompt] = useState(false)
+  const [recalcResult, setRecalcResult] = useState(null)
   const today = new Date().toISOString().split('T')[0]
 
   function load() {
@@ -63,6 +66,9 @@ export default function AdminExpeditions({ token }) {
     setEditing(null)
     setShowForm(true)
     setErr('')
+    setOrigTransports(null)
+    setShowRecalcPrompt(false)
+    setRecalcResult(null)
   }
 
   function openEdit(exp) {
@@ -70,9 +76,12 @@ export default function AdminExpeditions({ token }) {
     try { if (exp.sea_transports) seaT = JSON.parse(exp.sea_transports) } catch {}
     try { if (exp.land_transports) landT = JSON.parse(exp.land_transports) } catch {}
     setForm({ name: exp.name, destination: exp.destination, start_date: exp.start_date, end_date: exp.end_date, invite_code: exp.invite_code, prize_description: exp.prize_description || '', sea_transports: seaT, land_transports: landT, fixed_passengers: exp.fixed_passengers ?? '' })
+    setOrigTransports({ sea: exp.sea_transports || null, land: exp.land_transports || null, passengers: exp.fixed_passengers ?? '' })
     setEditing(exp.id)
     setShowForm(true)
     setErr('')
+    setShowRecalcPrompt(false)
+    setRecalcResult(null)
     setMembers(null)
   }
 
@@ -84,23 +93,50 @@ export default function AdminExpeditions({ token }) {
     setForm(next)
   }
 
-  async function handleSave() {
+  function transportChangedFromOriginal() {
+    if (!origTransports) return false
+    let origSea = [], origLand = []
+    try { if (origTransports.sea) origSea = JSON.parse(origTransports.sea) } catch {}
+    try { if (origTransports.land) origLand = JSON.parse(origTransports.land) } catch {}
+    return (
+      JSON.stringify(form.sea_transports) !== JSON.stringify(origSea) ||
+      JSON.stringify(form.land_transports) !== JSON.stringify(origLand) ||
+      String(form.fixed_passengers) !== String(origTransports.passengers ?? '')
+    )
+  }
+
+  function handleSaveClick() {
     if (form.start_date && form.end_date && form.start_date >= form.end_date) {
       setErr('La fecha de inicio debe ser anterior a la fecha de fin')
       return
     }
+    if (editing && !showRecalcPrompt) {
+      const exp = expeditions.find(e => e.id === editing)
+      if ((exp?.trips_count || 0) > 0 && transportChangedFromOriginal()) {
+        setShowRecalcPrompt(true)
+        setErr('')
+        return
+      }
+    }
+    doSave(false)
+  }
+
+  async function doSave(recalculate) {
     setSaving(true)
     setErr('')
+    setShowRecalcPrompt(false)
     const payload = {
       ...form,
       sea_transports: form.sea_transports.length > 0 ? JSON.stringify(form.sea_transports) : null,
       land_transports: form.land_transports.length > 0 ? JSON.stringify(form.land_transports) : null,
       fixed_passengers: form.fixed_passengers !== '' ? parseInt(form.fixed_passengers) : null,
+      recalculate,
     }
     try {
       if (editing) {
         const r = await axios.put(`${API_BASE}/admin/expeditions/${editing}`, payload, authCfg(token))
         setExpeditions(prev => prev.map(e => e.id === editing ? { ...e, ...r.data } : e))
+        if (r.data.recalc_summary) setRecalcResult(r.data.recalc_summary)
       } else {
         const r = await axios.post(`${API_BASE}/admin/expeditions`, payload, authCfg(token))
         setExpeditions(prev => [{ ...r.data, member_count: 0, trips_count: 0 }, ...prev])
@@ -153,7 +189,7 @@ export default function AdminExpeditions({ token }) {
             </div>
             <div>
               <label style={LABEL}>Destino</label>
-              <select style={{ ...INPUT, appearance: 'none' }} value={form.destination} onChange={e => handleFormChange('destination', e.target.value)}>
+              <select style={{ ...INPUT, colorScheme: 'dark' }} value={form.destination} onChange={e => handleFormChange('destination', e.target.value)}>
                 {DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
@@ -174,16 +210,16 @@ export default function AdminExpeditions({ token }) {
               <input style={INPUT} value={form.prize_description} onChange={e => handleFormChange('prize_description', e.target.value)} placeholder="Descripción del premio..." />
             </div>
             <div style={{ gridColumn: '1/-1' }}>
-              <label style={LABEL}>Pasajeros fijos (opcional)</label>
+              <label style={LABEL}>Número de pasajeros por embarcación (opcional)</label>
               <input type="number" style={INPUT} value={form.fixed_passengers} onChange={e => handleFormChange('fixed_passengers', e.target.value)} placeholder="Ej: 12" min={1} max={200} />
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>Si se define, el calculador usará este valor en lugar de que el usuario elija los pasajeros.</p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>Divide las emisiones marítimas y terrestres entre todos los pasajeros de la embarcación.</p>
             </div>
             {/* Sea transports */}
             <div style={{ gridColumn: '1/-1' }}>
               <label style={LABEL}>Transportes marítimos fijos (opcional)</label>
               {form.sea_transports.map((seg, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, sea_transports: s })) }}>
+                  <select style={{ ...INPUT, flex: 1, colorScheme: 'dark' }} value={seg.type} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, sea_transports: s })) }}>
                     {SEA_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.hours} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], hours: parseFloat(e.target.value) || 0 }; setForm(f => ({ ...f, sea_transports: s })) }} placeholder="h" min={0} />
@@ -199,7 +235,7 @@ export default function AdminExpeditions({ token }) {
               <label style={LABEL}>Transportes terrestres fijos (opcional)</label>
               {form.land_transports.map((seg, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, land_transports: s })) }}>
+                  <select style={{ ...INPUT, flex: 1, colorScheme: 'dark' }} value={seg.type} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, land_transports: s })) }}>
                     {LAND_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.km ?? ''} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], km: e.target.value !== '' ? parseFloat(e.target.value) : null }; setForm(f => ({ ...f, land_transports: s })) }} placeholder="km" min={0} />
@@ -213,10 +249,45 @@ export default function AdminExpeditions({ token }) {
             </div>
           </div>
           {err && <p style={{ color: '#f87171', fontSize: '13px', marginTop: '12px' }}>{err}</p>}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
-            <button onClick={handleSave} disabled={saving} style={BTN}>{saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear expedición'}</button>
-            <button onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '9px 16px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '13px' }}>Cancelar</button>
+          {showRecalcPrompt && (
+            <div style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: '12px', padding: '16px', marginTop: '14px' }}>
+              <p style={{ color: '#fbbf24', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                ⚠️ Esta expedición tiene {expeditions.find(e => e.id === editing)?.trips_count} viaje(s) calculados
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '14px' }}>
+                Cambiaste los parámetros de transporte o pasajeros. ¿Deseas recalcular automáticamente las huellas de todos los participantes con los nuevos valores?
+              </p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button onClick={() => doSave(true)} disabled={saving} style={{ ...BTN, background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.4)' }}>
+                  {saving ? 'Recalculando...' : '✓ Sí, recalcular huellas'}
+                </button>
+                <button onClick={() => doSave(false)} disabled={saving} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '9px 16px', color: 'rgba(255,255,255,0.6)', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
+                  Solo guardar sin recalcular
+                </button>
+              </div>
+            </div>
+          )}
+          {!showRecalcPrompt && (
+            <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+              <button onClick={handleSaveClick} disabled={saving} style={BTN}>{saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear expedición'}</button>
+              <button onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '9px 16px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '13px' }}>Cancelar</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recalculation result banner */}
+      {recalcResult && (
+        <div style={{ background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <p style={{ color: '#4ade80', fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>
+              ✓ Recálculo completado — {recalcResult.trips_recalculated} viaje(s) actualizados
+            </p>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
+              Huella promedio: {recalcResult.old_avg_co2} kg → {recalcResult.new_avg_co2} kg CO₂
+            </p>
           </div>
+          <button onClick={() => setRecalcResult(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
         </div>
       )}
 

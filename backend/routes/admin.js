@@ -9,6 +9,91 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const router = express.Router();
 router.use(requireAdmin);
 
+// ── CO2 helpers for expedition trip recalculation ─────────
+const _SEA_F = { 'bote_buceo': 12.5, 'lancha': 8.5, 'ferry': 0.19 };
+const _LAND_F = { 'bus': 0.089, 'van': 0.158, 'taxi': 0.171, 'suv': 0.209 };
+const _LOCAL_D = {
+  'Galápagos': 25, 'Isla Malpelo': 0, 'Isla del Coco': 0,
+  'Islas Revillagigedo': 15, 'Raja Ampat': 30, 'Providencia': 20,
+};
+
+function _updateLevel(userId) {
+  const u = db.prepare('SELECT points FROM users WHERE id = ?').get(userId);
+  if (!u) return;
+  let level = 'Plancton';
+  if (u.points >= 1000) level = 'Ballena Azul';
+  else if (u.points >= 600) level = 'Mantarraya';
+  else if (u.points >= 300) level = 'Tortuga Marina';
+  else if (u.points >= 100) level = 'Caballito de Mar';
+  db.prepare('UPDATE users SET level = ? WHERE id = ?').run(level, userId);
+}
+
+function _calcSea(segs, destination, pax) {
+  const localRow = db.prepare('SELECT distancia_local_km FROM emission_routes WHERE destino = ? LIMIT 1').get(destination);
+  let co2 = 0;
+  for (const seg of segs) {
+    if (!seg.type || seg.type === 'none') continue;
+    const factor = _SEA_F[seg.type] || 0;
+    if (seg.type === 'ferry') {
+      const d = localRow?.distancia_local_km ?? _LOCAL_D[destination] ?? 20;
+      co2 += d * 2 * factor;
+    } else {
+      co2 += factor * (seg.hours || 6);
+    }
+  }
+  return co2 / Math.max(1, pax || 1);
+}
+
+function _calcLand(segs, destination, pax) {
+  let co2 = 0;
+  for (const seg of segs) {
+    if (!seg.type || seg.type === 'none') continue;
+    const factor = _LAND_F[seg.type] || 0;
+    const dist = (seg.km != null && seg.km > 0) ? seg.km : (_LOCAL_D[destination] ?? 20);
+    co2 += dist * 2 * factor;
+  }
+  return co2 / Math.max(1, pax || 1);
+}
+
+function recalcExpeditionTrips(expeditionId, seaStr, landStr, fixedPax) {
+  const trips = db.prepare('SELECT * FROM trips WHERE expedition_id = ?').all(expeditionId);
+  if (!trips.length) return null;
+
+  let seaSegs = [], landSegs = [];
+  try { if (seaStr) seaSegs = JSON.parse(seaStr); } catch {}
+  try { if (landStr) landSegs = JSON.parse(landStr); } catch {}
+  const pax = fixedPax || 1;
+
+  let oldSum = 0, newSum = 0;
+  const updates = [];
+  for (const trip of trips) {
+    const newSea  = Math.round(_calcSea(seaSegs, trip.destination, pax) * 100) / 100;
+    const newLand = Math.round(_calcLand(landSegs, trip.destination, pax) * 100) / 100;
+    const newTotal = Math.round((trip.co2_flight + newSea + newLand) * 100) / 100;
+    oldSum += trip.co2_total;
+    newSum += newTotal;
+    updates.push({ trip, newSea, newLand, newTotal, delta: newTotal - trip.co2_total });
+  }
+
+  db.transaction(() => {
+    for (const { trip, newSea, newLand, newTotal, delta } of updates) {
+      db.prepare('UPDATE trips SET co2_sea=?, co2_land=?, co2_total=? WHERE id=?')
+        .run(newSea, newLand, newTotal, trip.id);
+      db.prepare('UPDATE users SET total_co2 = MAX(0, total_co2 + ?) WHERE id = ?')
+        .run(delta, trip.user_id);
+    }
+    const uids = [...new Set(updates.map(u => u.trip.user_id))];
+    for (const uid of uids) _updateLevel(uid);
+  })();
+
+  const n = updates.length;
+  return {
+    trips_recalculated: n,
+    old_avg_co2: n ? Math.round(oldSum / n * 10) / 10 : 0,
+    new_avg_co2: n ? Math.round(newSum / n * 10) / 10 : 0,
+  };
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────
 router.get('/dashboard', (req, res) => {
   const totals = db.prepare(`
@@ -122,14 +207,21 @@ router.post('/expeditions', (req, res) => {
 });
 
 router.put('/expeditions/:id', (req, res) => {
-  const { name, destination, start_date, end_date, invite_code, prize_description = '', sea_transports = null, land_transports = null, fixed_passengers = null } = req.body;
+  const { name, destination, start_date, end_date, invite_code, prize_description = '',
+          sea_transports = null, land_transports = null, fixed_passengers = null,
+          recalculate = false } = req.body;
   const id = parseInt(req.params.id);
   if (start_date && end_date && start_date >= end_date)
     return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
   try {
     db.prepare('UPDATE expeditions SET name=?, destination=?, start_date=?, end_date=?, invite_code=?, prize_description=?, sea_transports=?, land_transports=?, fixed_passengers=? WHERE id=?')
       .run(name, destination, start_date, end_date, invite_code?.toUpperCase().trim(), prize_description, sea_transports || null, land_transports || null, fixed_passengers || null, id);
-    res.json(db.prepare('SELECT * FROM expeditions WHERE id = ?').get(id));
+    const updated = db.prepare('SELECT * FROM expeditions WHERE id = ?').get(id);
+    let recalc_summary = null;
+    if (recalculate) {
+      recalc_summary = recalcExpeditionTrips(id, sea_transports, land_transports, fixed_passengers);
+    }
+    res.json({ ...updated, recalc_summary });
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El código de invitación ya existe' });
     res.status(500).json({ error: 'Error actualizando expedición' });
