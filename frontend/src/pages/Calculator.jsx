@@ -6,17 +6,17 @@ import {
   PlaneIcon, ShipIcon, BusIcon, CarIcon, SearchIcon, UsersIcon,
   ThermometerIcon, IslandIcon, MapIcon,
   DiveMaskIcon, SpeedboatIcon, XIcon, WalkingPersonIcon,
-  OceanWaveIcon, TrophyIcon,
+  OceanWaveIcon, TrophyIcon, LockIcon, PlusIcon,
 } from '../components/OceanIcons'
 
 const ORIGINS = ['Bogotá', 'Medellín', 'Cali', 'Miami', 'New York', 'Ciudad de México', 'Lima']
 const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla del Coco', 'Raja Ampat', 'Providencia']
 
 const SEA_OPTIONS = [
-  { value: 'bote_buceo', label: 'Bote de buceo',          Icon: DiveMaskIcon   },
-  { value: 'lancha',     label: 'Lancha rápida',           Icon: SpeedboatIcon  },
-  { value: 'ferry',      label: 'Ferry',                   Icon: ShipIcon       },
-  { value: 'none',       label: 'Sin transporte marino',   Icon: XIcon          },
+  { value: 'bote_buceo', label: 'Bote de buceo',        Icon: DiveMaskIcon   },
+  { value: 'lancha',     label: 'Lancha rápida',         Icon: SpeedboatIcon  },
+  { value: 'ferry',      label: 'Ferry',                 Icon: ShipIcon       },
+  { value: 'none',       label: 'Sin transporte marino', Icon: XIcon          },
 ]
 
 const LAND_OPTIONS = [
@@ -27,6 +27,12 @@ const LAND_OPTIONS = [
   { value: 'none', label: 'Caminando',     Icon: WalkingPersonIcon },
 ]
 
+// Local distances per destination (km, for default land km)
+const LOCAL_DISTANCES = {
+  'Galápagos': 25, 'Isla Malpelo': 0, 'Isla del Coco': 0,
+  'Islas Revillagigedo': 15, 'Raja Ampat': 30, 'Providencia': 20,
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const [y, m, d] = dateStr.split('-')
@@ -34,87 +40,222 @@ function formatDate(dateStr) {
   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
 }
 
+/* ── Segment type selector (compact grid) ── */
+function TypeSelector({ options, value, onChange, disabled }) {
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {options.map(opt => (
+        <button
+          key={opt.value}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(opt.value)}
+          className="flex items-center gap-2 p-2.5 rounded-xl text-left transition-all duration-150"
+          style={
+            value === opt.value
+              ? { background: 'rgba(0,180,216,0.2)', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
+              : disabled
+              ? { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.25)', cursor: 'not-allowed' }
+              : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
+          }
+        >
+          <opt.Icon size={16} />
+          <span className="text-xs font-medium leading-tight">{opt.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/* ── Single sea segment row ── */
+function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination }) {
+  return (
+    <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] text-ocean-foam/40 font-semibold uppercase tracking-wider">Tramo marítimo</span>
+        {canRemove && !locked && (
+          <button type="button" onClick={onRemove} className="text-ocean-foam/30 hover:text-red-400 transition-colors">
+            <XIcon size={14} />
+          </button>
+        )}
+      </div>
+      <TypeSelector options={SEA_OPTIONS} value={seg.type} onChange={t => onChange({ ...seg, type: t })} disabled={locked} />
+      {seg.type !== 'none' && seg.type !== 'ferry' && (
+        <div className="flex items-center gap-3 pt-1">
+          <label className="text-xs text-ocean-foam/50 whitespace-nowrap">Horas en el mar:</label>
+          {locked ? (
+            <span className="text-ocean-cyan font-bold text-sm">{seg.hours}h</span>
+          ) : (
+            <>
+              <input
+                type="range" min="1" max="48" step="1"
+                value={seg.hours || 6}
+                onChange={e => onChange({ ...seg, hours: parseInt(e.target.value) })}
+                className="flex-1"
+                style={{ accentColor: '#00b4d8' }}
+              />
+              <span className="text-ocean-cyan font-bold text-sm w-8">{seg.hours || 6}h</span>
+            </>
+          )}
+        </div>
+      )}
+      {seg.type === 'ferry' && destination && (
+        <p className="text-xs text-ocean-foam/40">
+          Distancia local: {LOCAL_DISTANCES[destination] ?? 20} km × 2 (ida y vuelta)
+        </p>
+      )}
+    </div>
+  )
+}
+
+/* ── Single land segment row ── */
+function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination }) {
+  const defaultKm = LOCAL_DISTANCES[destination] ?? 20
+  const displayKm = (seg.km != null && seg.km > 0) ? seg.km : defaultKm
+
+  return (
+    <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] text-ocean-foam/40 font-semibold uppercase tracking-wider">Tramo terrestre</span>
+        {canRemove && !locked && (
+          <button type="button" onClick={onRemove} className="text-ocean-foam/30 hover:text-red-400 transition-colors">
+            <XIcon size={14} />
+          </button>
+        )}
+      </div>
+      <TypeSelector options={LAND_OPTIONS} value={seg.type} onChange={t => onChange({ ...seg, type: t })} disabled={locked} />
+      {seg.type !== 'none' && (
+        <div className="flex items-center gap-3 pt-1">
+          <label className="text-xs text-ocean-foam/50 whitespace-nowrap">Km de recorrido:</label>
+          {locked ? (
+            <span className="text-ocean-cyan font-bold text-sm">{displayKm} km</span>
+          ) : (
+            <input
+              type="number" min="1" max="500"
+              value={seg.km ?? ''}
+              placeholder={String(defaultKm)}
+              onChange={e => onChange({ ...seg, km: e.target.value ? parseInt(e.target.value) : null })}
+              className="w-20 rounded-xl px-2 py-1 text-sm text-center font-bold text-ocean-cyan"
+              style={{ background: 'rgba(0,180,216,0.08)', border: '1px solid rgba(0,180,216,0.25)', outline: 'none' }}
+            />
+          )}
+          {!locked && <span className="text-ocean-foam/40 text-xs">km (por sentido)</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Calculator() {
   const { API, refreshUser, user } = useAuth()
-
-  const [form, setForm] = useState({
-    origin: '',
-    destination: '',
-    transport_sea: 'bote_buceo',
-    transport_land: 'van',
-    sea_hours: 6,
-    passengers: 1,
-    expedition_id: null,
-  })
-
-  const [expeditions, setExpeditions] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  // Pre-select origin city from user profile on first load
+  const [origin, setOrigin] = useState('')
+  const [destination, setDestination] = useState('')
+  const [seaSegments, setSeaSegments] = useState([{ type: 'bote_buceo', hours: 6 }])
+  const [landSegments, setLandSegments] = useState([{ type: 'van', km: null }])
+  const [passengers, setPassengers] = useState(1)
+  const [expeditions, setExpeditions] = useState([])
+  const [selectedExpId, setSelectedExpId] = useState(null)
+  const [expeditionLocked, setExpeditionLocked] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Pre-select origin from user profile
   useEffect(() => {
-    if (user?.origin_city && ORIGINS.includes(user.origin_city)) {
-      setForm(f => f.origin ? f : { ...f, origin: user.origin_city })
+    if (user?.origin_city && ORIGINS.includes(user.origin_city) && !origin) {
+      setOrigin(user.origin_city)
     }
   }, [user?.origin_city])
 
   // Fetch active expeditions when destination changes
   useEffect(() => {
-    if (!form.destination) {
+    if (!destination) {
       setExpeditions([])
-      setForm(f => ({ ...f, expedition_id: null }))
+      setSelectedExpId(null)
+      setExpeditionLocked(false)
       return
     }
-    axios.get(`${API}/expeditions/active?destination=${encodeURIComponent(form.destination)}`)
+    axios.get(`${API}/expeditions/active?destination=${encodeURIComponent(destination)}`)
       .then(res => {
         setExpeditions(res.data)
-        // Auto-select if user is already a member of one
         const joined = res.data.find(e => e.is_member)
-        if (joined) setForm(f => ({ ...f, expedition_id: joined.id }))
-        else setForm(f => ({ ...f, expedition_id: null }))
+        if (joined) selectExpedition(joined)
+        else { setSelectedExpId(null); setExpeditionLocked(false) }
       })
       .catch(() => setExpeditions([]))
-  }, [form.destination])
+  }, [destination])
 
-  const handleCalculate = async () => {
-    if (!form.origin || !form.destination) {
+  function selectExpedition(exp) {
+    if (!exp) {
+      setSelectedExpId(null)
+      setExpeditionLocked(false)
+      // Reset to defaults
+      setSeaSegments([{ type: 'bote_buceo', hours: 6 }])
+      setLandSegments([{ type: 'van', km: null }])
+      setPassengers(1)
+      return
+    }
+    setSelectedExpId(exp.id)
+    try {
+      const hasFixed = exp.sea_transports || exp.land_transports
+      if (exp.sea_transports) setSeaSegments(JSON.parse(exp.sea_transports))
+      if (exp.land_transports) setLandSegments(JSON.parse(exp.land_transports))
+      if (exp.fixed_passengers) setPassengers(exp.fixed_passengers)
+      setExpeditionLocked(!!hasFixed)
+    } catch {
+      setExpeditionLocked(false)
+    }
+  }
+
+  function toggleExpedition(exp) {
+    if (selectedExpId === exp.id) {
+      selectExpedition(null)
+    } else {
+      selectExpedition(exp)
+    }
+  }
+
+  // Sea segment helpers
+  function updateSeaSeg(i, val) { setSeaSegments(s => s.map((x, idx) => idx === i ? val : x)) }
+  function addSeaSeg() { setSeaSegments(s => [...s, { type: 'bote_buceo', hours: 6 }]) }
+  function removeSeaSeg(i) { setSeaSegments(s => s.filter((_, idx) => idx !== i)) }
+
+  // Land segment helpers
+  function updateLandSeg(i, val) { setLandSegments(s => s.map((x, idx) => idx === i ? val : x)) }
+  function addLandSeg() { setLandSegments(s => [...s, { type: 'van', km: null }]) }
+  function removeLandSeg(i) { setLandSegments(s => s.filter((_, idx) => idx !== i)) }
+
+  async function handleCalculate() {
+    if (!origin || !destination) {
       setError('Selecciona origen y destino')
       return
     }
     setError('')
     setLoading(true)
     try {
-      const res = await axios.post(`${API}/trips/calculate`, form)
+      const res = await axios.post(`${API}/trips/calculate`, {
+        origin,
+        destination,
+        sea_segments: seaSegments,
+        land_segments: landSegments,
+        passengers,
+        expedition_id: selectedExpId,
+      })
       refreshUser()
-      navigate('/results', { state: { result: res.data, form } })
+      navigate('/results', { state: { result: res.data, origin, destination } })
     } catch (err) {
-      setError(err.response?.data?.error || 'Error calculando')
+      if (err.response?.status === 429) {
+        setError(err.response.data.error)
+      } else {
+        setError(err.response?.data?.error || 'Error calculando')
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const OptionGrid = ({ options, value, onChange }) => (
-    <div className="grid grid-cols-2 gap-2">
-      {options.map(opt => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          className="flex items-center gap-2 p-3 rounded-2xl text-left transition-all duration-150"
-          style={
-            value === opt.value
-              ? { background: 'rgba(0,180,216,0.2)', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
-              : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
-          }
-        >
-          <opt.Icon size={18} />
-          <span className="text-xs font-medium leading-tight">{opt.label}</span>
-        </button>
-      ))}
-    </div>
-  )
+  const selectedExp = expeditions.find(e => e.id === selectedExpId)
 
   return (
     <div className="px-5 pt-8 pb-6 animate-fade-in">
@@ -128,26 +269,22 @@ export default function Calculator() {
       </div>
 
       <div className="space-y-5">
+
         {/* Origin */}
         <div>
           <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <PlaneIcon size={13} /> Ciudad de Origen
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {ORIGINS.map(origin => (
-              <button
-                key={origin}
-                type="button"
-                onClick={() => setForm({ ...form, origin })}
+            {ORIGINS.map(o => (
+              <button key={o} type="button" onClick={() => setOrigin(o)}
                 className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150"
                 style={
-                  form.origin === origin
-                    ? { background: 'linear-gradient(135deg, rgba(0,180,216,0.3), rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
+                  origin === o
+                    ? { background: 'linear-gradient(135deg,rgba(0,180,216,0.3),rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
                     : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
                 }
-              >
-                {origin}
-              </button>
+              >{o}</button>
             ))}
           </div>
         </div>
@@ -156,27 +293,26 @@ export default function Calculator() {
         <div>
           <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <IslandIcon size={13} /> Destino de Buceo
+            {expeditionLocked && <span className="ml-auto flex items-center gap-1 text-amber-400/70"><LockIcon size={11} /> bloqueado por expedición</span>}
           </label>
           <div className="grid grid-cols-2 gap-2">
             {DESTINATIONS.map(dest => (
-              <button
-                key={dest}
-                type="button"
-                onClick={() => setForm(f => ({ ...f, destination: dest }))}
+              <button key={dest} type="button"
+                onClick={() => !expeditionLocked && setDestination(dest)}
                 className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150"
                 style={
-                  form.destination === dest
-                    ? { background: 'linear-gradient(135deg, rgba(0,180,216,0.3), rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
+                  destination === dest
+                    ? { background: 'linear-gradient(135deg,rgba(0,180,216,0.3),rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
+                    : expeditionLocked
+                    ? { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.2)', cursor: 'not-allowed' }
                     : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
                 }
-              >
-                {dest}
-              </button>
+              >{dest}</button>
             ))}
           </div>
         </div>
 
-        {/* Expedition selector — only when there are active expeditions for this destination */}
+        {/* Expedition selector */}
         {expeditions.length > 0 && (
           <div className="animate-fade-in">
             <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -184,12 +320,10 @@ export default function Calculator() {
             </label>
             <div className="space-y-2">
               {expeditions.map(exp => {
-                const isSelected = form.expedition_id === exp.id
+                const isSelected = selectedExpId === exp.id
                 return (
-                  <button
-                    key={exp.id}
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, expedition_id: isSelected ? null : exp.id }))}
+                  <button key={exp.id} type="button"
+                    onClick={() => toggleExpedition(exp)}
                     className="w-full text-left rounded-2xl p-3 transition-all duration-150"
                     style={
                       isSelected
@@ -215,6 +349,11 @@ export default function Calculator() {
                             🏆 {exp.prize_description}
                           </p>
                         )}
+                        {isSelected && exp.sea_transports && (
+                          <p className="text-[10px] ml-5 mt-1" style={{ color: 'rgba(167,139,250,0.6)' }}>
+                            🔒 Parámetros de transporte definidos por Diving Life
+                          </p>
+                        )}
                       </div>
                       <div
                         className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
@@ -230,15 +369,25 @@ export default function Calculator() {
                   </button>
                 )
               })}
-              {form.expedition_id && (
-                <button
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, expedition_id: null }))}
-                  className="w-full text-center text-xs text-ocean-foam/30 py-1.5"
-                >
+              {selectedExpId && (
+                <button type="button" onClick={() => selectExpedition(null)}
+                  className="w-full text-center text-xs text-ocean-foam/30 py-1.5">
                   Calcular sin expedición
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Expedition lockdown banner */}
+        {expeditionLocked && selectedExp && (
+          <div className="rounded-2xl px-4 py-3 animate-fade-in"
+            style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.25)' }}>
+            <div className="flex items-start gap-2.5">
+              <LockIcon size={15} style={{ color: '#a78bfa', flexShrink: 0, marginTop: '1px' }} />
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(196,181,253,0.7)' }}>
+                Los parámetros de transporte están definidos por <strong style={{ color: '#c4b5fd' }}>Diving Life</strong> para esta expedición, garantizando una medición estandarizada para todos los participantes.
+              </p>
             </div>
           </div>
         )}
@@ -247,25 +396,27 @@ export default function Calculator() {
         <div>
           <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <ShipIcon size={13} /> Transporte Marítimo
+            {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)', marginLeft: 'auto' }} />}
           </label>
-          <OptionGrid
-            options={SEA_OPTIONS}
-            value={form.transport_sea}
-            onChange={v => setForm({ ...form, transport_sea: v })}
-          />
-          {form.transport_sea !== 'none' && form.transport_sea !== 'ferry' && (
-            <div className="mt-3 flex items-center gap-3">
-              <label className="text-xs text-ocean-foam/50 whitespace-nowrap">Horas en el mar:</label>
-              <input
-                type="range"
-                min="1" max="24" step="1"
-                value={form.sea_hours}
-                onChange={e => setForm({ ...form, sea_hours: parseInt(e.target.value) })}
-                className="flex-1"
-                style={{ accentColor: '#00b4d8' }}
+          <div className="space-y-2">
+            {seaSegments.map((seg, i) => (
+              <SeaSegmentRow
+                key={i}
+                seg={seg}
+                onChange={val => updateSeaSeg(i, val)}
+                onRemove={() => removeSeaSeg(i)}
+                canRemove={seaSegments.length > 1}
+                locked={expeditionLocked}
+                destination={destination}
               />
-              <span className="text-ocean-cyan font-bold text-sm w-8">{form.sea_hours}h</span>
-            </div>
+            ))}
+          </div>
+          {!expeditionLocked && seaSegments.length < 3 && (
+            <button type="button" onClick={addSeaSeg}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
+              style={{ background: 'rgba(0,180,216,0.05)', border: '1px dashed rgba(0,180,216,0.2)', color: 'rgba(0,180,216,0.5)' }}>
+              <PlusIcon size={13} /> Añadir tramo marítimo
+            </button>
           )}
         </div>
 
@@ -273,12 +424,28 @@ export default function Calculator() {
         <div>
           <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <MapIcon size={13} /> Transporte Terrestre
+            {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)', marginLeft: 'auto' }} />}
           </label>
-          <OptionGrid
-            options={LAND_OPTIONS}
-            value={form.transport_land}
-            onChange={v => setForm({ ...form, transport_land: v })}
-          />
+          <div className="space-y-2">
+            {landSegments.map((seg, i) => (
+              <LandSegmentRow
+                key={i}
+                seg={seg}
+                onChange={val => updateLandSeg(i, val)}
+                onRemove={() => removeLandSeg(i)}
+                canRemove={landSegments.length > 1}
+                locked={expeditionLocked}
+                destination={destination}
+              />
+            ))}
+          </div>
+          {!expeditionLocked && landSegments.length < 3 && (
+            <button type="button" onClick={addLandSeg}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
+              style={{ background: 'rgba(0,180,216,0.05)', border: '1px dashed rgba(0,180,216,0.2)', color: 'rgba(0,180,216,0.5)' }}>
+              <PlusIcon size={13} /> Añadir tramo terrestre
+            </button>
+          )}
         </div>
 
         {/* Passengers */}
@@ -290,21 +457,21 @@ export default function Calculator() {
               </p>
               <p className="text-xs text-ocean-foam/40 mt-0.5">Divide la huella entre todos</p>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, passengers: Math.max(1, form.passengers - 1) })}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
-                style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}
-              >−</button>
-              <span className="text-xl font-bold text-ocean-cyan w-6 text-center">{form.passengers}</span>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, passengers: Math.min(20, form.passengers + 1) })}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
-                style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}
-              >+</button>
-            </div>
+            {expeditionLocked && passengers > 1 ? (
+              <span className="text-ocean-cyan font-black text-xl">{passengers}</span>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button type="button"
+                  onClick={() => setPassengers(p => Math.max(1, p - 1))}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
+                  style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}>−</button>
+                <span className="text-xl font-bold text-ocean-cyan w-6 text-center">{passengers}</span>
+                <button type="button"
+                  onClick={() => setPassengers(p => Math.min(20, p + 1))}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
+                  style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}>+</button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -315,16 +482,12 @@ export default function Calculator() {
           </div>
         )}
 
-        <button
-          onClick={handleCalculate}
-          disabled={loading}
-          className="btn-primary w-full flex items-center justify-center gap-2 text-base"
-        >
-          {loading ? (
-            <span className="inline-block w-5 h-5 border-2 border-ocean-deep/40 border-t-ocean-deep rounded-full animate-spin" />
-          ) : (
-            <><SearchIcon size={18} /> Calcular Huella de Carbono</>
-          )}
+        <button onClick={handleCalculate} disabled={loading}
+          className="btn-primary w-full flex items-center justify-center gap-2 text-base">
+          {loading
+            ? <span className="inline-block w-5 h-5 border-2 border-ocean-deep/40 border-t-ocean-deep rounded-full animate-spin" />
+            : <><SearchIcon size={18} /> Calcular Huella de Carbono</>
+          }
         </button>
       </div>
     </div>

@@ -4,83 +4,65 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// ── Rate limiter: max 30 /calculate requests per minute per IP ───────────────
+const _rateLimits = new Map();
+function checkRateLimit(req, res, next) {
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const rec = _rateLimits.get(ip);
+  if (!rec || now > rec.resetAt) {
+    _rateLimits.set(ip, { count: 1, resetAt: now + 60_000 });
+    return next();
+  }
+  rec.count++;
+  if (rec.count > 30) {
+    return res.status(429).json({ error: 'Demasiadas peticiones. Espera un momento e intenta de nuevo.' });
+  }
+  next();
+}
+
 // CO2 emission factors
 const FLIGHT_FACTORS = {
-  // kg CO2 per km per passenger (economy class, with radiative forcing multiplier 1.9)
   short: 0.255,   // < 1500 km
   medium: 0.195,  // 1500-4000 km
   long: 0.147,    // > 4000 km
 };
 
 const SEA_FACTORS = {
-  'bote_buceo': 12.5,    // kg CO2 per hour per person (dive boat ~40hp)
-  'lancha': 8.5,         // kg CO2 per hour per person (speedboat)
-  'ferry': 0.19,         // kg CO2 per km per person (ferry)
+  'bote_buceo': 12.5,
+  'lancha': 8.5,
+  'ferry': 0.19,
   'none': 0,
 };
 
 const LAND_FACTORS = {
-  'bus': 0.089,    // kg CO2 per km per person
-  'van': 0.158,    // kg CO2 per km per person
-  'taxi': 0.171,   // kg CO2 per km per person
-  'suv': 0.209,    // kg CO2 per km per person
+  'bus': 0.089,
+  'van': 0.158,
+  'taxi': 0.171,
+  'suv': 0.209,
   'none': 0,
 };
 
-// Distances in km (origin -> destination, one way)
 const DISTANCES = {
-  'Bogotá-Galápagos': 2100,
-  'Bogotá-Isla Malpelo': 500,
-  'Bogotá-Isla del Coco': 1300,
-  'Bogotá-Islas Revillagigedo': 3200,
-  'Bogotá-Raja Ampat': 18500,
-  'Bogotá-Providencia': 780,
-  'Medellín-Galápagos': 2300,
-  'Medellín-Isla Malpelo': 620,
-  'Medellín-Isla del Coco': 1500,
-  'Medellín-Islas Revillagigedo': 3400,
-  'Medellín-Raja Ampat': 18700,
-  'Medellín-Providencia': 900,
-  'Cali-Galápagos': 1950,
-  'Cali-Isla Malpelo': 380,
-  'Cali-Isla del Coco': 1200,
-  'Cali-Islas Revillagigedo': 3100,
-  'Cali-Raja Ampat': 18300,
-  'Cali-Providencia': 1100,
-  'Miami-Galápagos': 3800,
-  'Miami-Isla Malpelo': 2900,
-  'Miami-Isla del Coco': 2600,
-  'Miami-Islas Revillagigedo': 2700,
-  'Miami-Raja Ampat': 20200,
-  'Miami-Providencia': 1200,
-  'New York-Galápagos': 4600,
-  'New York-Isla Malpelo': 3700,
-  'New York-Isla del Coco': 3400,
-  'New York-Islas Revillagigedo': 3200,
-  'New York-Raja Ampat': 21000,
-  'New York-Providencia': 2100,
-  'Ciudad de México-Galápagos': 3600,
-  'Ciudad de México-Isla Malpelo': 2700,
-  'Ciudad de México-Isla del Coco': 2400,
-  'Ciudad de México-Islas Revillagigedo': 1200,
-  'Ciudad de México-Raja Ampat': 19800,
-  'Ciudad de México-Providencia': 2300,
-  'Lima-Galápagos': 1580,
-  'Lima-Isla Malpelo': 1800,
-  'Lima-Isla del Coco': 2100,
-  'Lima-Islas Revillagigedo': 4200,
-  'Lima-Raja Ampat': 17800,
-  'Lima-Providencia': 2400,
+  'Bogotá-Galápagos': 2100, 'Bogotá-Isla Malpelo': 500, 'Bogotá-Isla del Coco': 1300,
+  'Bogotá-Islas Revillagigedo': 3200, 'Bogotá-Raja Ampat': 18500, 'Bogotá-Providencia': 780,
+  'Medellín-Galápagos': 2300, 'Medellín-Isla Malpelo': 620, 'Medellín-Isla del Coco': 1500,
+  'Medellín-Islas Revillagigedo': 3400, 'Medellín-Raja Ampat': 18700, 'Medellín-Providencia': 900,
+  'Cali-Galápagos': 1950, 'Cali-Isla Malpelo': 380, 'Cali-Isla del Coco': 1200,
+  'Cali-Islas Revillagigedo': 3100, 'Cali-Raja Ampat': 18300, 'Cali-Providencia': 1100,
+  'Miami-Galápagos': 3800, 'Miami-Isla Malpelo': 2900, 'Miami-Isla del Coco': 2600,
+  'Miami-Islas Revillagigedo': 2700, 'Miami-Raja Ampat': 20200, 'Miami-Providencia': 1200,
+  'New York-Galápagos': 4600, 'New York-Isla Malpelo': 3700, 'New York-Isla del Coco': 3400,
+  'New York-Islas Revillagigedo': 3200, 'New York-Raja Ampat': 21000, 'New York-Providencia': 2100,
+  'Ciudad de México-Galápagos': 3600, 'Ciudad de México-Isla Malpelo': 2700, 'Ciudad de México-Isla del Coco': 2400,
+  'Ciudad de México-Islas Revillagigedo': 1200, 'Ciudad de México-Raja Ampat': 19800, 'Ciudad de México-Providencia': 2300,
+  'Lima-Galápagos': 1580, 'Lima-Isla Malpelo': 1800, 'Lima-Isla del Coco': 2100,
+  'Lima-Islas Revillagigedo': 4200, 'Lima-Raja Ampat': 17800, 'Lima-Providencia': 2400,
 };
 
-// Local transport distances from airport/port to destination (km)
 const LOCAL_DISTANCES = {
-  'Galápagos': 25,
-  'Isla Malpelo': 0,
-  'Isla del Coco': 0,
-  'Islas Revillagigedo': 15,
-  'Raja Ampat': 30,
-  'Providencia': 20,
+  'Galápagos': 25, 'Isla Malpelo': 0, 'Isla del Coco': 0,
+  'Islas Revillagigedo': 15, 'Raja Ampat': 30, 'Providencia': 20,
 };
 
 function getFlightFactor(distanceKm) {
@@ -96,67 +78,78 @@ function updateUserLevel(userId) {
   else if (user.points >= 600) level = 'Mantarraya';
   else if (user.points >= 300) level = 'Tortuga Marina';
   else if (user.points >= 100) level = 'Caballito de Mar';
-
   db.prepare('UPDATE users SET level = ? WHERE id = ?').run(level, userId);
 }
 
 // Calculate carbon footprint
-router.post('/calculate', authenticateToken, (req, res) => {
+router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
   try {
     const {
       origin, destination,
-      transport_flight = 'economica',
-      transport_sea = 'bote_buceo',
-      sea_hours = 6,
-      transport_land = 'van',
       passengers = 1,
       expedition_id = null,
+      // Multi-segment format (new)
+      sea_segments: rawSeaSegs,
+      land_segments: rawLandSegs,
+      // Legacy single-transport format (backward compat)
+      transport_sea = 'bote_buceo',
+      transport_land = 'van',
+      sea_hours = 6,
     } = req.body;
 
     if (!origin || !destination) {
       return res.status(400).json({ error: 'Origen y destino son requeridos' });
     }
 
+    // Normalize to segment arrays
+    const seaSegments = rawSeaSegs || [{ type: transport_sea, hours: sea_hours }];
+    const landSegments = rawLandSegs || [{ type: transport_land, km: null }];
+
     const distanceKey = `${origin}-${destination}`;
-    // Check DB first (Excel-imported routes), fall back to hardcoded table
     const dbRoute = db.prepare('SELECT distancia_km, distancia_local_km FROM emission_routes WHERE origen=? AND destino=?').get(origin, destination);
     const flightDistance = dbRoute?.distancia_km ?? DISTANCES[distanceKey] ?? 2000;
 
     // CO2 flight (round trip)
-    const flightFactor = getFlightFactor(flightDistance);
-    const co2Flight = flightDistance * 2 * flightFactor;
+    const co2Flight = flightDistance * 2 * getFlightFactor(flightDistance);
 
-    // CO2 sea transport
-    const seaFactor = SEA_FACTORS[transport_sea] || 0;
+    // CO2 sea — sum all segments
     let co2Sea = 0;
-    if (transport_sea === 'ferry') {
-      const localDist = dbRoute?.distancia_local_km ?? LOCAL_DISTANCES[destination] ?? 20;
-      co2Sea = localDist * 2 * seaFactor;
-    } else {
-      co2Sea = seaFactor * (sea_hours || 6);
+    for (const seg of seaSegments) {
+      if (!seg.type || seg.type === 'none') continue;
+      const factor = SEA_FACTORS[seg.type] || 0;
+      if (seg.type === 'ferry') {
+        const localDist = dbRoute?.distancia_local_km ?? LOCAL_DISTANCES[destination] ?? 20;
+        co2Sea += localDist * 2 * factor;
+      } else {
+        co2Sea += factor * (seg.hours || 6);
+      }
     }
 
-    // CO2 land transport
-    const localDist = LOCAL_DISTANCES[destination] || 20;
-    const landFactor = LAND_FACTORS[transport_land] || 0;
-    const co2Land = localDist * 2 * landFactor;
+    // CO2 land — sum all segments
+    let co2Land = 0;
+    for (const seg of landSegments) {
+      if (!seg.type || seg.type === 'none') continue;
+      const factor = LAND_FACTORS[seg.type] || 0;
+      const dist = (seg.km != null && seg.km > 0) ? seg.km : (LOCAL_DISTANCES[destination] ?? 20);
+      co2Land += dist * 2 * factor;
+    }
 
     const co2Total = co2Flight + co2Sea + co2Land;
 
-    // Validate expedition_id if provided (must exist and user must be a member)
+    // Validate expedition_id
     let validExpeditionId = null;
     if (expedition_id) {
       const today = new Date().toISOString().split('T')[0];
-      const exp = db.prepare(
-        'SELECT id FROM expeditions WHERE id = ? AND end_date >= ?'
-      ).get(expedition_id, today);
+      const exp = db.prepare('SELECT id FROM expeditions WHERE id = ? AND end_date >= ?').get(expedition_id, today);
       if (exp) {
-        const isMember = db.prepare(
-          'SELECT COUNT(*) as count FROM expedition_members WHERE expedition_id = ? AND user_id = ?'
-        ).get(expedition_id, req.user.id);
+        const isMember = db.prepare('SELECT COUNT(*) as count FROM expedition_members WHERE expedition_id = ? AND user_id = ?').get(expedition_id, req.user.id);
         if (isMember.count > 0) validExpeditionId = expedition_id;
       }
     }
+
+    // Store transport segments as JSON for audit trail
+    const transportSeaStr = JSON.stringify(seaSegments.filter(s => s.type && s.type !== 'none'));
+    const transportLandStr = JSON.stringify(landSegments.filter(s => s.type && s.type !== 'none'));
 
     // Save trip
     const result = db.prepare(`
@@ -164,7 +157,7 @@ router.post('/calculate', authenticateToken, (req, res) => {
         co2_flight, co2_sea, co2_land, co2_total, passengers, expedition_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      req.user.id, origin, destination, transport_flight, transport_sea, transport_land,
+      req.user.id, origin, destination, 'economica', transportSeaStr, transportLandStr,
       Math.round(co2Flight * 100) / 100,
       Math.round(co2Sea * 100) / 100,
       Math.round(co2Land * 100) / 100,
@@ -186,14 +179,16 @@ router.post('/calculate', authenticateToken, (req, res) => {
     updateUserLevel(req.user.id);
 
     // Check mission: Buceador Consciente (5 trips) — award points only if newly completed
+    let missionCompleted = null;
     const tripsCount = db.prepare('SELECT trips_count FROM users WHERE id = ?').get(req.user.id);
     if (tripsCount.trips_count >= 5) {
-      const mission = db.prepare('SELECT id, points FROM missions WHERE name = ?').get('Buceador Consciente');
+      const mission = db.prepare('SELECT id, points, name FROM missions WHERE name = ?').get('Buceador Consciente');
       if (mission) {
         const r = db.prepare('INSERT OR IGNORE INTO user_missions (user_id, mission_id) VALUES (?, ?)').run(req.user.id, mission.id);
         if (r.changes > 0) {
           db.prepare('UPDATE users SET points = points + ? WHERE id = ?').run(mission.points, req.user.id);
           updateUserLevel(req.user.id);
+          missionCompleted = { name: mission.name, points: mission.points };
         }
       }
     }
@@ -216,6 +211,7 @@ router.post('/calculate', authenticateToken, (req, res) => {
       },
       points_earned: 10,
       expedition_id: validExpeditionId,
+      mission_completed: missionCompleted,
     });
   } catch (error) {
     console.error('Calculate error:', error);
@@ -241,7 +237,6 @@ router.delete('/:id', authenticateToken, (req, res) => {
 
     db.prepare('DELETE FROM trips WHERE id = ?').run(tripId);
 
-    // Revert stats (floor at 0 to avoid negatives)
     db.prepare(`
       UPDATE users SET
         total_co2   = MAX(0, total_co2 - ?),

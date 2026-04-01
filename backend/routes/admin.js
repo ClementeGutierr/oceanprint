@@ -105,13 +105,15 @@ router.get('/expeditions', (req, res) => {
 });
 
 router.post('/expeditions', (req, res) => {
-  const { name, destination, start_date, end_date, invite_code, prize_description = '' } = req.body;
+  const { name, destination, start_date, end_date, invite_code, prize_description = '', sea_transports = null, land_transports = null, fixed_passengers = null } = req.body;
   if (!name || !destination || !start_date || !end_date || !invite_code)
     return res.status(400).json({ error: 'Faltan campos requeridos' });
+  if (start_date && end_date && start_date >= end_date)
+    return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
   try {
     const r = db.prepare(
-      'INSERT INTO expeditions (name, destination, start_date, end_date, invite_code, prize_description) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(name, destination, start_date, end_date, invite_code.toUpperCase().trim(), prize_description);
+      'INSERT INTO expeditions (name, destination, start_date, end_date, invite_code, prize_description, sea_transports, land_transports, fixed_passengers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(name, destination, start_date, end_date, invite_code.toUpperCase().trim(), prize_description, sea_transports || null, land_transports || null, fixed_passengers || null);
     res.status(201).json(db.prepare('SELECT * FROM expeditions WHERE id = ?').get(r.lastInsertRowid));
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El código de invitación ya existe' });
@@ -120,11 +122,13 @@ router.post('/expeditions', (req, res) => {
 });
 
 router.put('/expeditions/:id', (req, res) => {
-  const { name, destination, start_date, end_date, invite_code, prize_description = '' } = req.body;
+  const { name, destination, start_date, end_date, invite_code, prize_description = '', sea_transports = null, land_transports = null, fixed_passengers = null } = req.body;
   const id = parseInt(req.params.id);
+  if (start_date && end_date && start_date >= end_date)
+    return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
   try {
-    db.prepare('UPDATE expeditions SET name=?, destination=?, start_date=?, end_date=?, invite_code=?, prize_description=? WHERE id=?')
-      .run(name, destination, start_date, end_date, invite_code?.toUpperCase().trim(), prize_description, id);
+    db.prepare('UPDATE expeditions SET name=?, destination=?, start_date=?, end_date=?, invite_code=?, prize_description=?, sea_transports=?, land_transports=?, fixed_passengers=? WHERE id=?')
+      .run(name, destination, start_date, end_date, invite_code?.toUpperCase().trim(), prize_description, sea_transports || null, land_transports || null, fixed_passengers || null, id);
     res.json(db.prepare('SELECT * FROM expeditions WHERE id = ?').get(id));
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El código de invitación ya existe' });

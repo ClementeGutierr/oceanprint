@@ -142,6 +142,9 @@ function initDatabase() {
     "ALTER TABLE users ADD COLUMN whatsapp TEXT",
     "ALTER TABLE trips ADD COLUMN expedition_id INTEGER REFERENCES expeditions(id)",
     "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
+    "ALTER TABLE expeditions ADD COLUMN sea_transports TEXT",
+    "ALTER TABLE expeditions ADD COLUMN land_transports TEXT",
+    "ALTER TABLE expeditions ADD COLUMN fixed_passengers INTEGER",
   ]) {
     try { db.exec(sql) } catch {}
   }

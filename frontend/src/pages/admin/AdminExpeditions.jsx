@@ -25,7 +25,18 @@ function genCode(name, date) {
   return `${abbr}-${mo}${yr}`
 }
 
-const EMPTY_FORM = { name: '', destination: 'Isla Malpelo', start_date: '', end_date: '', invite_code: '', prize_description: '' }
+const SEA_TYPES = [
+  { value: 'bote_buceo', label: 'Bote de buceo' },
+  { value: 'lancha',     label: 'Lancha' },
+  { value: 'ferry',      label: 'Ferry' },
+]
+const LAND_TYPES = [
+  { value: 'bus',  label: 'Bus' },
+  { value: 'van',  label: 'Van' },
+  { value: 'taxi', label: 'Taxi' },
+  { value: 'suv',  label: 'SUV' },
+]
+const EMPTY_FORM = { name: '', destination: 'Isla Malpelo', start_date: '', end_date: '', invite_code: '', prize_description: '', sea_transports: [], land_transports: [], fixed_passengers: '' }
 
 export default function AdminExpeditions({ token }) {
   const [expeditions, setExpeditions] = useState([])
@@ -55,7 +66,10 @@ export default function AdminExpeditions({ token }) {
   }
 
   function openEdit(exp) {
-    setForm({ name: exp.name, destination: exp.destination, start_date: exp.start_date, end_date: exp.end_date, invite_code: exp.invite_code, prize_description: exp.prize_description || '' })
+    let seaT = [], landT = []
+    try { if (exp.sea_transports) seaT = JSON.parse(exp.sea_transports) } catch {}
+    try { if (exp.land_transports) landT = JSON.parse(exp.land_transports) } catch {}
+    setForm({ name: exp.name, destination: exp.destination, start_date: exp.start_date, end_date: exp.end_date, invite_code: exp.invite_code, prize_description: exp.prize_description || '', sea_transports: seaT, land_transports: landT, fixed_passengers: exp.fixed_passengers ?? '' })
     setEditing(exp.id)
     setShowForm(true)
     setErr('')
@@ -71,14 +85,24 @@ export default function AdminExpeditions({ token }) {
   }
 
   async function handleSave() {
+    if (form.start_date && form.end_date && form.start_date >= form.end_date) {
+      setErr('La fecha de inicio debe ser anterior a la fecha de fin')
+      return
+    }
     setSaving(true)
     setErr('')
+    const payload = {
+      ...form,
+      sea_transports: form.sea_transports.length > 0 ? JSON.stringify(form.sea_transports) : null,
+      land_transports: form.land_transports.length > 0 ? JSON.stringify(form.land_transports) : null,
+      fixed_passengers: form.fixed_passengers !== '' ? parseInt(form.fixed_passengers) : null,
+    }
     try {
       if (editing) {
-        const r = await axios.put(`${API_BASE}/admin/expeditions/${editing}`, form, authCfg(token))
+        const r = await axios.put(`${API_BASE}/admin/expeditions/${editing}`, payload, authCfg(token))
         setExpeditions(prev => prev.map(e => e.id === editing ? { ...e, ...r.data } : e))
       } else {
-        const r = await axios.post(`${API_BASE}/admin/expeditions`, form, authCfg(token))
+        const r = await axios.post(`${API_BASE}/admin/expeditions`, payload, authCfg(token))
         setExpeditions(prev => [{ ...r.data, member_count: 0, trips_count: 0 }, ...prev])
       }
       setShowForm(false)
@@ -148,6 +172,44 @@ export default function AdminExpeditions({ token }) {
             <div style={{ gridColumn: '1/-1' }}>
               <label style={LABEL}>Premio al ganador</label>
               <input style={INPUT} value={form.prize_description} onChange={e => handleFormChange('prize_description', e.target.value)} placeholder="Descripción del premio..." />
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={LABEL}>Pasajeros fijos (opcional)</label>
+              <input type="number" style={INPUT} value={form.fixed_passengers} onChange={e => handleFormChange('fixed_passengers', e.target.value)} placeholder="Ej: 12" min={1} max={200} />
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>Si se define, el calculador usará este valor en lugar de que el usuario elija los pasajeros.</p>
+            </div>
+            {/* Sea transports */}
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={LABEL}>Transportes marítimos fijos (opcional)</label>
+              {form.sea_transports.map((seg, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, sea_transports: s })) }}>
+                    {SEA_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                  <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.hours} onChange={e => { const s = [...form.sea_transports]; s[i] = { ...s[i], hours: parseFloat(e.target.value) || 0 }; setForm(f => ({ ...f, sea_transports: s })) }} placeholder="h" min={0} />
+                  <button onClick={() => setForm(f => ({ ...f, sea_transports: f.sea_transports.filter((_, j) => j !== i) }))} style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', padding: '6px 10px', color: '#f87171', cursor: 'pointer', fontSize: '13px', flexShrink: 0 }}>×</button>
+                </div>
+              ))}
+              {form.sea_transports.length < 3 && (
+                <button onClick={() => setForm(f => ({ ...f, sea_transports: [...f.sea_transports, { type: 'bote_buceo', hours: 6 }] }))} style={{ background: 'rgba(0,180,216,0.08)', border: '1px solid rgba(0,180,216,0.2)', borderRadius: '8px', padding: '6px 12px', color: '#48cae4', cursor: 'pointer', fontSize: '12px' }}>+ Añadir segmento marítimo</button>
+              )}
+            </div>
+            {/* Land transports */}
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={LABEL}>Transportes terrestres fijos (opcional)</label>
+              {form.land_transports.map((seg, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <select style={{ ...INPUT, flex: 1 }} value={seg.type} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], type: e.target.value }; setForm(f => ({ ...f, land_transports: s })) }}>
+                    {LAND_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                  <input type="number" style={{ ...INPUT, width: '80px' }} value={seg.km ?? ''} onChange={e => { const s = [...form.land_transports]; s[i] = { ...s[i], km: e.target.value !== '' ? parseFloat(e.target.value) : null }; setForm(f => ({ ...f, land_transports: s })) }} placeholder="km" min={0} />
+                  <button onClick={() => setForm(f => ({ ...f, land_transports: f.land_transports.filter((_, j) => j !== i) }))} style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', padding: '6px 10px', color: '#f87171', cursor: 'pointer', fontSize: '13px', flexShrink: 0 }}>×</button>
+                </div>
+              ))}
+              {form.land_transports.length < 3 && (
+                <button onClick={() => setForm(f => ({ ...f, land_transports: [...f.land_transports, { type: 'van', km: null }] }))} style={{ background: 'rgba(0,180,216,0.08)', border: '1px solid rgba(0,180,216,0.2)', borderRadius: '8px', padding: '6px 12px', color: '#48cae4', cursor: 'pointer', fontSize: '12px' }}>+ Añadir segmento terrestre</button>
+              )}
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>Si km está vacío, se usará la distancia local del destino.</p>
             </div>
           </div>
           {err && <p style={{ color: '#f87171', fontSize: '13px', marginTop: '12px' }}>{err}</p>}

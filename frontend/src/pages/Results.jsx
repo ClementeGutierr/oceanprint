@@ -140,7 +140,7 @@ export default function Results() {
 
       {/* Points earned */}
       <div
-        className="rounded-2xl p-4 mb-5 flex items-center gap-3"
+        className="rounded-2xl p-4 mb-3 flex items-center gap-3"
         style={{
           background: 'rgba(72,202,228,0.08)',
           border: '1px solid rgba(72,202,228,0.2)',
@@ -154,6 +154,24 @@ export default function Results() {
           <p className="text-ocean-foam/50 text-xs">Por calcular tu huella de carbono</p>
         </div>
       </div>
+
+      {/* Mission completion banner */}
+      {result.mission_completed && (
+        <div
+          className="rounded-2xl p-4 mb-5 flex items-center gap-3 animate-scale-in"
+          style={{
+            background: 'rgba(167,139,250,0.1)',
+            border: '1px solid rgba(167,139,250,0.3)',
+          }}
+        >
+          <div className="text-2xl flex-shrink-0">🏆</div>
+          <div>
+            <p className="text-purple-300 font-bold text-sm">¡Misión completada!</p>
+            <p className="text-white font-semibold text-sm">{result.mission_completed.name}</p>
+            <p className="text-ocean-foam/50 text-xs">+{result.mission_completed.points} puntos de bonificación</p>
+          </div>
+        </div>
+      )}
 
       {/* CTA Buttons */}
       <div className="space-y-3">

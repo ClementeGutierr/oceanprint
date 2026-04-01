@@ -154,6 +154,98 @@ function SocialCard({ selected, units, user, result, cardRef }) {
 }
 
 /* ─────────────────────────────────────────────
+   RECEIPT CARD (captured by html2canvas)
+───────────────────────────────────────────── */
+function ReceiptCard({ selected, units, user, result, cardRef }) {
+  const co2 = result?.co2_compensated ?? selected.co2_per_unit * units
+  const cost = selected.cost_per_unit * units
+  const pts = result?.points_earned ?? selected.points_per_unit * units
+  const txId = result?.id ? `OP-${String(result.id).padStart(6, '0')}` : 'OP-000000'
+  const dateStr = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
+
+  return (
+    <div ref={cardRef} style={{
+      width: '360px', minHeight: '520px',
+      background: 'linear-gradient(160deg,#020c1b 0%,#0a1628 50%,#0d3357 100%)',
+      fontFamily: "'Inter',system-ui,sans-serif",
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
+      padding: '32px 28px',
+      boxSizing: 'border-box',
+    }}>
+      {/* Glow */}
+      <div style={{ position:'absolute', width:'260px', height:'260px', borderRadius:'50%',
+        background:'radial-gradient(circle,rgba(74,222,128,0.06) 0%,transparent 70%)',
+        top:'-80px', right:'-60px', pointerEvents:'none' }} />
+
+      {/* Brand + title */}
+      <div style={{ textAlign:'center', marginBottom:'24px' }}>
+        <div style={{ fontSize:'10px', letterSpacing:'4px', color:'rgba(0,180,216,0.55)',
+          fontWeight:'800', textTransform:'uppercase', marginBottom:'4px' }}>OCEAN PRINT</div>
+        <div style={{ fontSize:'16px', fontWeight:'900', color:'#ffffff', marginBottom:'2px' }}>
+          Comprobante de Compensación
+        </div>
+        <div style={{ fontSize:'9px', color:'rgba(144,224,239,0.3)', letterSpacing:'2px', textTransform:'uppercase' }}>
+          by Diving Life
+        </div>
+      </div>
+
+      {/* TX ID + date */}
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'20px',
+        padding:'10px 14px', borderRadius:'12px',
+        background:'rgba(0,180,216,0.07)', border:'1px solid rgba(0,180,216,0.2)' }}>
+        <div>
+          <div style={{ fontSize:'9px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'3px' }}>ID Transacción</div>
+          <div style={{ fontSize:'13px', fontWeight:'700', color:'#48cae4', fontFamily:'monospace' }}>{txId}</div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:'9px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'3px' }}>Fecha</div>
+          <div style={{ fontSize:'11px', fontWeight:'600', color:'rgba(255,255,255,0.7)' }}>{dateStr}</div>
+        </div>
+      </div>
+
+      {/* Details rows */}
+      {[
+        { label: 'Opción',        value: selected.name },
+        { label: 'Organización',  value: selected.organization },
+        { label: 'Unidades',      value: `${units} ${selected.unit}(s)` },
+        { label: 'CO₂ compensado',value: `-${co2} kg CO₂`, color: '#4ade80' },
+        { label: 'Valor pagado',  value: formatCOP(cost), color: cost === 0 ? '#4ade80' : '#fbbf24' },
+        { label: 'Puntos ganados',value: `+${pts} pts`, color: '#a78bfa' },
+      ].map(({ label, value, color }) => (
+        <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+          padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+          <span style={{ fontSize:'11px', color:'rgba(144,224,239,0.45)' }}>{label}</span>
+          <span style={{ fontSize:'12px', fontWeight:'700', color: color || 'rgba(255,255,255,0.85)' }}>{value}</span>
+        </div>
+      ))}
+
+      {/* User */}
+      <div style={{ textAlign:'center', marginTop:'20px', padding:'14px',
+        borderRadius:'14px', background:'rgba(0,180,216,0.06)', border:'1px solid rgba(0,180,216,0.15)' }}>
+        <div style={{ fontSize:'13px', fontWeight:'700', color:'#ffffff', marginBottom:'3px' }}>
+          {user?.name || 'Guardián del Océano'}
+        </div>
+        <div style={{ fontSize:'11px', color:'#48cae4' }}>{user?.level || 'Plancton'}</div>
+      </div>
+
+      {/* Verification badge */}
+      <div style={{ marginTop:'16px', textAlign:'center' }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:'6px',
+          padding:'6px 16px', borderRadius:'20px',
+          background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.3)' }}>
+          <span style={{ fontSize:'12px' }}>✓</span>
+          <span style={{ fontSize:'10px', fontWeight:'700', color:'#4ade80', letterSpacing:'1px', textTransform:'uppercase' }}>Verificado · OceanPrint</span>
+        </div>
+        <div style={{ fontSize:'8px', color:'rgba(144,224,239,0.2)', marginTop:'8px', letterSpacing:'2px', textTransform:'uppercase' }}>
+          oceanprint.co · divinglife.co
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────
    MULTI-STEP FLOW MODAL
 ───────────────────────────────────────────── */
 function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
@@ -166,9 +258,10 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   })
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
-  const [shareLoading, setShareLoading] = useState(null) // 'wa' | 'ig' | 'copy' | 'dl'
+  const [shareLoading, setShareLoading] = useState(null) // 'wa' | 'ig' | 'copy' | 'dl' | 'receipt'
   const [toast, setToast] = useState(null)
   const socialCardRef = useRef(null)
+  const receiptCardRef = useRef(null)
 
   function showToast(msg, duration = 3500) {
     setToast(msg)
@@ -204,6 +297,23 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
     return html2canvas(socialCardRef.current, {
       backgroundColor: null, useCORS: true, scale: 3, logging: false,
     })
+  }
+
+  async function downloadReceipt() {
+    if (!receiptCardRef.current || shareLoading) return
+    setShareLoading('receipt')
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(receiptCardRef.current, {
+        backgroundColor: null, useCORS: true, scale: 3, logging: false,
+      })
+      const url = canvas.toDataURL('image/png')
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'oceanprint-comprobante.png'
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    } catch (e) { console.error(e) }
+    finally { setShareLoading(null) }
   }
 
   async function downloadCard() {
@@ -328,10 +438,17 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
       style={{ background: 'rgba(2,12,27,0.92)', backdropFilter: 'blur(10px)' }}
       onClick={e => step < 3 && e.target === e.currentTarget && onClose()}
     >
-      {/* Hidden full-size card for html2canvas */}
+      {/* Hidden full-size cards for html2canvas */}
       <div style={{ position: 'fixed', top: '-9999px', left: 0, zIndex: -1 }}>
         <SocialCard
           cardRef={socialCardRef}
+          selected={selected}
+          units={units}
+          user={user}
+          result={result}
+        />
+        <ReceiptCard
+          cardRef={receiptCardRef}
           selected={selected}
           units={units}
           user={user}
@@ -933,9 +1050,21 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
               <button
                 onClick={downloadCard}
                 disabled={!!shareLoading}
-                className="w-full text-center text-[11px] text-ocean-foam/30 hover:text-ocean-foam/50 transition-colors py-1 mb-3"
+                className="w-full text-center text-[11px] text-ocean-foam/30 hover:text-ocean-foam/50 transition-colors py-1 mb-2"
               >
-                {shareLoading === 'dl' ? 'Descargando…' : '↓ Descargar imagen'}
+                {shareLoading === 'dl' ? 'Descargando…' : '↓ Descargar imagen social'}
+              </button>
+
+              {/* Receipt download */}
+              <button
+                onClick={downloadReceipt}
+                disabled={!!shareLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-semibold transition-all active:scale-95 mb-3"
+                style={{ background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.2)', color: '#4ade80' }}
+              >
+                {shareLoading === 'receipt'
+                  ? <span className="inline-block w-4 h-4 border-2 border-green-600/30 border-t-green-400 rounded-full animate-spin" />
+                  : <><Download size={14} /> Descargar comprobante oficial</>}
               </button>
 
               <button onClick={onClose} className="btn-primary w-full">

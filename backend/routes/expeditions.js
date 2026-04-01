@@ -170,7 +170,7 @@ router.get('/:id/leaderboard', authenticateToken, (req, res) => {
 
 // POST /api/expeditions — create expedition (admin / Diving Life)
 router.post('/', authenticateToken, (req, res) => {
-  const { name, destination, start_date, end_date, invite_code, prize_description } = req.body;
+  const { name, destination, start_date, end_date, invite_code, prize_description, sea_transports = null, land_transports = null, fixed_passengers = null } = req.body;
 
   if (!name || !destination || !start_date || !end_date || !invite_code) {
     return res.status(400).json({ error: 'name, destination, start_date, end_date e invite_code son requeridos' });
@@ -178,9 +178,9 @@ router.post('/', authenticateToken, (req, res) => {
 
   try {
     const result = db.prepare(`
-      INSERT INTO expeditions (name, destination, start_date, end_date, invite_code, prize_description)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(name, destination, start_date, end_date, invite_code.toUpperCase().trim(), prize_description || '');
+      INSERT INTO expeditions (name, destination, start_date, end_date, invite_code, prize_description, sea_transports, land_transports, fixed_passengers)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, destination, start_date, end_date, invite_code.toUpperCase().trim(), prize_description || '', sea_transports || null, land_transports || null, fixed_passengers || null);
 
     res.status(201).json(db.prepare('SELECT * FROM expeditions WHERE id = ?').get(result.lastInsertRowid));
   } catch (e) {

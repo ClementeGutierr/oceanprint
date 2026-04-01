@@ -347,14 +347,30 @@ function ExpeditionPanel({ expeditionId, API }) {
 export default function Leaderboard() {
   const [tab, setTab] = useState('general')
   const [generalData, setGeneralData] = useState(null)
+  const [generalOffset, setGeneralOffset] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [myExpeditions, setMyExpeditions] = useState([])
   const [selectedExpId, setSelectedExpId] = useState(null)
   const [loadingGeneral, setLoadingGeneral] = useState(true)
   const [loadingExp, setLoadingExp] = useState(true)
   const { API } = useAuth()
 
+  async function loadMore() {
+    setLoadingMore(true)
+    try {
+      const nextOffset = generalOffset + 20
+      const res = await axios.get(`${API}/leaderboard?limit=20&offset=${nextOffset}`)
+      setGeneralData(prev => ({
+        ...res.data,
+        leaders: [...(prev?.leaders || []), ...res.data.leaders],
+      }))
+      setGeneralOffset(nextOffset)
+    } catch (e) { console.error(e) }
+    finally { setLoadingMore(false) }
+  }
+
   useEffect(() => {
-    axios.get(`${API}/leaderboard`)
+    axios.get(`${API}/leaderboard?limit=20&offset=0`)
       .then(res => setGeneralData(res.data))
       .catch(console.error)
       .finally(() => setLoadingGeneral(false))
@@ -486,6 +502,18 @@ export default function Leaderboard() {
               <div className="flex justify-center mb-3 opacity-30"><OceanWaveIcon size={48} /></div>
               <p>Sé el primero en el ranking</p>
             </div>
+          )}
+          {generalData.has_more && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full mt-4 py-3 rounded-2xl text-sm font-semibold transition-all active:scale-98"
+              style={{ background: 'rgba(0,180,216,0.08)', border: '1px solid rgba(0,180,216,0.18)', color: '#48cae4' }}
+            >
+              {loadingMore
+                ? <span className="inline-block w-4 h-4 border-2 border-cyan-600/30 border-t-cyan-400 rounded-full animate-spin" />
+                : `Ver más (${generalData.total - (generalData.leaders?.length || 0)} restantes)`}
+            </button>
           )}
         </div>
       )}
