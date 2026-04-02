@@ -388,6 +388,130 @@ function seedData() {
     insA.run('RAJ','Raja Ampat (virtual)','Raja Ampat','Indonesia',-0.5025,130.9819);
   }
 
+  // Extended airports — always run so existing DBs receive new entries (INSERT OR IGNORE = idempotent)
+  {
+    const insB = db.prepare('INSERT OR IGNORE INTO airports (iata, name, city, country, lat, lng) VALUES (?, ?, ?, ?, ?, ?)');
+    // ── Bolivia ──
+    insB.run('LPB','El Alto','La Paz','Bolivia',-16.5133,-68.1922);
+    insB.run('VVI','Viru Viru','Santa Cruz','Bolivia',-17.6448,-63.1354);
+    insB.run('CBB','Jorge Wilstermann','Cochabamba','Bolivia',-17.4211,-66.1771);
+    // ── Paraguay ──
+    insB.run('ASU','Silvio Pettirossi','Asunción','Paraguay',-25.2400,-57.5196);
+    // ── Uruguay ──
+    insB.run('MVD','Carrasco','Montevideo','Uruguay',-34.8384,-56.0308);
+    // ── Argentina ──
+    insB.run('COR','Ingeniero Taravella','Córdoba','Argentina',-31.3236,-64.2082);
+    insB.run('MDZ','El Plumerillo','Mendoza','Argentina',-32.8317,-68.7929);
+    insB.run('BRC','Teniente Candelaria','Bariloche','Argentina',-41.1512,-71.1578);
+    insB.run('IGR','Cataratas del Iguazú','Iguazú','Argentina',-25.7374,-54.4737);
+    insB.run('ROS','Islas Malvinas','Rosario','Argentina',-32.9036,-60.7850);
+    insB.run('NQN','Presidente Perón','Neuquén','Argentina',-38.9490,-68.1557);
+    // ── Brasil ──
+    insB.run('CWB','Afonso Pena','Curitiba','Brazil',-25.5285,-49.1758);
+    insB.run('POA','Salgado Filho','Porto Alegre','Brazil',-29.9944,-51.1713);
+    insB.run('REC','Guararapes','Recife','Brazil',-8.1264,-34.9231);
+    insB.run('SSA','Deputado Luís Eduardo','Salvador','Brazil',-12.9086,-38.3225);
+    insB.run('MAO','Eduardo Gomes','Manaus','Brazil',-3.0386,-60.0498);
+    insB.run('BEL','Val de Cans','Belém','Brazil',-1.3792,-48.4763);
+    insB.run('CNF','Tancredo Neves','Belo Horizonte','Brazil',-19.6244,-43.9719);
+    insB.run('NAT','Governador Aluízio Alves','Natal','Brazil',-5.9111,-35.2478);
+    insB.run('THE','Senador Petrônio Portella','Teresina','Brazil',-5.0599,-42.8235);
+    // ── Perú ──
+    insB.run('PIU','Capitán FAP Guillermo Concha','Piura','Perú',-5.2075,-80.6163);
+    insB.run('IQT','Coronel FAP Francisco Secada','Iquitos','Perú',-3.7847,-73.3088);
+    insB.run('TRU','Cap FAP Carlos Martínez','Trujillo','Perú',-8.0814,-79.1088);
+    insB.run('CIX','Cap FAP José Quiñones','Chiclayo','Perú',-6.7875,-79.8281);
+    // ── Chile ──
+    insB.run('IQQ','Diego Aracena','Iquique','Chile',-20.5352,-70.1812);
+    insB.run('ARI','Chacalluta','Arica','Chile',-18.3489,-70.3387);
+    insB.run('PMC','El Tepual','Puerto Montt','Chile',-41.4389,-73.0940);
+    insB.run('CCP','Carriel Sur','Concepción','Chile',-36.7727,-73.0631);
+    insB.run('ZCO','La Araucanía','Temuco','Chile',-38.7668,-72.6371);
+    // ── Colombia extra ──
+    insB.run('CUC','Camilo Daza','Cúcuta','Colombia',7.9276,-72.5115);
+    insB.run('PSO','Antonio Nariño','Pasto','Colombia',1.3963,-77.2915);
+    insB.run('BGA','Palonegro','Bucaramanga','Colombia',7.1248,-73.1848);
+    insB.run('SMR','Simón Bolívar','Santa Marta','Colombia',11.1195,-74.2306);
+    insB.run('PEI','Matecaña','Pereira','Colombia',4.8133,-75.7398);
+    insB.run('VVC','La Vanguardia','Villavicencio','Colombia',4.1679,-73.6138);
+    insB.run('MTR','Los Garzones','Montería','Colombia',8.8237,-75.8258);
+    // ── México extra ──
+    insB.run('TIJ','General Abelardo L. Rodríguez','Tijuana','México',32.5411,-116.9700);
+    insB.run('PVR','Licenciado Gustavo Díaz Ordaz','Puerto Vallarta','México',20.6801,-105.2544);
+    insB.run('HUX','Bahías de Huatulco','Huatulco','México',15.7753,-96.2626);
+    insB.run('VER','General Heriberto Jara','Veracruz','México',19.1459,-96.1872);
+    insB.run('HMO','General Ignacio P. García','Hermosillo','México',29.0958,-111.0479);
+    insB.run('MID','Manuel Crescencio Rejón','Mérida','México',20.9370,-89.6577);
+    insB.run('OAX','Xoxocotlán','Oaxaca','México',16.9999,-96.7266);
+    // ── Honduras ──
+    insB.run('SAP','Ramón Villeda Morales','San Pedro Sula','Honduras',15.4526,-87.9236);
+    insB.run('RTB','Juan Manuel Gálvez','Roatán','Honduras',16.3174,-86.5230);
+    // ── Caribe extra ──
+    insB.run('BGI','Grantley Adams','Bridgetown','Barbados',13.0746,-59.4925);
+    insB.run('POS','Piarco','Puerto España','Trinidad y Tobago',10.5954,-61.3372);
+    insB.run('SXM','Princess Juliana','Sint Maarten','Sint Maarten',18.0410,-63.1088);
+    insB.run('CUR','Hato','Willemstad','Curaçao',12.1889,-68.9598);
+    insB.run('AUA','Reina Beatrix','Oranjestad','Aruba',12.5014,-70.0152);
+    insB.run('PBM','Johan Adolf Pengel','Paramaribo','Surinam',5.4529,-55.1878);
+    insB.run('GEO','Cheddi Jagan','Georgetown','Guyana',6.4985,-58.2541);
+    insB.run('PTP','Pointe-à-Pitre','Pointe-à-Pitre','Guadalupe',16.2653,-61.5278);
+    insB.run('FDF','Aimé Césaire','Fort-de-France','Martinica',14.5910,-60.9953);
+    // ── USA extra ──
+    insB.run('MSP','Minneapolis-Saint Paul','Minneapolis','USA',44.8848,-93.2223);
+    insB.run('PDX','Portland International','Portland','USA',45.5887,-122.5975);
+    insB.run('SAN','San Diego International','San Diego','USA',32.7336,-117.1897);
+    insB.run('TPA','Tampa International','Tampa','USA',27.9755,-82.5332);
+    // ── Europa extra ──
+    insB.run('DUB','Dublin','Dublín','Irlanda',53.4213,-6.2701);
+    insB.run('EDI','Edinburgh','Edimburgo','Reino Unido',55.9508,-3.3726);
+    insB.run('ATH','Eleftherios Venizelos','Atenas','Grecia',37.9364,23.9445);
+    insB.run('ARN','Arlanda','Estocolmo','Suecia',59.6519,17.9186);
+    insB.run('OSL','Gardermoen','Oslo','Noruega',60.1939,11.1004);
+    insB.run('WAW','Chopin','Varsovia','Polonia',52.1657,20.9671);
+    insB.run('PRG','Václav Havel','Praga','República Checa',50.1008,14.2600);
+    insB.run('BUD','Liszt Ferenc','Budapest','Hungría',47.4298,19.2610);
+    insB.run('GVA','Cointrin','Ginebra','Suiza',46.2380,6.1089);
+    insB.run('OTP','Henri Coandă','Bucarest','Rumanía',44.5711,26.0850);
+    insB.run('SVO','Sheremetyevo','Moscú','Rusia',55.9736,37.4125);
+    insB.run('MXP','Malpensa','Milán','Italia',45.6306,8.7281);
+    insB.run('NCE','Côte d\'Azur','Niza','Francia',43.6584,7.2159);
+    insB.run('AGP','Costa del Sol','Málaga','España',36.6749,-4.4991);
+    insB.run('TLV','Ben Gurion','Tel Aviv','Israel',32.0114,34.8867);
+    insB.run('DBV','Dubrovnik','Dubrovnik','Croacia',42.5614,18.2682);
+    // ── Oriente Medio extra ──
+    insB.run('RUH','Rey Khalid','Riad','Arabia Saudí',24.9576,46.6988);
+    insB.run('BAH','Bahráin International','Manama','Baréin',26.2708,50.6336);
+    // ── África extra ──
+    insB.run('CMN','Mohammed V','Casablanca','Marruecos',33.3675,-7.5898);
+    insB.run('TUN','Carthage','Túnez','Túnez',36.8510,10.2272);
+    insB.run('ADD','Bole','Addis Abeba','Etiopía',8.9779,38.7993);
+    insB.run('ACC','Kotoka','Acra','Ghana',5.6052,-0.1668);
+    insB.run('DAK','Léopold Sédar Senghor','Dakar','Senegal',14.7397,-17.4902);
+    insB.run('LOS','Murtala Muhammed','Lagos','Nigeria',6.5774,3.3212);
+    insB.run('DAR','Julius Nyerere','Dar es Salaam','Tanzania',-6.8781,39.2026);
+    // ── Asia extra ──
+    insB.run('HAN','Noi Bai','Hanói','Vietnam',21.2212,105.8072);
+    insB.run('SGN','Tan Son Nhat','Ho Chi Minh','Vietnam',10.8188,106.6520);
+    insB.run('RGN','Yangon','Yangón','Myanmar',16.9073,96.1332);
+    insB.run('CMB','Bandaranaike','Colombo','Sri Lanka',7.1807,79.8841);
+    insB.run('MLE','Velana','Malé','Maldivas',4.1918,73.5290);
+    insB.run('CCU','Netaji Subhash Chandra Bose','Calcuta','India',22.6546,88.4467);
+    insB.run('MAA','Chennai','Chennai','India',12.9941,80.1709);
+    insB.run('HYD','Rajiv Gandhi','Hyderabad','India',17.2313,78.4298);
+    insB.run('TPE','Taoyuan','Taipéi','Taiwán',25.0777,121.2322);
+    insB.run('CTU','Tianfu','Chengdu','China',30.3127,103.9470);
+    insB.run('XIY','Xianyang','Xi\'an','China',34.4471,108.7516);
+    insB.run('CAN','Baiyun','Cantón','China',23.3924,113.2988);
+    // ── Oceanía / Pacífico ──
+    insB.run('AKL','Auckland','Auckland','Nueva Zelanda',-37.0082,174.7917);
+    insB.run('CHC','Christchurch','Christchurch','Nueva Zelanda',-43.4894,172.5322);
+    insB.run('PPT','Faa\'a','Papeete','Polinesia Francesa',-17.5534,-149.6064);
+    insB.run('NOU','Tontouta','Noumea','Nueva Caledonia',-22.0146,166.2129);
+    // ── Islas Pacífico relevantes para buceo ──
+    insB.run('SEZ','Seychelles International','Victoria','Seychelles',-4.6743,55.5218);
+    insB.run('MRU','Sir Seewoosagur Ramgoolam','Mauricio','Mauricio',-20.4302,57.6836);
+  }
+
   // Seed destinations (idempotent)
   const destCount = db.prepare('SELECT COUNT(*) as count FROM destinations').get();
   if (destCount.count === 0) {

@@ -9,7 +9,6 @@ import {
   OceanWaveIcon, TrophyIcon, LockIcon, PlusIcon,
 } from '../components/OceanIcons'
 
-const ORIGINS = ['Bogotá', 'Medellín', 'Cali', 'Miami', 'New York', 'Ciudad de México', 'Lima']
 const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla del Coco', 'Raja Ampat', 'Providencia']
 
 const SEA_OPTIONS = [
@@ -234,7 +233,7 @@ export default function Calculator() {
   const { API, refreshUser, user } = useAuth()
   const navigate = useNavigate()
 
-  const [origin, setOrigin]           = useState('')
+  const [originApt, setOriginApt]     = useState(null)  // { iata, city, country, lat, lng }
   const [destination, setDestination] = useState('')
   const [routeStops, setRouteStops]   = useState([])   // array of airport objects | null (unresolved)
   const [seaSegments, setSeaSegments]   = useState([{ type: 'bote_buceo', hours: 6 }])
@@ -246,15 +245,17 @@ export default function Calculator() {
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
 
-  // Pre-select origin from user profile
+  // Pre-select origin from user profile city
   useEffect(() => {
-    if (user?.origin_city && ORIGINS.includes(user.origin_city) && !origin) {
-      setOrigin(user.origin_city)
+    if (user?.origin_city && !originApt) {
+      axios.get(`${API}/trips/airports?q=${encodeURIComponent(user.origin_city)}`)
+        .then(res => { if (res.data.length > 0) setOriginApt(res.data[0]) })
+        .catch(() => {})
     }
   }, [user?.origin_city])
 
   // Reset route stops when origin or destination changes
-  useEffect(() => { setRouteStops([]) }, [origin, destination])
+  useEffect(() => { setRouteStops([]) }, [originApt?.iata, destination])
 
   // Fetch active expeditions when destination changes
   useEffect(() => {
@@ -314,19 +315,19 @@ export default function Calculator() {
   function updateStop(i, apt) { setRouteStops(s => s.map((x, j) => j === i ? apt : x)) }
 
   async function handleCalculate() {
-    if (!origin || !destination) { setError('Selecciona origen y destino'); return }
+    if (!originApt || !destination) { setError('Selecciona origen y destino'); return }
     if (routeStops.some(s => s === null)) {
       setError('Completa todas las ciudades de escala o elimínalas')
       return
     }
     setError('')
     setLoading(true)
-    const route_waypoints = routeStops.length > 0
-      ? [origin, ...routeStops.map(s => s.iata), destination]
-      : null
+    // Always use route_waypoints for accurate per-segment Haversine calculation
+    const route_waypoints = [originApt.iata, ...routeStops.map(s => s.iata), destination]
     try {
       const res = await axios.post(`${API}/trips/calculate`, {
-        origin, destination,
+        origin: originApt.city,
+        destination,
         sea_segments: seaSegments,
         land_segments: landSegments,
         passengers,
@@ -334,7 +335,7 @@ export default function Calculator() {
         route_waypoints,
       })
       refreshUser()
-      navigate('/results', { state: { result: res.data, origin, destination } })
+      navigate('/results', { state: { result: res.data, origin: originApt.city, destination } })
     } catch (err) {
       if (err.response?.status === 429) setError(err.response.data.error)
       else setError(err.response?.data?.error || 'Error calculando')
@@ -359,19 +360,14 @@ export default function Calculator() {
         {/* Origin */}
         <div>
           <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <PlaneIcon size={13} /> Ciudad de Origen
+            <PlaneIcon size={13} /> ¿De dónde vuelas?
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            {ORIGINS.map(o => (
-              <button key={o} type="button" onClick={() => setOrigin(o)}
-                className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150"
-                style={
-                  origin === o
-                    ? { background: 'linear-gradient(135deg,rgba(0,180,216,0.3),rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
-                    : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
-                }>{o}</button>
-            ))}
-          </div>
+          <CityAutocomplete
+            apiBase={API}
+            value={originApt}
+            onChange={apt => setOriginApt(apt)}
+            placeholder="Ciudad o aeropuerto de origen..."
+          />
         </div>
 
         {/* Destination */}
@@ -397,7 +393,7 @@ export default function Calculator() {
         </div>
 
         {/* ── Route builder ── */}
-        {origin && destination && (
+        {originApt && destination && (
           <div className="card animate-fade-in">
             <p className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-4 flex items-center gap-1.5">
               <PlaneIcon size={12} /> Ruta de vuelo
@@ -406,7 +402,7 @@ export default function Calculator() {
             {/* Origin node */}
             <div className="flex items-center gap-2.5">
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00b4d8', border: '2px solid #48cae4', flexShrink: 0 }} />
-              <span className="text-sm font-bold text-ocean-cyan">{origin}</span>
+              <span className="text-sm font-bold text-ocean-cyan">{originApt.city} <span style={{ color: 'rgba(0,180,216,0.45)', fontSize: '11px', fontWeight: 400 }}>({originApt.iata})</span></span>
             </div>
 
             {/* Stops */}
