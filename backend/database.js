@@ -156,7 +156,7 @@ function initDatabase() {
     )
   `);
 
-  // Stopover routes for layover CO2 calculation
+  // Stopover routes (legacy, kept for reference)
   db.exec(`
     CREATE TABLE IF NOT EXISTS route_stopovers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -166,6 +166,19 @@ function initDatabase() {
       dist_origin_stopover REAL NOT NULL,
       dist_stopover_dest REAL NOT NULL,
       UNIQUE(origin, destination, stopover_city)
+    )
+  `);
+
+  // Airports table for autocomplete and Haversine distance calculations
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS airports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      iata TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      country TEXT NOT NULL,
+      lat REAL NOT NULL,
+      lng REAL NOT NULL
     )
   `);
 
@@ -234,6 +247,146 @@ function seedData() {
     insertQuiz.run(...quiz);
   }
   } // end if (missionCount.count === 0)
+
+  // Seed airports (idempotent)
+  const airportCount = db.prepare('SELECT COUNT(*) as count FROM airports').get();
+  if (airportCount.count === 0) {
+    const insA = db.prepare('INSERT OR IGNORE INTO airports (iata, name, city, country, lat, lng) VALUES (?, ?, ?, ?, ?, ?)');
+    // Colombia
+    insA.run('BOG','El Dorado','Bogotá','Colombia',4.7016,-74.1469);
+    insA.run('MDE','José María Córdova','Medellín','Colombia',6.1645,-75.4235);
+    insA.run('CLO','Alfonso Bonilla Aragón','Cali','Colombia',3.5432,-76.3816);
+    insA.run('CTG','Rafael Núñez','Cartagena','Colombia',10.4424,-75.5130);
+    insA.run('BAQ','Ernesto Cortissoz','Barranquilla','Colombia',10.8896,-74.7808);
+    insA.run('PVA','El Embrujo','Providencia','Colombia',13.3569,-81.3583);
+    insA.run('ADZ','Gustavo Rojas Pinilla','San Andrés','Colombia',12.5836,-81.7112);
+    insA.run('BUN','Gerardo Tobar','Buenaventura','Colombia',3.8196,-76.9898);
+    // Ecuador
+    insA.run('UIO','Mariscal Sucre','Quito','Ecuador',-0.1292,-78.3575);
+    insA.run('GYE','José J. de Olmedo','Guayaquil','Ecuador',-2.1574,-79.8836);
+    insA.run('GPS','Seymour','Galápagos','Ecuador',-0.4536,-90.2659);
+    // Perú
+    insA.run('LIM','Jorge Chávez','Lima','Perú',-12.0219,-77.1143);
+    insA.run('CUZ','Alejandro Velasco','Cusco','Perú',-13.5357,-71.9388);
+    insA.run('AQP','Rodríguez Ballón','Arequipa','Perú',-16.3411,-71.5831);
+    // Chile
+    insA.run('SCL','Arturo Merino Benítez','Santiago','Chile',-33.3930,-70.7858);
+    insA.run('ANF','Cerro Moreno','Antofagasta','Chile',-23.4444,-70.4451);
+    // Argentina
+    insA.run('EZE','Ministro Pistarini','Buenos Aires','Argentina',-34.8222,-58.5358);
+    insA.run('AEP','Jorge Newbery','Buenos Aires (Aeroparque)','Argentina',-34.5592,-58.4156);
+    // Brasil
+    insA.run('GRU','Guarulhos','São Paulo','Brazil',-23.4356,-46.4731);
+    insA.run('GIG','Galeão','Río de Janeiro','Brazil',-22.8099,-43.2505);
+    insA.run('BSB','Brasília','Brasília','Brazil',-15.8711,-47.9186);
+    insA.run('FOR','Pinto Martins','Fortaleza','Brazil',-3.7763,-38.5326);
+    // Venezuela
+    insA.run('CCS','Simón Bolívar','Caracas','Venezuela',10.6012,-66.9913);
+    // Panamá
+    insA.run('PTY','Tocumen','Panamá','Panamá',9.0714,-79.3835);
+    // Costa Rica
+    insA.run('SJO','Juan Santamaría','San José','Costa Rica',9.9936,-84.2089);
+    // México
+    insA.run('MEX','Benito Juárez','Ciudad de México','México',19.4363,-99.0721);
+    insA.run('GDL','Miguel Hidalgo','Guadalajara','México',20.5218,-103.3111);
+    insA.run('CUN','Cancún','Cancún','México',21.0365,-86.8771);
+    insA.run('MTY','Mariano Escobedo','Monterrey','México',25.7785,-100.1066);
+    insA.run('ZLO','Playa de Oro','Manzanillo','México',19.1448,-104.5588);
+    insA.run('SJD','Los Cabos','Los Cabos','México',23.1518,-109.7211);
+    insA.run('MZT','General Rafael Buelna','Mazatlán','México',23.1614,-106.2661);
+    // Centroamérica
+    insA.run('GUA','La Aurora','Guatemala City','Guatemala',14.5833,-90.5275);
+    insA.run('SAL','Monseñor Romero','San Salvador','El Salvador',13.4409,-89.0557);
+    insA.run('TGU','Toncontín','Tegucigalpa','Honduras',14.0608,-87.2172);
+    insA.run('MGA','Augusto Sandino','Managua','Nicaragua',12.1415,-86.1682);
+    insA.run('BZE','Philip Goldson','Belize City','Belize',17.5391,-88.3082);
+    // Caribe
+    insA.run('HAV','José Martí','La Habana','Cuba',22.9892,-82.4091);
+    insA.run('SDQ','Las Américas','Santo Domingo','República Dominicana',18.4297,-69.6689);
+    insA.run('SJU','Luis Muñoz Marín','San Juan','Puerto Rico',18.4394,-66.0018);
+    insA.run('PUJ','Punta Cana','Punta Cana','República Dominicana',18.5674,-68.3634);
+    insA.run('NAS','Lynden Pindling','Nassau','Bahamas',25.0388,-77.4663);
+    insA.run('KIN','Norman Manley','Kingston','Jamaica',17.9357,-76.7875);
+    // USA
+    insA.run('MIA','Miami International','Miami','USA',25.7959,-80.2870);
+    insA.run('JFK','John F Kennedy','New York','USA',40.6413,-73.7781);
+    insA.run('EWR','Newark Liberty','Newark','USA',40.6895,-74.1745);
+    insA.run('LAX','Los Angeles International','Los Angeles','USA',33.9425,-118.4081);
+    insA.run('IAH','George Bush Intercontinental','Houston','USA',29.9902,-95.3368);
+    insA.run('ATL','Hartsfield-Jackson','Atlanta','USA',33.6407,-84.4277);
+    insA.run('DFW','Dallas Fort Worth','Dallas','USA',32.8998,-97.0403);
+    insA.run('ORD','O\'Hare International','Chicago','USA',41.9742,-87.9073);
+    insA.run('SFO','San Francisco International','San Francisco','USA',37.6213,-122.3790);
+    insA.run('IAD','Washington Dulles','Washington DC','USA',38.9531,-77.4565);
+    insA.run('BOS','Logan International','Boston','USA',42.3656,-71.0096);
+    insA.run('LAS','Harry Reid International','Las Vegas','USA',36.0840,-115.1537);
+    insA.run('DEN','Denver International','Denver','USA',39.8561,-104.6737);
+    insA.run('SEA','Seattle-Tacoma','Seattle','USA',47.4502,-122.3088);
+    insA.run('PHX','Phoenix Sky Harbor','Phoenix','USA',33.4373,-112.0078);
+    insA.run('FLL','Fort Lauderdale','Fort Lauderdale','USA',26.0726,-80.1527);
+    insA.run('MCO','Orlando International','Orlando','USA',28.4294,-81.3089);
+    insA.run('MSY','Louis Armstrong','Nueva Orleans','USA',29.9934,-90.2580);
+    insA.run('CLT','Charlotte Douglas','Charlotte','USA',35.2140,-80.9431);
+    insA.run('DTW','Detroit Metropolitan','Detroit','USA',42.2124,-83.3534);
+    // Canadá
+    insA.run('YYZ','Pearson International','Toronto','Canadá',43.6772,-79.6306);
+    insA.run('YVR','Vancouver International','Vancouver','Canadá',49.1947,-123.1839);
+    insA.run('YUL','Trudeau International','Montreal','Canadá',45.4706,-73.7408);
+    insA.run('YYC','Calgary International','Calgary','Canadá',51.1139,-114.0097);
+    // Europa
+    insA.run('LHR','Heathrow','Londres','Reino Unido',51.4700,-0.4543);
+    insA.run('LGW','Gatwick','Londres (Gatwick)','Reino Unido',51.1537,-0.1821);
+    insA.run('MAD','Adolfo Suárez Barajas','Madrid','España',40.4936,-3.5670);
+    insA.run('BCN','El Prat','Barcelona','España',41.2971,2.0785);
+    insA.run('CDG','Charles de Gaulle','París','Francia',49.0097,2.5479);
+    insA.run('FRA','Frankfurt am Main','Frankfurt','Alemania',50.0379,8.5622);
+    insA.run('AMS','Schiphol','Ámsterdam','Países Bajos',52.3105,4.7683);
+    insA.run('FCO','Fiumicino','Roma','Italia',41.8003,12.2389);
+    insA.run('LIS','Humberto Delgado','Lisboa','Portugal',38.7756,-9.1354);
+    insA.run('ZRH','Zúrich','Zúrich','Suiza',47.4647,8.5492);
+    insA.run('MUC','Franz Josef Strauss','Múnich','Alemania',48.3537,11.7861);
+    insA.run('CPH','Kastrup','Copenhague','Dinamarca',55.6180,12.6560);
+    insA.run('VIE','Schwechat','Viena','Austria',48.1103,16.5697);
+    insA.run('BRU','Bruselas','Bruselas','Bélgica',50.9010,4.4844);
+    insA.run('HEL','Helsinki-Vantaa','Helsinki','Finlandia',60.3172,24.9633);
+    // Oriente Medio
+    insA.run('DXB','Dubai International','Dubái','EAU',25.2532,55.3657);
+    insA.run('DOH','Hamad International','Doha','Catar',25.2731,51.6082);
+    insA.run('IST','Istanbul Airport','Estambul','Turquía',41.2753,28.7519);
+    insA.run('AUH','Abu Dhabi International','Abu Dabi','EAU',24.4330,54.6511);
+    insA.run('AMM','Queen Alia','Amán','Jordania',31.7226,35.9932);
+    // África
+    insA.run('JNB','OR Tambo','Johannesburgo','Sudáfrica',-26.1334,28.2424);
+    insA.run('NBO','Jomo Kenyatta','Nairobi','Kenia',-1.3192,36.9275);
+    insA.run('CPT','Cape Town','Ciudad del Cabo','Sudáfrica',-33.9715,18.6021);
+    insA.run('CAI','Cairo International','El Cairo','Egipto',30.1219,31.4056);
+    // Asia
+    insA.run('SIN','Changi','Singapur','Singapur',1.3644,103.9915);
+    insA.run('BKK','Suvarnabhumi','Bangkok','Tailandia',13.6900,100.7501);
+    insA.run('NRT','Narita','Tokio','Japón',35.7720,140.3929);
+    insA.run('HND','Haneda','Tokio (Haneda)','Japón',35.5493,139.7798);
+    insA.run('ICN','Incheon','Seúl','Corea del Sur',37.4602,126.4407);
+    insA.run('HKG','Hong Kong International','Hong Kong','China',22.3080,113.9185);
+    insA.run('KUL','KLIA','Kuala Lumpur','Malasia',2.7456,101.7072);
+    insA.run('CGK','Soekarno-Hatta','Yakarta','Indonesia',-6.1256,106.6559);
+    insA.run('DPS','Ngurah Rai','Bali','Indonesia',-8.7481,115.1669);
+    insA.run('UPG','Sultan Hasanuddin','Makassar','Indonesia',-5.0617,119.5540);
+    insA.run('SOQ','Domine Eduard Osok','Sorong','Indonesia',-0.8936,131.2872);
+    insA.run('MNL','Ninoy Aquino','Manila','Filipinas',14.5086,121.0197);
+    insA.run('PEK','Capital','Pekín','China',40.0799,116.6031);
+    insA.run('PVG','Pudong','Shanghái','China',31.1434,121.8052);
+    insA.run('DEL','Indira Gandhi','Nueva Delhi','India',28.5665,77.1031);
+    insA.run('BOM','Chhatrapati Shivaji','Bombay','India',19.0896,72.8656);
+    // Australia
+    insA.run('SYD','Kingsford Smith','Sídney','Australia',-33.9399,151.1753);
+    insA.run('MEL','Tullamarine','Melbourne','Australia',-37.6690,144.8410);
+    insA.run('BNE','Brisbane Airport','Brisbane','Australia',-27.3842,153.1175);
+    // Destinos de buceo virtuales (sin aeropuerto propio)
+    insA.run('MLO','Isla Malpelo (virtual)','Isla Malpelo','Colombia',3.9881,-81.5965);
+    insA.run('REV','Islas Revillagigedo (virtual)','Islas Revillagigedo','México',18.7944,-110.9756);
+    insA.run('COC','Isla del Coco (virtual)','Isla del Coco','Costa Rica',5.5403,-87.0580);
+    insA.run('RAJ','Raja Ampat (virtual)','Raja Ampat','Indonesia',-0.5025,130.9819);
+  }
 
   // Seed destinations (idempotent)
   const destCount = db.prepare('SELECT COUNT(*) as count FROM destinations').get();

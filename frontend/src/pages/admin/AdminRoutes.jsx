@@ -12,7 +12,7 @@ const BTN = { background: 'linear-gradient(135deg,#00b4d8,#48cae4)', border: 'no
 const BTN_DANGER = { background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }
 const BTN_EDIT = { background: 'rgba(0,180,216,0.12)', border: '1px solid rgba(0,180,216,0.25)', borderRadius: '8px', padding: '5px 10px', color: '#48cae4', cursor: 'pointer', fontSize: '12px', fontWeight: 600, marginRight: '6px' }
 
-const TABS = ['Destinos', 'Orígenes', 'Escalas']
+const TABS = ['Destinos', 'Orígenes']
 
 // ── DESTINATIONS ────────────────────────────────────────────────────────────
 const EMPTY_DEST = { name: '', country: '', icon: '🦈', local_km: '', dive_hours: '6', sort_order: '0' }
@@ -383,7 +383,6 @@ export default function AdminRoutes({ token }) {
 
       {tab === 0 && <DestinosPanel token={token} />}
       {tab === 1 && <OrigenesPanel token={token} />}
-      {tab === 2 && <EscalasPanel  token={token} />}
     </div>
   )
 }

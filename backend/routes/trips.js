@@ -71,6 +71,24 @@ function getFlightFactor(distanceKm) {
   return FLIGHT_FACTORS.long;
 }
 
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function findAirport(q) {
+  if (!q) return null;
+  const s = String(q).trim();
+  return db.prepare(
+    `SELECT iata, city, lat, lng FROM airports
+     WHERE UPPER(iata) = UPPER(?) OR LOWER(city) = LOWER(?) LIMIT 1`
+  ).get(s, s);
+}
+
 function updateUserLevel(userId) {
   const user = db.prepare('SELECT points FROM users WHERE id = ?').get(userId);
   let level = 'Plancton';
@@ -81,14 +99,26 @@ function updateUserLevel(userId) {
   db.prepare('UPDATE users SET level = ? WHERE id = ?').run(level, userId);
 }
 
-// Get available stopovers for a route
-router.get('/stopovers', (req, res) => {
-  const { origin, destination } = req.query;
-  if (!origin || !destination) return res.json([]);
-  const rows = db.prepare(
-    'SELECT stopover_city, dist_origin_stopover, dist_stopover_dest FROM route_stopovers WHERE origin=? AND destination=? ORDER BY stopover_city'
-  ).all(origin, destination);
-  res.json(rows);
+// Airport autocomplete search (public — no auth)
+router.get('/airports', (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 2) return res.json([]);
+  const rows = db.prepare(`
+    SELECT iata, name, city, country, lat, lng,
+      CASE
+        WHEN UPPER(iata) = UPPER(?) THEN 0
+        WHEN LOWER(city) LIKE LOWER(?)  THEN 1
+        WHEN LOWER(name) LIKE LOWER(?)  THEN 2
+        ELSE 3
+      END AS relevance
+    FROM airports
+    WHERE UPPER(iata) = UPPER(?) OR LOWER(city) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?)
+    ORDER BY relevance, city
+    LIMIT 10
+  `).all(q, `${q}%`, `${q}%`, q, `%${q}%`, `%${q}%`);
+  // deduplicate (OR conditions can produce duplicates)
+  const seen = new Set();
+  res.json(rows.filter(r => { if (seen.has(r.iata)) return false; seen.add(r.iata); return true; }));
 });
 
 // Calculate carbon footprint
@@ -98,7 +128,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       origin, destination,
       passengers = 1,
       expedition_id = null,
-      stopover_city = null,
+      route_waypoints = null,   // e.g. ['Bogotá','PTY','UIO','Galápagos']
       // Multi-segment format (new)
       sea_segments: rawSeaSegs,
       land_segments: rawLandSegs,
@@ -120,21 +150,31 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
     const dbRoute = db.prepare('SELECT distancia_km, distancia_local_km FROM emission_routes WHERE origen=? AND destino=?').get(origin, destination);
     const flightDistance = dbRoute?.distancia_km ?? DISTANCES[distanceKey] ?? 2000;
 
-    // CO2 flight (round trip) — with optional stopover
+    // CO2 flight — multi-segment route or direct
     let co2Flight;
-    if (stopover_city && stopover_city !== '_generic') {
-      const sv = db.prepare('SELECT dist_origin_stopover, dist_stopover_dest FROM route_stopovers WHERE origin=? AND destination=? AND stopover_city=?')
-        .get(origin, destination, stopover_city);
-      if (sv) {
-        const d1 = sv.dist_origin_stopover;
-        const d2 = sv.dist_stopover_dest;
-        co2Flight = (d1 * getFlightFactor(d1) + d2 * getFlightFactor(d2)) * 2;
+    let actualFlightDistance = flightDistance;
+
+    if (route_waypoints && Array.isArray(route_waypoints) && route_waypoints.length >= 2) {
+      // Resolve all waypoints to airport coords
+      const resolved = route_waypoints.map(q => findAirport(q));
+      const allFound = resolved.every(a => a !== null);
+
+      if (allFound) {
+        // Sum CO2 per segment (each segment uses its own distance factor)
+        let segCo2 = 0;
+        let segDist = 0;
+        for (let i = 0; i < resolved.length - 1; i++) {
+          const d = haversine(resolved[i].lat, resolved[i].lng, resolved[i + 1].lat, resolved[i + 1].lng);
+          segCo2 += d * getFlightFactor(d);
+          segDist += d;
+        }
+        co2Flight = segCo2 * 2; // round trip
+        actualFlightDistance = Math.round(segDist);
       } else {
-        // Named stopover not found — fall back to 20% extra
-        co2Flight = flightDistance * 2 * getFlightFactor(flightDistance) * 1.2;
+        // Some waypoints not found — fallback: direct + 10% per unresolved stop
+        const misses = resolved.filter(a => a === null).length;
+        co2Flight = flightDistance * 2 * getFlightFactor(flightDistance) * (1 + 0.1 * misses);
       }
-    } else if (stopover_city === '_generic') {
-      co2Flight = flightDistance * 2 * getFlightFactor(flightDistance) * 1.2;
     } else {
       co2Flight = flightDistance * 2 * getFlightFactor(flightDistance);
     }
@@ -229,7 +269,8 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       trip_id: result.lastInsertRowid,
       origin,
       destination,
-      flight_distance_km: flightDistance,
+      flight_distance_km: actualFlightDistance,
+      route_waypoints: route_waypoints || null,
       co2: {
         flight: Math.round(co2Flight * 100) / 100,
         sea: Math.round(co2Sea * 100) / 100,
@@ -243,7 +284,6 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       },
       points_earned: 10,
       expedition_id: validExpeditionId,
-      stopover_city: stopover_city || null,
       mission_completed: missionCompleted,
     });
   } catch (error) {

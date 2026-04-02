@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
@@ -27,7 +27,6 @@ const LAND_OPTIONS = [
   { value: 'none', label: 'Caminando',     Icon: WalkingPersonIcon },
 ]
 
-// Local distances per destination (km, for default land km)
 const LOCAL_DISTANCES = {
   'Galápagos': 25, 'Isla Malpelo': 0, 'Isla del Coco': 0,
   'Islas Revillagigedo': 15, 'Raja Ampat': 30, 'Providencia': 20,
@@ -40,15 +39,12 @@ function formatDate(dateStr) {
   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
 }
 
-/* ── Segment type selector (compact grid) ── */
+/* ── Segment type selector ── */
 function TypeSelector({ options, value, onChange, disabled }) {
   return (
     <div className="grid grid-cols-2 gap-1.5">
       {options.map(opt => (
-        <button
-          key={opt.value}
-          type="button"
-          disabled={disabled}
+        <button key={opt.value} type="button" disabled={disabled}
           onClick={() => onChange(opt.value)}
           className="flex items-center gap-2 p-2.5 rounded-xl text-left transition-all duration-150"
           style={
@@ -57,8 +53,7 @@ function TypeSelector({ options, value, onChange, disabled }) {
               : disabled
               ? { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.25)', cursor: 'not-allowed' }
               : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
-          }
-        >
+          }>
           <opt.Icon size={16} />
           <span className="text-xs font-medium leading-tight">{opt.label}</span>
         </button>
@@ -67,7 +62,7 @@ function TypeSelector({ options, value, onChange, disabled }) {
   )
 }
 
-/* ── Single sea segment row ── */
+/* ── Sea segment row ── */
 function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination }) {
   return (
     <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -87,13 +82,9 @@ function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination
             <span className="text-ocean-cyan font-bold text-sm">{seg.hours}h</span>
           ) : (
             <>
-              <input
-                type="range" min="1" max="48" step="1"
-                value={seg.hours || 6}
+              <input type="range" min="1" max="48" step="1" value={seg.hours || 6}
                 onChange={e => onChange({ ...seg, hours: parseInt(e.target.value) })}
-                className="flex-1"
-                style={{ accentColor: '#00b4d8' }}
-              />
+                className="flex-1" style={{ accentColor: '#00b4d8' }} />
               <span className="text-ocean-cyan font-bold text-sm w-8">{seg.hours || 6}h</span>
             </>
           )}
@@ -108,11 +99,10 @@ function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination
   )
 }
 
-/* ── Single land segment row ── */
+/* ── Land segment row ── */
 function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination }) {
   const defaultKm = LOCAL_DISTANCES[destination] ?? 20
   const displayKm = (seg.km != null && seg.km > 0) ? seg.km : defaultKm
-
   return (
     <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-center justify-between mb-1">
@@ -130,14 +120,11 @@ function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked, destinatio
           {locked ? (
             <span className="text-ocean-cyan font-bold text-sm">{displayKm} km</span>
           ) : (
-            <input
-              type="number" min="1" max="500"
-              value={seg.km ?? ''}
-              placeholder={String(defaultKm)}
+            <input type="number" min="1" max="500"
+              value={seg.km ?? ''} placeholder={String(defaultKm)}
               onChange={e => onChange({ ...seg, km: e.target.value ? parseInt(e.target.value) : null })}
               className="w-20 rounded-xl px-2 py-1 text-sm text-center font-bold text-ocean-cyan"
-              style={{ background: 'rgba(0,180,216,0.08)', border: '1px solid rgba(0,180,216,0.25)', outline: 'none' }}
-            />
+              style={{ background: 'rgba(0,180,216,0.08)', border: '1px solid rgba(0,180,216,0.25)', outline: 'none' }} />
           )}
           {!locked && <span className="text-ocean-foam/40 text-xs">km (por sentido)</span>}
         </div>
@@ -146,23 +133,118 @@ function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked, destinatio
   )
 }
 
+/* ── City autocomplete input ── */
+function CityAutocomplete({ value, onChange, placeholder = 'Ciudad o aeropuerto...', apiBase }) {
+  const [query, setQuery]           = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [open, setOpen]             = useState(false)
+  const ref     = useRef(null)
+  const timerRef = useRef(null)
+
+  // Sync display when value changes externally
+  useEffect(() => {
+    setQuery(value ? `${value.city} (${value.iata})` : '')
+  }, [value?.iata])
+
+  // Outside-click closes dropdown
+  useEffect(() => {
+    function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  function handleChange(e) {
+    const q = e.target.value
+    setQuery(q)
+    onChange(null) // deselect while user types
+    clearTimeout(timerRef.current)
+    if (q.length < 2) { setSuggestions([]); setOpen(false); return }
+    timerRef.current = setTimeout(async () => {
+      try {
+        const r = await axios.get(`${apiBase}/trips/airports?q=${encodeURIComponent(q)}`)
+        setSuggestions(r.data)
+        setOpen(r.data.length > 0)
+      } catch { setSuggestions([]) }
+    }, 200)
+  }
+
+  function select(apt) {
+    setQuery(`${apt.city} (${apt.iata})`)
+    onChange(apt)
+    setSuggestions([])
+    setOpen(false)
+  }
+
+  function clear() {
+    setQuery('')
+    onChange(null)
+    setSuggestions([])
+    setOpen(false)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flex: 1 }}>
+      <div style={{ position: 'relative' }}>
+        <input
+          value={query}
+          onChange={handleChange}
+          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          placeholder={placeholder}
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            background: 'rgba(255,255,255,0.06)',
+            border: `1px solid ${value ? 'rgba(0,180,216,0.4)' : 'rgba(255,255,255,0.12)'}`,
+            borderRadius: '10px',
+            padding: '8px 30px 8px 10px',
+            color: 'white', fontSize: '13px', outline: 'none',
+          }}
+        />
+        {query && (
+          <button type="button" onClick={clear}
+            style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '15px', lineHeight: 1, padding: 0 }}>
+            ×
+          </button>
+        )}
+      </div>
+      {open && suggestions.length > 0 && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+          background: '#1a2332', border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '10px', zIndex: 9999, maxHeight: '200px', overflowY: 'auto',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
+        }}>
+          {suggestions.map(apt => (
+            <button key={apt.iata} type="button" onClick={() => select(apt)}
+              style={{ width: '100%', padding: '9px 12px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <span style={{ color: '#48cae4', fontWeight: 700, fontSize: '12px', minWidth: '32px' }}>{apt.iata}</span>
+              <span style={{ flex: 1, color: 'rgba(255,255,255,0.88)', fontSize: '13px' }}>{apt.city}</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', whiteSpace: 'nowrap' }}>{apt.country}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Main Calculator ── */
 export default function Calculator() {
   const { API, refreshUser, user } = useAuth()
   const navigate = useNavigate()
 
-  const [origin, setOrigin] = useState('')
+  const [origin, setOrigin]           = useState('')
   const [destination, setDestination] = useState('')
-  const [seaSegments, setSeaSegments] = useState([{ type: 'bote_buceo', hours: 6 }])
+  const [routeStops, setRouteStops]   = useState([])   // array of airport objects | null (unresolved)
+  const [seaSegments, setSeaSegments]   = useState([{ type: 'bote_buceo', hours: 6 }])
   const [landSegments, setLandSegments] = useState([{ type: 'van', km: null }])
-  const [passengers, setPassengers] = useState(1)
+  const [passengers, setPassengers]   = useState(1)
   const [expeditions, setExpeditions] = useState([])
   const [selectedExpId, setSelectedExpId] = useState(null)
   const [expeditionLocked, setExpeditionLocked] = useState(false)
-  const [hasLayover, setHasLayover] = useState(false)
-  const [stopovers, setStopovers] = useState([])
-  const [selectedStopover, setSelectedStopover] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
 
   // Pre-select origin from user profile
   useEffect(() => {
@@ -171,19 +253,8 @@ export default function Calculator() {
     }
   }, [user?.origin_city])
 
-  // Fetch stopovers when origin + destination change
-  useEffect(() => {
-    if (!origin || !destination) { setStopovers([]); setSelectedStopover(null); return }
-    axios.get(`${API}/trips/stopovers?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`)
-      .then(r => setStopovers(r.data))
-      .catch(() => setStopovers([]))
-    setSelectedStopover(null)
-  }, [origin, destination])
-
-  // Reset layover when expedition locked
-  useEffect(() => {
-    if (expeditionLocked) { setHasLayover(false); setSelectedStopover(null) }
-  }, [expeditionLocked])
+  // Reset route stops when origin or destination changes
+  useEffect(() => { setRouteStops([]) }, [origin, destination])
 
   // Fetch active expeditions when destination changes
   useEffect(() => {
@@ -207,7 +278,6 @@ export default function Calculator() {
     if (!exp) {
       setSelectedExpId(null)
       setExpeditionLocked(false)
-      // Reset to defaults
       setSeaSegments([{ type: 'bote_buceo', hours: 6 }])
       setLandSegments([{ type: 'van', km: null }])
       setPassengers(1)
@@ -220,57 +290,55 @@ export default function Calculator() {
       if (exp.land_transports) setLandSegments(JSON.parse(exp.land_transports))
       if (exp.fixed_passengers) setPassengers(exp.fixed_passengers)
       setExpeditionLocked(!!hasFixed)
-    } catch {
-      setExpeditionLocked(false)
-    }
+    } catch { setExpeditionLocked(false) }
   }
 
   function toggleExpedition(exp) {
-    if (selectedExpId === exp.id) {
-      selectExpedition(null)
-    } else {
-      selectExpedition(exp)
-    }
+    if (selectedExpId === exp.id) selectExpedition(null)
+    else selectExpedition(exp)
   }
 
-  // Sea segment helpers
+  // Sea helpers
   function updateSeaSeg(i, val) { setSeaSegments(s => s.map((x, idx) => idx === i ? val : x)) }
-  function addSeaSeg() { setSeaSegments(s => [...s, { type: 'bote_buceo', hours: 6 }]) }
-  function removeSeaSeg(i) { setSeaSegments(s => s.filter((_, idx) => idx !== i)) }
+  function addSeaSeg()           { setSeaSegments(s => [...s, { type: 'bote_buceo', hours: 6 }]) }
+  function removeSeaSeg(i)       { setSeaSegments(s => s.filter((_, idx) => idx !== i)) }
 
-  // Land segment helpers
+  // Land helpers
   function updateLandSeg(i, val) { setLandSegments(s => s.map((x, idx) => idx === i ? val : x)) }
-  function addLandSeg() { setLandSegments(s => [...s, { type: 'van', km: null }]) }
-  function removeLandSeg(i) { setLandSegments(s => s.filter((_, idx) => idx !== i)) }
+  function addLandSeg()           { setLandSegments(s => [...s, { type: 'van', km: null }]) }
+  function removeLandSeg(i)       { setLandSegments(s => s.filter((_, idx) => idx !== i)) }
+
+  // Route stop helpers
+  function addStop()          { setRouteStops(s => [...s, null]) }
+  function removeStop(i)      { setRouteStops(s => s.filter((_, j) => j !== i)) }
+  function updateStop(i, apt) { setRouteStops(s => s.map((x, j) => j === i ? apt : x)) }
 
   async function handleCalculate() {
-    if (!origin || !destination) {
-      setError('Selecciona origen y destino')
+    if (!origin || !destination) { setError('Selecciona origen y destino'); return }
+    if (routeStops.some(s => s === null)) {
+      setError('Completa todas las ciudades de escala o elimínalas')
       return
     }
     setError('')
     setLoading(true)
+    const route_waypoints = routeStops.length > 0
+      ? [origin, ...routeStops.map(s => s.iata), destination]
+      : null
     try {
       const res = await axios.post(`${API}/trips/calculate`, {
-        origin,
-        destination,
+        origin, destination,
         sea_segments: seaSegments,
         land_segments: landSegments,
         passengers,
         expedition_id: selectedExpId,
-        stopover_city: hasLayover ? (selectedStopover || '_generic') : null,
+        route_waypoints,
       })
       refreshUser()
       navigate('/results', { state: { result: res.data, origin, destination } })
     } catch (err) {
-      if (err.response?.status === 429) {
-        setError(err.response.data.error)
-      } else {
-        setError(err.response?.data?.error || 'Error calculando')
-      }
-    } finally {
-      setLoading(false)
-    }
+      if (err.response?.status === 429) setError(err.response.data.error)
+      else setError(err.response?.data?.error || 'Error calculando')
+    } finally { setLoading(false) }
   }
 
   const selectedExp = expeditions.find(e => e.id === selectedExpId)
@@ -301,8 +369,7 @@ export default function Calculator() {
                   origin === o
                     ? { background: 'linear-gradient(135deg,rgba(0,180,216,0.3),rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
                     : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
-                }
-              >{o}</button>
+                }>{o}</button>
             ))}
           </div>
         </div>
@@ -324,69 +391,77 @@ export default function Calculator() {
                     : expeditionLocked
                     ? { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.2)', cursor: 'not-allowed' }
                     : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
-                }
-              >{dest}</button>
+                }>{dest}</button>
             ))}
           </div>
         </div>
 
-        {/* Layover toggle */}
-        {origin && destination && !expeditionLocked && (
+        {/* ── Route builder ── */}
+        {origin && destination && (
           <div className="card animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
-                  <PlaneIcon size={15} /> Vuelo con escala
-                </p>
-                <p className="text-xs text-ocean-foam/40 mt-0.5">¿Tu vuelo hace una parada?</p>
+            <p className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-4 flex items-center gap-1.5">
+              <PlaneIcon size={12} /> Ruta de vuelo
+            </p>
+
+            {/* Origin node */}
+            <div className="flex items-center gap-2.5">
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00b4d8', border: '2px solid #48cae4', flexShrink: 0 }} />
+              <span className="text-sm font-bold text-ocean-cyan">{origin}</span>
+            </div>
+
+            {/* Stops */}
+            {routeStops.map((stop, i) => (
+              <div key={i}>
+                {/* connector */}
+                <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+                <div className="flex items-center gap-2">
+                  {/* dot */}
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, background: stop ? 'rgba(251,191,36,0.25)' : 'transparent', border: `2px solid ${stop ? '#fbbf24' : 'rgba(255,255,255,0.2)'}` }} />
+                  <CityAutocomplete
+                    apiBase={API}
+                    value={stop}
+                    onChange={apt => updateStop(i, apt)}
+                    placeholder="Ciudad de escala..."
+                  />
+                  <button type="button" onClick={() => removeStop(i)}
+                    style={{ flexShrink: 0, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '7px', padding: '5px 9px', color: '#f87171', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>
+                    ×
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => { setHasLayover(h => !h); setSelectedStopover(null) }}
-                style={{
-                  width: '42px', height: '24px', borderRadius: '12px', border: 'none',
-                  cursor: 'pointer', position: 'relative', flexShrink: 0,
-                  background: hasLayover ? '#00b4d8' : 'rgba(255,255,255,0.12)',
-                  transition: 'background 0.2s',
-                }}
-              >
-                <span style={{
-                  position: 'absolute', top: '4px', width: '16px', height: '16px',
-                  borderRadius: '50%', background: 'white', transition: 'left 0.2s',
-                  left: hasLayover ? '22px' : '4px',
-                }} />
+            ))}
+
+            {/* Add stop */}
+            <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+            <div className="flex items-center gap-2 mb-0.5">
+              <div style={{ width: 12, flexShrink: 0 }} />
+              <button type="button" onClick={addStop}
+                style={{ background: 'rgba(0,180,216,0.06)', border: '1px dashed rgba(0,180,216,0.25)', borderRadius: '8px', padding: '5px 14px', color: 'rgba(0,180,216,0.65)', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                + Agregar escala
               </button>
             </div>
 
-            {hasLayover && (
-              <div style={{ marginTop: '12px' }}>
-                {stopovers.length > 0 ? (
-                  <>
-                    <p className="text-xs text-ocean-foam/50 mb-2 font-semibold uppercase tracking-wider">Ciudad de escala:</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {stopovers.map(s => (
-                        <button key={s.stopover_city} type="button"
-                          onClick={() => setSelectedStopover(prev => prev === s.stopover_city ? null : s.stopover_city)}
-                          className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150 text-left"
-                          style={selectedStopover === s.stopover_city
-                            ? { background: 'rgba(0,180,216,0.2)', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
-                            : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }
-                          }>
-                          <span className="block font-semibold">{s.stopover_city}</span>
-                          <span className="text-[10px] opacity-60">{s.dist_origin_stopover.toLocaleString()} + {s.dist_stopover_dest.toLocaleString()} km</span>
-                        </button>
-                      ))}
-                    </div>
-                    {!selectedStopover && (
-                      <p className="text-xs text-ocean-foam/35 mt-2">Sin ciudad seleccionada: se aplicará un 20% adicional al cálculo.</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-xs text-ocean-foam/40 leading-relaxed">
-                    No hay escalas registradas para esta ruta. Se aplicará un <strong className="text-ocean-foam/60">20% adicional</strong> al CO₂ de vuelo.
-                  </p>
-                )}
-              </div>
+            {/* Connector to destination */}
+            <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+
+            {/* Destination node */}
+            <div className="flex items-center gap-2.5">
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(167,139,250,0.3)', border: '2px solid #a78bfa', flexShrink: 0 }} />
+              <span className="text-sm font-bold" style={{ color: '#c4b5fd' }}>{destination}</span>
+              {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)' }} />}
+            </div>
+
+            {/* Summary */}
+            {routeStops.length > 0 && (
+              <p className="text-xs mt-3 pl-5" style={{ color: routeStops.some(s => !s) ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>
+                {routeStops.some(s => !s)
+                  ? '⚠ Completa o elimina las escalas vacías'
+                  : `${routeStops.length} escala${routeStops.length > 1 ? 's' : ''} · distancias calculadas por segmento`
+                }
+              </p>
+            )}
+            {routeStops.length === 0 && (
+              <p className="text-[11px] mt-3 pl-5 text-ocean-foam/25">Vuelo directo — agrega escalas si tu ruta las tiene</p>
             )}
           </div>
         )}
@@ -404,44 +479,28 @@ export default function Calculator() {
                   <button key={exp.id} type="button"
                     onClick={() => toggleExpedition(exp)}
                     className="w-full text-left rounded-2xl p-3 transition-all duration-150"
-                    style={
-                      isSelected
-                        ? { background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.45)' }
-                        : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }
-                    }
-                  >
+                    style={isSelected
+                      ? { background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.45)' }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }
+                    }>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span style={{ color: isSelected ? '#a78bfa' : 'rgba(255,255,255,0.5)' }}>
-                            <TrophyIcon size={14} />
-                          </span>
-                          <p className="text-sm font-bold" style={{ color: isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.8)' }}>
-                            {exp.name}
-                          </p>
+                          <span style={{ color: isSelected ? '#a78bfa' : 'rgba(255,255,255,0.5)' }}><TrophyIcon size={14} /></span>
+                          <p className="text-sm font-bold" style={{ color: isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.8)' }}>{exp.name}</p>
                         </div>
                         <p className="text-[11px] text-ocean-foam/40 mt-0.5 ml-5">
                           {formatDate(exp.start_date)} – {formatDate(exp.end_date)} · {exp.member_count} miembro{exp.member_count !== 1 ? 's' : ''}
                         </p>
                         {exp.prize_description && (
-                          <p className="text-[11px] ml-5 mt-0.5" style={{ color: 'rgba(253,230,138,0.6)' }}>
-                            🏆 {exp.prize_description}
-                          </p>
+                          <p className="text-[11px] ml-5 mt-0.5" style={{ color: 'rgba(253,230,138,0.6)' }}>🏆 {exp.prize_description}</p>
                         )}
                         {isSelected && exp.sea_transports && (
-                          <p className="text-[10px] ml-5 mt-1" style={{ color: 'rgba(167,139,250,0.6)' }}>
-                            🔒 Parámetros de transporte definidos por Diving Life
-                          </p>
+                          <p className="text-[10px] ml-5 mt-1" style={{ color: 'rgba(167,139,250,0.6)' }}>🔒 Parámetros de transporte definidos por Diving Life</p>
                         )}
                       </div>
-                      <div
-                        className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
-                        style={
-                          isSelected
-                            ? { background: '#a78bfa', border: '2px solid #a78bfa' }
-                            : { background: 'transparent', border: '2px solid rgba(255,255,255,0.2)' }
-                        }
-                      >
+                      <div className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
+                        style={isSelected ? { background: '#a78bfa', border: '2px solid #a78bfa' } : { background: 'transparent', border: '2px solid rgba(255,255,255,0.2)' }}>
                         {isSelected && <span className="text-[10px] text-white font-black">✓</span>}
                       </div>
                     </div>
@@ -458,14 +517,15 @@ export default function Calculator() {
           </div>
         )}
 
-        {/* Expedition lockdown banner */}
+        {/* Expedition lock banner */}
         {expeditionLocked && selectedExp && (
           <div className="rounded-2xl px-4 py-3 animate-fade-in"
             style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.25)' }}>
             <div className="flex items-start gap-2.5">
               <LockIcon size={15} style={{ color: '#a78bfa', flexShrink: 0, marginTop: '1px' }} />
               <p className="text-xs leading-relaxed" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                Los parámetros de transporte están definidos por <strong style={{ color: '#c4b5fd' }}>Diving Life</strong> para esta expedición, garantizando una medición estandarizada para todos los participantes.
+                Los parámetros de transporte están definidos por <strong style={{ color: '#c4b5fd' }}>Diving Life</strong> para esta expedición.
+                Tu ruta de vuelo personal es libre.
               </p>
             </div>
           </div>
@@ -479,15 +539,11 @@ export default function Calculator() {
           </label>
           <div className="space-y-2">
             {seaSegments.map((seg, i) => (
-              <SeaSegmentRow
-                key={i}
-                seg={seg}
+              <SeaSegmentRow key={i} seg={seg}
                 onChange={val => updateSeaSeg(i, val)}
                 onRemove={() => removeSeaSeg(i)}
                 canRemove={seaSegments.length > 1}
-                locked={expeditionLocked}
-                destination={destination}
-              />
+                locked={expeditionLocked} destination={destination} />
             ))}
           </div>
           {!expeditionLocked && seaSegments.length < 3 && (
@@ -507,15 +563,11 @@ export default function Calculator() {
           </label>
           <div className="space-y-2">
             {landSegments.map((seg, i) => (
-              <LandSegmentRow
-                key={i}
-                seg={seg}
+              <LandSegmentRow key={i} seg={seg}
                 onChange={val => updateLandSeg(i, val)}
                 onRemove={() => removeLandSeg(i)}
                 canRemove={landSegments.length > 1}
-                locked={expeditionLocked}
-                destination={destination}
-              />
+                locked={expeditionLocked} destination={destination} />
             ))}
           </div>
           {!expeditionLocked && landSegments.length < 3 && (
@@ -540,13 +592,11 @@ export default function Calculator() {
               <span className="text-ocean-cyan font-black text-xl">{passengers}</span>
             ) : (
               <div className="flex items-center gap-3">
-                <button type="button"
-                  onClick={() => setPassengers(p => Math.max(1, p - 1))}
+                <button type="button" onClick={() => setPassengers(p => Math.max(1, p - 1))}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
                   style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}>−</button>
                 <span className="text-xl font-bold text-ocean-cyan w-6 text-center">{passengers}</span>
-                <button type="button"
-                  onClick={() => setPassengers(p => Math.min(20, p + 1))}
+                <button type="button" onClick={() => setPassengers(p => Math.min(20, p + 1))}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold"
                   style={{ background: 'rgba(0,180,216,0.15)', color: '#00b4d8' }}>+</button>
               </div>
