@@ -365,14 +365,13 @@ function SocialCardExport({ selected, units, user, result, cardRef }) {
 }
 
 /* ─────────────────────────────────────────────
-   RECEIPT CARD EXPORT — 800×1200, fixed px, no flexbox
-   Uses floats for side-by-side rows so html2canvas renders correctly
+   RECEIPT CARD EXPORT — 600×900px, table rows for pixel-perfect alignment
 ───────────────────────────────────────────── */
 function ReceiptCardExport({ selected, units, user, result, cardRef }) {
-  const co2   = result?.co2_compensated ?? selected.co2_per_unit * units
-  const cost  = selected.cost_per_unit * units
-  const pts   = result?.points_earned ?? selected.points_per_unit * units
-  const txId  = result?.id ? `OP-${String(result.id).padStart(6, '0')}` : 'OP-000000'
+  const co2     = result?.co2_compensated ?? selected.co2_per_unit * units
+  const cost    = selected.cost_per_unit * units
+  const pts     = result?.points_earned ?? selected.points_per_unit * units
+  const txId    = result?.id ? `OP-${String(result.id).padStart(6, '0')}` : 'OP-000000'
   const dateStr = new Date().toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' })
 
   const rows = [
@@ -386,84 +385,92 @@ function ReceiptCardExport({ selected, units, user, result, cardRef }) {
 
   return (
     <div ref={cardRef} style={{
-      width:'800px', height:'1200px',
+      width:'600px', height:'900px',
       background:'linear-gradient(160deg,#020c1b 0%,#0a1628 50%,#0d3357 100%)',
       fontFamily:"'Inter',system-ui,sans-serif",
       position:'relative', overflow:'hidden',
-      boxSizing:'border-box', padding:'64px 60px',
+      boxSizing:'border-box', padding:'40px',
     }}>
       {/* Glow */}
-      <div style={{ position:'absolute', width:'440px', height:'440px', borderRadius:'50%',
+      <div style={{ position:'absolute', width:'300px', height:'300px', borderRadius:'50%',
         background:'radial-gradient(circle,rgba(74,222,128,0.06) 0%,transparent 70%)',
-        top:'-80px', right:'-60px', pointerEvents:'none' }} />
+        top:'-60px', right:'-40px', pointerEvents:'none' }} />
 
       {/* Brand + title */}
-      <div style={{ textAlign:'center', marginBottom:'44px' }}>
-        <div style={{ fontSize:'26px', letterSpacing:'10px', color:'rgba(0,180,216,0.55)',
-          fontWeight:'800', textTransform:'uppercase', marginBottom:'12px' }}>OCEAN PRINT</div>
-        <div style={{ fontSize:'38px', fontWeight:'900', color:'#ffffff', marginBottom:'8px',
-          textAlign:'center' }}>
+      <div style={{ textAlign:'center', marginBottom:'26px' }}>
+        <div style={{ fontSize:'18px', letterSpacing:'8px', color:'rgba(0,180,216,0.55)',
+          fontWeight:'800', textTransform:'uppercase', marginBottom:'8px' }}>OCEAN PRINT</div>
+        <div style={{ fontSize:'26px', fontWeight:'900', color:'#ffffff', marginBottom:'5px' }}>
           Comprobante de Compensación
         </div>
-        <div style={{ fontSize:'18px', color:'rgba(144,224,239,0.3)', letterSpacing:'5px',
-          textTransform:'uppercase', textAlign:'center' }}>
-          by Diving Life
-        </div>
+        <div style={{ fontSize:'12px', color:'rgba(144,224,239,0.3)', letterSpacing:'4px',
+          textTransform:'uppercase' }}>by Diving Life</div>
       </div>
 
-      {/* TX ID + date — floats for left/right alignment */}
-      <div style={{ marginBottom:'36px', padding:'22px 28px', borderRadius:'18px',
+      {/* TX ID + date — floats inside fixed-height row */}
+      <div style={{ marginBottom:'20px', padding:'14px 18px', borderRadius:'12px',
         background:'rgba(0,180,216,0.07)', border:'1px solid rgba(0,180,216,0.2)',
         overflow:'hidden' }}>
         <div style={{ float:'left' }}>
-          <div style={{ fontSize:'16px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase',
-            letterSpacing:'2px', marginBottom:'8px' }}>ID Transacción</div>
-          <div style={{ fontSize:'28px', fontWeight:'700', color:'#48cae4',
-            fontFamily:'monospace' }}>{txId}</div>
+          <div style={{ fontSize:'10px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase',
+            letterSpacing:'1.5px', marginBottom:'4px' }}>ID Transacción</div>
+          <div style={{ fontSize:'20px', fontWeight:'700', color:'#48cae4',
+            fontFamily:'monospace', lineHeight:'1' }}>{txId}</div>
         </div>
         <div style={{ float:'right', textAlign:'right' }}>
-          <div style={{ fontSize:'16px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase',
-            letterSpacing:'2px', marginBottom:'8px' }}>Fecha</div>
-          <div style={{ fontSize:'20px', fontWeight:'600',
-            color:'rgba(255,255,255,0.7)' }}>{dateStr}</div>
+          <div style={{ fontSize:'10px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase',
+            letterSpacing:'1.5px', marginBottom:'4px' }}>Fecha</div>
+          <div style={{ fontSize:'13px', fontWeight:'600', color:'rgba(255,255,255,0.7)',
+            lineHeight:'1' }}>{dateStr}</div>
         </div>
         <div style={{ clear:'both' }} />
       </div>
 
-      {/* Detail rows — floats */}
-      {rows.map(({ label, value, color }) => (
-        <div key={label} style={{ padding:'18px 0',
-          borderBottom:'1px solid rgba(255,255,255,0.05)', overflow:'hidden' }}>
-          <span style={{ float:'left', fontSize:'22px',
-            color:'rgba(144,224,239,0.45)' }}>{label}</span>
-          <span style={{ float:'right', fontSize:'24px', fontWeight:'700',
-            color: color || 'rgba(255,255,255,0.85)' }}>{value}</span>
-          <div style={{ clear:'both' }} />
-        </div>
-      ))}
+      {/* Detail rows — <table> guarantees column alignment */}
+      <table style={{ width:'100%', borderCollapse:'collapse', marginBottom:'20px' }}>
+        <tbody>
+          {rows.map(({ label, value, color }) => (
+            <tr key={label}>
+              <td style={{
+                padding:'10px 0', fontSize:'13px', color:'rgba(144,224,239,0.5)',
+                borderBottom:'1px solid rgba(255,255,255,0.05)',
+                verticalAlign:'middle', width:'50%',
+              }}>{label}</td>
+              <td style={{
+                padding:'10px 0', fontSize:'14px', fontWeight:'700',
+                color: color || 'rgba(255,255,255,0.85)',
+                borderBottom:'1px solid rgba(255,255,255,0.05)',
+                verticalAlign:'middle', textAlign:'right',
+              }}>{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-      {/* User block */}
-      <div style={{ textAlign:'center', marginTop:'44px', padding:'28px 32px',
-        borderRadius:'20px', background:'rgba(0,180,216,0.06)',
-        border:'1px solid rgba(0,180,216,0.15)' }}>
-        <div style={{ fontSize:'30px', fontWeight:'700', color:'#ffffff',
-          marginBottom:'10px', textAlign:'center' }}>
+      {/* User block — centered */}
+      <div style={{
+        textAlign:'center', padding:'16px 20px', marginBottom:'16px',
+        borderRadius:'14px', background:'rgba(0,180,216,0.06)',
+        border:'1px solid rgba(0,180,216,0.15)',
+      }}>
+        <div style={{ fontSize:'17px', fontWeight:'700', color:'#ffffff', marginBottom:'5px' }}>
           {user?.name || 'Guardián del Océano'}
         </div>
-        <div style={{ fontSize:'24px', color:'#48cae4',
-          textAlign:'center' }}>{user?.level || 'Plancton'}</div>
+        <div style={{ fontSize:'13px', color:'#48cae4' }}>{user?.level || 'Plancton'}</div>
       </div>
 
-      {/* Verification badge */}
-      <div style={{ marginTop:'36px', textAlign:'center' }}>
-        <div style={{ display:'inline-block', padding:'14px 36px', borderRadius:'50px',
-          background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.3)' }}>
-          <span style={{ fontSize:'24px', marginRight:'10px' }}>✓</span>
-          <span style={{ fontSize:'20px', fontWeight:'700', color:'#4ade80',
-            letterSpacing:'2px', textTransform:'uppercase' }}>Verificado · OceanPrint</span>
+      {/* Verification badge + footer */}
+      <div style={{ textAlign:'center', paddingBottom:'8px' }}>
+        <div style={{
+          display:'inline-block', padding:'9px 22px', borderRadius:'40px', marginBottom:'14px',
+          background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.3)',
+        }}>
+          <span style={{ fontSize:'13px', marginRight:'5px' }}>✓</span>
+          <span style={{ fontSize:'12px', fontWeight:'700', color:'#4ade80',
+            letterSpacing:'1.5px', textTransform:'uppercase' }}>Verificado · OceanPrint</span>
         </div>
-        <div style={{ fontSize:'16px', color:'rgba(144,224,239,0.2)', marginTop:'18px',
-          letterSpacing:'4px', textTransform:'uppercase', textAlign:'center' }}>
+        <div style={{ fontSize:'11px', color:'rgba(144,224,239,0.2)', letterSpacing:'3px',
+          textTransform:'uppercase' }}>
           oceanprint.co · divinglife.co
         </div>
       </div>
@@ -542,9 +549,9 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
       const canvas = await html2canvas(receiptExportRef.current, {
         backgroundColor: '#020c1b',
         useCORS: true,
-        scale: 1,
-        width: 800,
-        height: 1200,
+        scale: 2,
+        width: 600,
+        height: 900,
         scrollX: 0,
         scrollY: 0,
         logging: false,
@@ -559,7 +566,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   }
 
   async function downloadCard() {
-    if (!socialCardRef.current || shareLoading) return
+    if (!socialExportRef.current || shareLoading) return
     setShareLoading('dl')
     try {
       const canvas = await getCanvas()
@@ -574,7 +581,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   }
 
   async function copyToClipboard() {
-    if (!socialCardRef.current || shareLoading) return
+    if (!socialExportRef.current || shareLoading) return
     setShareLoading('copy')
     try {
       const canvas = await getCanvas()
@@ -598,7 +605,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   }
 
   async function shareWhatsApp() {
-    if (!socialCardRef.current || shareLoading) return
+    if (!socialExportRef.current || shareLoading) return
     setShareLoading('wa')
     const co2n = result?.co2_compensated ?? co2
     const pct  = result?.compensation_pct ?? 0
@@ -645,7 +652,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   }
 
   async function shareInstagram() {
-    if (!socialCardRef.current || shareLoading) return
+    if (!socialExportRef.current || shareLoading) return
     setShareLoading('ig')
     try {
       const canvas = await getCanvas()
