@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import axios from 'axios'
 import { Download } from 'lucide-react'
@@ -51,431 +51,276 @@ function getActionText(selected, units) {
 }
 
 /* ─────────────────────────────────────────────
-   SOCIAL CARD (captured by html2canvas)
+   CANVAS 2D HELPERS & GENERATORS
 ───────────────────────────────────────────── */
-function SocialCard({ selected, units, user, result, cardRef }) {
-  const co2 = result?.co2_compensated ?? selected.co2_per_unit * units
-  const pct = result?.compensation_pct ?? 0
-  const style = OPTION_DETAILS[selected.id] || OPTION_DETAILS.corales
-
-  return (
-    <div ref={cardRef} style={{
-      width: '360px', height: '640px',
-      background: 'linear-gradient(160deg,#020c1b 0%,#0a1628 45%,#0d3357 100%)',
-      fontFamily: "'Inter',system-ui,sans-serif",
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      padding: '36px 28px 28px',
-      boxSizing: 'border-box',
-    }}>
-      {/* Decorative glow blobs */}
-      <div style={{ position:'absolute', width:'320px', height:'320px', borderRadius:'50%',
-        background:'radial-gradient(circle,rgba(0,180,216,0.07) 0%,transparent 70%)',
-        top:'-100px', left:'-80px', pointerEvents:'none' }} />
-      <div style={{ position:'absolute', width:'220px', height:'220px', borderRadius:'50%',
-        background:`radial-gradient(circle,${style.glow} 0%,transparent 70%)`,
-        bottom:'100px', right:'-50px', pointerEvents:'none' }} />
-
-      {/* Brand */}
-      <div style={{ textAlign:'center', marginBottom:'20px' }}>
-        <div style={{ fontSize:'10px', letterSpacing:'4px', color:'rgba(0,180,216,0.55)',
-          fontWeight:'800', textTransform:'uppercase', marginBottom:'3px' }}>OCEAN PRINT</div>
-        <div style={{ fontSize:'8px', color:'rgba(144,224,239,0.25)', letterSpacing:'3px',
-          textTransform:'uppercase' }}>by Diving Life</div>
-      </div>
-
-      <div style={{ width:'32px', height:'1px', background:'rgba(0,180,216,0.25)', marginBottom:'26px' }} />
-
-      {/* Hero icon */}
-      <div style={{ marginBottom:'18px', textAlign:'center', lineHeight:'1', color: style.accent }}>
-        <OptionIcon id={selected.id} size={80} color={style.accent} />
-      </div>
-
-      {/* Action */}
-      <div style={{ textAlign:'center', marginBottom:'22px' }}>
-        <p style={{ fontSize:'21px', fontWeight:'900', color:'#ffffff', lineHeight:'1.2', margin:'0 0 8px' }}>
-          {getActionText(selected, units)}
-        </p>
-        <p style={{ fontSize:'11px', color:'rgba(144,224,239,0.45)', fontWeight:'500', margin:0 }}>
-          con {selected.organization}
-        </p>
-      </div>
-
-      {/* CO2 badge */}
-      <div style={{
-        background:'rgba(0,180,216,0.1)', border:'1px solid rgba(0,180,216,0.28)',
-        borderRadius:'18px', padding:'12px 28px', textAlign:'center', marginBottom:'26px',
-      }}>
-        <div style={{ fontSize:'38px', fontWeight:'900', color:'#00b4d8', lineHeight:'1' }}>
-          -{co2} kg
-        </div>
-        <div style={{ fontSize:'10px', color:'rgba(144,224,239,0.45)', marginTop:'4px',
-          letterSpacing:'1.5px', textTransform:'uppercase' }}>CO₂ compensado</div>
-      </div>
-
-      {/* User */}
-      <div style={{ textAlign:'center', marginBottom:'20px' }}>
-        <div style={{ fontSize:'15px', fontWeight:'700', color:'#ffffff', marginBottom:'6px' }}>
-          {user?.name || 'Guardián del Océano'}
-        </div>
-        <div style={{
-          display:'inline-block', background:'rgba(0,180,216,0.12)',
-          border:'1px solid rgba(0,180,216,0.28)', borderRadius:'20px',
-          padding:'3px 14px', fontSize:'11px', color:'#48cae4', fontWeight:'600',
-        }}>
-          <LevelIcon level={user?.level || 'Plancton'} size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-          {user?.level || 'Guardián'}
-        </div>
-        {pct > 0 && (
-          <div style={{ fontSize:'10px', color:'rgba(74,222,128,0.65)', marginTop:'7px' }}>
-            {pct}% de huella compensada
-          </div>
-        )}
-        {user?.instagram && (
-          <div style={{ fontSize:'10px', color:'rgba(225,48,108,0.55)', marginTop:'5px', letterSpacing:'0.5px' }}>
-            @{user.instagram}
-          </div>
-        )}
-      </div>
-
-      {/* Quote + footer — pinned to bottom via absolute positioning */}
-      <div style={{ position:'absolute', bottom:'28px', left:'28px', right:'28px', textAlign:'center' }}>
-        <p style={{ fontSize:'11px', color:'rgba(144,224,239,0.35)', fontStyle:'italic',
-          lineHeight:'1.55', margin:'0 0 12px', padding:'0 8px' }}>
-          "{QUOTES[selected.id]}"
-        </p>
-        <div style={{ width:'32px', height:'1px', background:'rgba(0,180,216,0.18)', margin:'0 auto 10px' }} />
-        <div style={{ fontSize:'8px', color:'rgba(144,224,239,0.2)', letterSpacing:'2px', textTransform:'uppercase' }}>
-          oceanprint.co · divinglife.co
-        </div>
-      </div>
-    </div>
-  )
+function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ')
+  const lines = []
+  let line = ''
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line); line = word
+    } else { line = test }
+  }
+  if (line) lines.push(line)
+  return lines
 }
 
-/* ─────────────────────────────────────────────
-   RECEIPT CARD (captured by html2canvas)
-───────────────────────────────────────────── */
-function ReceiptCard({ selected, units, user, result, cardRef }) {
-  const co2 = result?.co2_compensated ?? selected.co2_per_unit * units
-  const cost = selected.cost_per_unit * units
-  const pts = result?.points_earned ?? selected.points_per_unit * units
-  const txId = result?.id ? `OP-${String(result.id).padStart(6, '0')}` : 'OP-000000'
-  const dateStr = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
-
-  return (
-    <div ref={cardRef} style={{
-      width: '360px', minHeight: '520px',
-      background: 'linear-gradient(160deg,#020c1b 0%,#0a1628 50%,#0d3357 100%)',
-      fontFamily: "'Inter',system-ui,sans-serif",
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', flexDirection: 'column',
-      padding: '32px 28px',
-      boxSizing: 'border-box',
-    }}>
-      {/* Glow */}
-      <div style={{ position:'absolute', width:'260px', height:'260px', borderRadius:'50%',
-        background:'radial-gradient(circle,rgba(74,222,128,0.06) 0%,transparent 70%)',
-        top:'-80px', right:'-60px', pointerEvents:'none' }} />
-
-      {/* Brand + title */}
-      <div style={{ textAlign:'center', marginBottom:'24px' }}>
-        <div style={{ fontSize:'10px', letterSpacing:'4px', color:'rgba(0,180,216,0.55)',
-          fontWeight:'800', textTransform:'uppercase', marginBottom:'4px' }}>OCEAN PRINT</div>
-        <div style={{ fontSize:'16px', fontWeight:'900', color:'#ffffff', marginBottom:'2px' }}>
-          Comprobante de Compensación
-        </div>
-        <div style={{ fontSize:'9px', color:'rgba(144,224,239,0.3)', letterSpacing:'2px', textTransform:'uppercase' }}>
-          by Diving Life
-        </div>
-      </div>
-
-      {/* TX ID + date */}
-      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'20px',
-        padding:'10px 14px', borderRadius:'12px',
-        background:'rgba(0,180,216,0.07)', border:'1px solid rgba(0,180,216,0.2)' }}>
-        <div>
-          <div style={{ fontSize:'9px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'3px' }}>ID Transacción</div>
-          <div style={{ fontSize:'13px', fontWeight:'700', color:'#48cae4', fontFamily:'monospace' }}>{txId}</div>
-        </div>
-        <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:'9px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase', letterSpacing:'1px', marginBottom:'3px' }}>Fecha</div>
-          <div style={{ fontSize:'11px', fontWeight:'600', color:'rgba(255,255,255,0.7)' }}>{dateStr}</div>
-        </div>
-      </div>
-
-      {/* Details rows */}
-      {[
-        { label: 'Opción',        value: selected.name },
-        { label: 'Organización',  value: selected.organization },
-        { label: 'Unidades',      value: `${units} ${selected.unit}(s)` },
-        { label: 'CO₂ compensado',value: `-${co2} kg CO₂`, color: '#4ade80' },
-        { label: 'Valor pagado',  value: formatCOP(cost), color: cost === 0 ? '#4ade80' : '#fbbf24' },
-        { label: 'Puntos ganados',value: `+${pts} pts`, color: '#a78bfa' },
-      ].map(({ label, value, color }) => (
-        <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-          padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-          <span style={{ fontSize:'11px', color:'rgba(144,224,239,0.45)' }}>{label}</span>
-          <span style={{ fontSize:'12px', fontWeight:'700', color: color || 'rgba(255,255,255,0.85)' }}>{value}</span>
-        </div>
-      ))}
-
-      {/* User */}
-      <div style={{ textAlign:'center', marginTop:'20px', padding:'14px',
-        borderRadius:'14px', background:'rgba(0,180,216,0.06)', border:'1px solid rgba(0,180,216,0.15)' }}>
-        <div style={{ fontSize:'13px', fontWeight:'700', color:'#ffffff', marginBottom:'3px' }}>
-          {user?.name || 'Guardián del Océano'}
-        </div>
-        <div style={{ fontSize:'11px', color:'#48cae4' }}>{user?.level || 'Plancton'}</div>
-      </div>
-
-      {/* Verification badge */}
-      <div style={{ marginTop:'16px', textAlign:'center' }}>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:'6px',
-          padding:'6px 16px', borderRadius:'20px',
-          background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.3)' }}>
-          <span style={{ fontSize:'12px' }}>✓</span>
-          <span style={{ fontSize:'10px', fontWeight:'700', color:'#4ade80', letterSpacing:'1px', textTransform:'uppercase' }}>Verificado · OceanPrint</span>
-        </div>
-        <div style={{ fontSize:'8px', color:'rgba(144,224,239,0.2)', marginTop:'8px', letterSpacing:'2px', textTransform:'uppercase' }}>
-          oceanprint.co · divinglife.co
-        </div>
-      </div>
-    </div>
-  )
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y,     x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x,     y + h, r)
+  ctx.arcTo(x,     y + h, x,     y,     r)
+  ctx.arcTo(x,     y,     x + w, y,     r)
+  ctx.closePath()
 }
 
-/* ─────────────────────────────────────────────
-   SOCIAL CARD EXPORT — 1080×1920, absolute positioning, no flexbox
-   Captured by html2canvas at scale:1 → exact story dimensions
-───────────────────────────────────────────── */
-function SocialCardExport({ selected, units, user, result, cardRef }) {
-  const co2  = result?.co2_compensated ?? selected.co2_per_unit * units
-  const pct  = result?.compensation_pct ?? 0
-  const st   = OPTION_DETAILS[selected.id] || OPTION_DETAILS.corales
-
-  return (
-    <div ref={cardRef} style={{
-      width: '1080px', height: '1920px',
-      background: 'linear-gradient(160deg,#020c1b 0%,#0a1628 45%,#0d3357 100%)',
-      fontFamily: "'Inter',system-ui,sans-serif",
-      position: 'relative', overflow: 'hidden',
-      boxSizing: 'border-box',
-    }}>
-      {/* Glow blobs */}
-      <div style={{ position:'absolute', width:'700px', height:'700px', borderRadius:'50%',
-        background:'radial-gradient(circle,rgba(0,180,216,0.07) 0%,transparent 70%)',
-        top:'-160px', left:'-140px', pointerEvents:'none' }} />
-      <div style={{ position:'absolute', width:'540px', height:'540px', borderRadius:'50%',
-        background:`radial-gradient(circle,${st.glow} 0%,transparent 70%)`,
-        bottom:'260px', right:'-100px', pointerEvents:'none' }} />
-
-      {/* Brand */}
-      <div style={{ position:'absolute', top:'108px', left:'0', right:'0', textAlign:'center' }}>
-        <div style={{ fontSize:'30px', letterSpacing:'12px', color:'rgba(0,180,216,0.55)',
-          fontWeight:'800', textTransform:'uppercase', marginBottom:'14px' }}>OCEAN PRINT</div>
-        <div style={{ fontSize:'22px', color:'rgba(144,224,239,0.25)', letterSpacing:'8px',
-          textTransform:'uppercase' }}>by Diving Life</div>
-      </div>
-
-      {/* Divider */}
-      <div style={{ position:'absolute', top:'248px', left:'50%', marginLeft:'-48px',
-        width:'96px', height:'2px', background:'rgba(0,180,216,0.25)' }} />
-
-      {/* Icon */}
-      <div style={{ position:'absolute', top:'292px', left:'0', right:'0', textAlign:'center',
-        color: st.accent }}>
-        <OptionIcon id={selected.id} size={220} color={st.accent} />
-      </div>
-
-      {/* Action text */}
-      <div style={{ position:'absolute', top:'580px', left:'80px', right:'80px', textAlign:'center' }}>
-        <div style={{ fontSize:'64px', fontWeight:'900', color:'#ffffff', lineHeight:'1.15',
-          margin:'0 0 24px 0' }}>
-          {getActionText(selected, units)}
-        </div>
-        <div style={{ fontSize:'32px', color:'rgba(144,224,239,0.45)', fontWeight:'500' }}>
-          con {selected.organization}
-        </div>
-      </div>
-
-      {/* CO₂ badge — centrado con inline-block */}
-      <div style={{ position:'absolute', top:'880px', left:'0', right:'0', textAlign:'center' }}>
-        <div style={{
-          display:'inline-block',
-          background:'rgba(0,180,216,0.1)', border:'3px solid rgba(0,180,216,0.28)',
-          borderRadius:'56px', padding:'52px 100px', textAlign:'center',
-          minWidth:'520px', boxSizing:'border-box',
-        }}>
-          <div style={{ fontSize:'110px', fontWeight:'900', color:'#00b4d8', lineHeight:'1',
-            whiteSpace:'nowrap' }}>
-            -{co2} kg
-          </div>
-          <div style={{ fontSize:'28px', color:'rgba(144,224,239,0.45)', marginTop:'18px',
-            letterSpacing:'6px', textTransform:'uppercase', whiteSpace:'nowrap' }}>
-            CO₂ COMPENSADO
-          </div>
-        </div>
-      </div>
-
-      {/* User */}
-      <div style={{ position:'absolute', top:'1310px', left:'0', right:'0', textAlign:'center' }}>
-        <div style={{ fontSize:'44px', fontWeight:'700', color:'#ffffff', marginBottom:'22px' }}>
-          {user?.name || 'Guardián del Océano'}
-        </div>
-        <div style={{ textAlign:'center' }}>
-          <div style={{
-            display:'inline-block',
-            background:'rgba(0,180,216,0.12)', border:'2px solid rgba(0,180,216,0.28)',
-            borderRadius:'60px', padding:'14px 44px',
-            fontSize:'30px', color:'#48cae4', fontWeight:'600',
-          }}>
-            {user?.level || 'Guardián'}
-          </div>
-        </div>
-        {pct > 0 && (
-          <div style={{ fontSize:'28px', color:'rgba(74,222,128,0.65)', marginTop:'22px' }}>
-            {pct}% de huella compensada
-          </div>
-        )}
-        {user?.instagram && (
-          <div style={{ fontSize:'26px', color:'rgba(225,48,108,0.55)', marginTop:'16px',
-            letterSpacing:'1px' }}>
-            @{user.instagram}
-          </div>
-        )}
-      </div>
-
-      {/* Quote + footer */}
-      <div style={{ position:'absolute', bottom:'90px', left:'80px', right:'80px',
-        textAlign:'center' }}>
-        <div style={{ fontSize:'30px', color:'rgba(144,224,239,0.35)', fontStyle:'italic',
-          lineHeight:'1.55', margin:'0 0 36px 0' }}>
-          "{QUOTES[selected.id]}"
-        </div>
-        <div style={{ width:'96px', height:'2px', background:'rgba(0,180,216,0.18)',
-          margin:'0 auto 28px' }} />
-        <div style={{ fontSize:'22px', color:'rgba(144,224,239,0.2)', letterSpacing:'6px',
-          textTransform:'uppercase' }}>
-          oceanprint.co · divinglife.co
-        </div>
-      </div>
-    </div>
-  )
+const CANVAS_STYLES = {
+  corales:      { accent: '#f472b6', glow: 'rgba(244,114,182,0.18)', emoji: '🪸' },
+  manglares:    { accent: '#34d399', glow: 'rgba(52,211,153,0.18)',  emoji: '🌿' },
+  limpieza:     { accent: '#60a5fa', glow: 'rgba(96,165,250,0.18)',  emoji: '♻️' },
+  voluntariado: { accent: '#a78bfa', glow: 'rgba(167,139,250,0.18)', emoji: '🤿' },
 }
 
-/* ─────────────────────────────────────────────
-   RECEIPT CARD EXPORT — 600×900px, table rows for pixel-perfect alignment
-───────────────────────────────────────────── */
-function ReceiptCardExport({ selected, units, user, result, cardRef }) {
-  const co2     = result?.co2_compensated ?? selected.co2_per_unit * units
-  const cost    = selected.cost_per_unit * units
-  const pts     = result?.points_earned ?? selected.points_per_unit * units
-  const txId    = result?.id ? `OP-${String(result.id).padStart(6, '0')}` : 'OP-000000'
-  const dateStr = new Date().toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' })
+function generateSocialCard(selected, units, result, user) {
+  return new Promise(resolve => {
+    const W = 1080, H = 1920
+    const canvas = document.createElement('canvas')
+    canvas.width = W; canvas.height = H
+    const ctx = canvas.getContext('2d')
+    const opt = CANVAS_STYLES[selected.id] || CANVAS_STYLES.corales
+    const co2 = result?.co2_compensated ?? selected.co2_per_unit * units
+    const pct = result?.compensation_pct ?? 0
 
-  const rows = [
-    { label:'Opción',         value: selected.name },
-    { label:'Organización',   value: selected.organization },
-    { label:'Unidades',       value: `${units} ${selected.unit}(s)` },
-    { label:'CO₂ compensado', value: `-${co2} kg CO₂`,  color:'#4ade80' },
-    { label:'Valor pagado',   value: formatCOP(cost),    color: cost === 0 ? '#4ade80' : '#fbbf24' },
-    { label:'Puntos ganados', value: `+${pts} pts`,      color:'#a78bfa' },
-  ]
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, W * 0.6, H)
+    bg.addColorStop(0, '#020c1b'); bg.addColorStop(0.45, '#0a1628'); bg.addColorStop(1, '#0d3357')
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
 
-  return (
-    <div ref={cardRef} style={{
-      width:'600px', height:'900px',
-      background:'linear-gradient(160deg,#020c1b 0%,#0a1628 50%,#0d3357 100%)',
-      fontFamily:"'Inter',system-ui,sans-serif",
-      position:'relative', overflow:'hidden',
-      boxSizing:'border-box', padding:'40px',
-    }}>
-      {/* Glow */}
-      <div style={{ position:'absolute', width:'300px', height:'300px', borderRadius:'50%',
-        background:'radial-gradient(circle,rgba(74,222,128,0.06) 0%,transparent 70%)',
-        top:'-60px', right:'-40px', pointerEvents:'none' }} />
+    // Glow blobs
+    const gl1 = ctx.createRadialGradient(-80, -100, 0, -80, -100, 650)
+    gl1.addColorStop(0, 'rgba(0,180,216,0.08)'); gl1.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = gl1; ctx.fillRect(0, 0, W, H)
+    const gl2 = ctx.createRadialGradient(W + 80, H - 350, 0, W + 80, H - 350, 580)
+    gl2.addColorStop(0, opt.glow); gl2.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = gl2; ctx.fillRect(0, 0, W, H)
 
-      {/* Brand + title */}
-      <div style={{ textAlign:'center', marginBottom:'26px' }}>
-        <div style={{ fontSize:'18px', letterSpacing:'8px', color:'rgba(0,180,216,0.55)',
-          fontWeight:'800', textTransform:'uppercase', marginBottom:'8px' }}>OCEAN PRINT</div>
-        <div style={{ fontSize:'26px', fontWeight:'900', color:'#ffffff', marginBottom:'5px' }}>
-          Comprobante de Compensación
-        </div>
-        <div style={{ fontSize:'12px', color:'rgba(144,224,239,0.3)', letterSpacing:'4px',
-          textTransform:'uppercase' }}>by Diving Life</div>
-      </div>
+    ctx.textAlign = 'center'
 
-      {/* TX ID + date — floats inside fixed-height row */}
-      <div style={{ marginBottom:'20px', padding:'14px 18px', borderRadius:'12px',
-        background:'rgba(0,180,216,0.07)', border:'1px solid rgba(0,180,216,0.2)',
-        overflow:'hidden' }}>
-        <div style={{ float:'left' }}>
-          <div style={{ fontSize:'10px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase',
-            letterSpacing:'1.5px', marginBottom:'4px' }}>ID Transacción</div>
-          <div style={{ fontSize:'20px', fontWeight:'700', color:'#48cae4',
-            fontFamily:'monospace', lineHeight:'1' }}>{txId}</div>
-        </div>
-        <div style={{ float:'right', textAlign:'right' }}>
-          <div style={{ fontSize:'10px', color:'rgba(144,224,239,0.4)', textTransform:'uppercase',
-            letterSpacing:'1.5px', marginBottom:'4px' }}>Fecha</div>
-          <div style={{ fontSize:'13px', fontWeight:'600', color:'rgba(255,255,255,0.7)',
-            lineHeight:'1' }}>{dateStr}</div>
-        </div>
-        <div style={{ clear:'both' }} />
-      </div>
+    // Brand "OCEAN PRINT"
+    ctx.letterSpacing = '14px'
+    ctx.font = '800 30px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(0,180,216,0.6)'
+    ctx.fillText('OCEAN  PRINT', W / 2, 132)
 
-      {/* Detail rows — <table> guarantees column alignment */}
-      <table style={{ width:'100%', borderCollapse:'collapse', marginBottom:'20px' }}>
-        <tbody>
-          {rows.map(({ label, value, color }) => (
-            <tr key={label}>
-              <td style={{
-                padding:'10px 0', fontSize:'13px', color:'rgba(144,224,239,0.5)',
-                borderBottom:'1px solid rgba(255,255,255,0.05)',
-                verticalAlign:'middle', width:'50%',
-              }}>{label}</td>
-              <td style={{
-                padding:'10px 0', fontSize:'14px', fontWeight:'700',
-                color: color || 'rgba(255,255,255,0.85)',
-                borderBottom:'1px solid rgba(255,255,255,0.05)',
-                verticalAlign:'middle', textAlign:'right',
-              }}>{value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    // "by Diving Life"
+    ctx.letterSpacing = '8px'
+    ctx.font = '400 22px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.28)'
+    ctx.fillText('by Diving Life', W / 2, 176)
+    ctx.letterSpacing = '0px'
 
-      {/* User block — centered */}
-      <div style={{
-        textAlign:'center', padding:'16px 20px', marginBottom:'16px',
-        borderRadius:'14px', background:'rgba(0,180,216,0.06)',
-        border:'1px solid rgba(0,180,216,0.15)',
-      }}>
-        <div style={{ fontSize:'17px', fontWeight:'700', color:'#ffffff', marginBottom:'5px' }}>
-          {user?.name || 'Guardián del Océano'}
-        </div>
-        <div style={{ fontSize:'13px', color:'#48cae4' }}>{user?.level || 'Plancton'}</div>
-      </div>
+    // Divider
+    ctx.strokeStyle = 'rgba(0,180,216,0.28)'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(W/2 - 52, 216); ctx.lineTo(W/2 + 52, 216); ctx.stroke()
 
-      {/* Verification badge + footer */}
-      <div style={{ textAlign:'center', paddingBottom:'8px' }}>
-        <div style={{
-          display:'inline-block', padding:'9px 22px', borderRadius:'40px', marginBottom:'14px',
-          background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.3)',
-        }}>
-          <span style={{ fontSize:'13px', marginRight:'5px' }}>✓</span>
-          <span style={{ fontSize:'12px', fontWeight:'700', color:'#4ade80',
-            letterSpacing:'1.5px', textTransform:'uppercase' }}>Verificado · OceanPrint</span>
-        </div>
-        <div style={{ fontSize:'11px', color:'rgba(144,224,239,0.2)', letterSpacing:'3px',
-          textTransform:'uppercase' }}>
-          oceanprint.co · divinglife.co
-        </div>
-      </div>
-    </div>
-  )
+    // Icon glow
+    const ig = ctx.createRadialGradient(W/2, 370, 0, W/2, 370, 220)
+    ig.addColorStop(0, opt.glow); ig.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = ig; ctx.fillRect(0, 0, W, H)
+
+    // Emoji icon
+    ctx.font = '190px sans-serif'
+    ctx.fillText(opt.emoji, W / 2, 460)
+
+    // Action text (wrapped)
+    ctx.font = '900 62px Inter, system-ui, sans-serif'
+    ctx.fillStyle = '#ffffff'
+    const actionLines = wrapText(ctx, getActionText(selected, units), W - 200)
+    let ay = 570
+    for (const line of actionLines) { ctx.fillText(line, W / 2, ay); ay += 80 }
+
+    // "con {org}"
+    ctx.font = '400 32px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.45)'
+    ctx.fillText(`con ${selected.organization}`, W / 2, ay + 22)
+
+    // CO₂ badge
+    const badgeW = 660, badgeH = 228
+    const badgeX = (W - badgeW) / 2, badgeY = ay + 22 + 64
+    ctx.fillStyle = 'rgba(0,180,216,0.10)'
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 58); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,180,216,0.30)'; ctx.lineWidth = 3
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 58); ctx.stroke()
+    ctx.font = '900 112px Inter, system-ui, sans-serif'
+    ctx.fillStyle = '#00b4d8'
+    ctx.fillText(`-${co2} kg`, W / 2, badgeY + 132)
+    ctx.letterSpacing = '6px'
+    ctx.font = '600 28px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.48)'
+    ctx.fillText('CO₂  COMPENSADO', W / 2, badgeY + 188)
+    ctx.letterSpacing = '0px'
+
+    // User name + level pill
+    let uy = badgeY + badgeH + 88
+    ctx.font = '700 46px Inter, system-ui, sans-serif'; ctx.fillStyle = '#ffffff'
+    ctx.fillText(user?.name || 'Guardián del Océano', W / 2, uy)
+    uy += 36
+    const levelText = user?.level || 'Guardián'
+    ctx.font = '600 30px Inter, system-ui, sans-serif'
+    const lw = ctx.measureText(levelText).width + 90
+    const lx = (W - lw) / 2
+    ctx.fillStyle = 'rgba(0,180,216,0.12)'
+    roundRect(ctx, lx, uy, lw, 60, 30); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,180,216,0.30)'; ctx.lineWidth = 2
+    roundRect(ctx, lx, uy, lw, 60, 30); ctx.stroke()
+    ctx.fillStyle = '#48cae4'
+    ctx.fillText(levelText, W / 2, uy + 41)
+    uy += 60 + 28
+
+    if (pct > 0) {
+      ctx.font = '400 28px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(74,222,128,0.7)'
+      ctx.fillText(`${pct}% de huella compensada`, W / 2, uy); uy += 48
+    }
+    if (user?.instagram) {
+      ctx.font = '400 26px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(225,48,108,0.60)'
+      ctx.fillText(`@${user.instagram}`, W / 2, uy)
+    }
+
+    // Quote (fixed bottom)
+    ctx.font = 'italic 400 28px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.38)'
+    const qlines = wrapText(ctx, `"${QUOTES[selected.id]}"`, W - 220)
+    let qy = H - 280
+    for (const line of qlines) { ctx.fillText(line, W / 2, qy); qy += 46 }
+
+    ctx.strokeStyle = 'rgba(0,180,216,0.20)'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(W/2 - 52, H - 138); ctx.lineTo(W/2 + 52, H - 138); ctx.stroke()
+    ctx.letterSpacing = '6px'
+    ctx.font = '400 22px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(144,224,239,0.22)'
+    ctx.fillText('oceanprint.co  ·  divinglife.co', W / 2, H - 96)
+    ctx.letterSpacing = '0px'
+
+    resolve(canvas.toDataURL('image/png'))
+  })
+}
+
+function generateReceiptCard(selected, units, result, user) {
+  return new Promise(resolve => {
+    const W = 1200, H = 1800, PAD = 80
+    const canvas = document.createElement('canvas')
+    canvas.width = W; canvas.height = H
+    const ctx = canvas.getContext('2d')
+    const co2 = result?.co2_compensated ?? selected.co2_per_unit * units
+    const cost = selected.cost_per_unit * units
+    const pts = result?.points_earned ?? selected.points_per_unit * units
+    const txId = result?.id ? `OP-${String(result.id).padStart(6,'0')}` : 'OP-000000'
+    const dateStr = new Date().toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' })
+
+    // Background gradient + glow
+    const bg = ctx.createLinearGradient(0, 0, W * 0.7, H)
+    bg.addColorStop(0, '#020c1b'); bg.addColorStop(0.5, '#0a1628'); bg.addColorStop(1, '#0d3357')
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
+    const gl = ctx.createRadialGradient(W + 80, -80, 0, W + 80, -80, 480)
+    gl.addColorStop(0, 'rgba(74,222,128,0.07)'); gl.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H)
+
+    let y = PAD + 50
+    ctx.textAlign = 'center'
+
+    // OCEAN PRINT + title + sub
+    ctx.letterSpacing = '14px'; ctx.font = '800 36px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(0,180,216,0.60)'; ctx.fillText('OCEAN  PRINT', W / 2, y)
+    ctx.letterSpacing = '0px'; ctx.font = '900 50px Inter, system-ui, sans-serif'
+    ctx.fillStyle = '#ffffff'; y += 70; ctx.fillText('Comprobante de Compensación', W / 2, y)
+    ctx.letterSpacing = '8px'; ctx.font = '400 24px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.32)'; y += 52; ctx.fillText('by Diving Life', W / 2, y)
+    ctx.letterSpacing = '0px'
+
+    // Divider
+    y += 42; ctx.strokeStyle = 'rgba(0,180,216,0.22)'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke()
+    y += 42
+
+    // TX row box
+    const txH = 118
+    ctx.fillStyle = 'rgba(0,180,216,0.07)'
+    roundRect(ctx, PAD, y, W - PAD*2, txH, 18); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,180,216,0.22)'; ctx.lineWidth = 1.5
+    roundRect(ctx, PAD, y, W - PAD*2, txH, 18); ctx.stroke()
+    // Left: ID
+    ctx.textAlign = 'left'; ctx.letterSpacing = '2px'
+    ctx.font = '600 18px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(144,224,239,0.42)'
+    ctx.fillText('ID TRANSACCIÓN', PAD + 26, y + 34)
+    ctx.letterSpacing = '0px'; ctx.font = "700 30px 'Courier New', monospace"
+    ctx.fillStyle = '#48cae4'; ctx.fillText(txId, PAD + 26, y + 82)
+    // Right: date
+    ctx.textAlign = 'right'; ctx.letterSpacing = '2px'
+    ctx.font = '600 18px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(144,224,239,0.42)'
+    ctx.fillText('FECHA', W - PAD - 26, y + 34)
+    ctx.letterSpacing = '0px'; ctx.font = '600 24px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.fillText(dateStr, W - PAD - 26, y + 82)
+    y += txH + 48
+
+    // Detail rows
+    const rows = [
+      { label: 'Opción',         value: selected.name,                  color: null },
+      { label: 'Organización',   value: selected.organization,          color: null },
+      { label: 'Unidades',       value: `${units} ${selected.unit}(s)`, color: null },
+      { label: 'CO₂ compensado', value: `-${co2} kg CO₂`,              color: '#4ade80' },
+      { label: 'Valor pagado',   value: formatCOP(cost),                color: cost === 0 ? '#4ade80' : '#fbbf24' },
+      { label: 'Puntos ganados', value: `+${pts} pts`,                  color: '#a78bfa' },
+    ]
+    const rowH = 106
+    for (const row of rows) {
+      ctx.textAlign = 'left'; ctx.font = '400 26px Inter, system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(144,224,239,0.52)'
+      ctx.fillText(row.label, PAD, y + rowH / 2 + 9)
+      ctx.textAlign = 'right'; ctx.font = '700 28px Inter, system-ui, sans-serif'
+      ctx.fillStyle = row.color || 'rgba(255,255,255,0.88)'
+      ctx.fillText(row.value, W - PAD, y + rowH / 2 + 9)
+      y += rowH
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke()
+    }
+    y += 48
+
+    // User block
+    const ubH = 132
+    ctx.fillStyle = 'rgba(0,180,216,0.07)'
+    roundRect(ctx, PAD, y, W - PAD*2, ubH, 20); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,180,216,0.18)'; ctx.lineWidth = 1.5
+    roundRect(ctx, PAD, y, W - PAD*2, ubH, 20); ctx.stroke()
+    ctx.textAlign = 'center'
+    ctx.font = '700 34px Inter, system-ui, sans-serif'; ctx.fillStyle = '#ffffff'
+    ctx.fillText(user?.name || 'Guardián del Océano', W / 2, y + 52)
+    ctx.font = '400 26px Inter, system-ui, sans-serif'; ctx.fillStyle = '#48cae4'
+    ctx.fillText(user?.level || 'Plancton', W / 2, y + 96)
+    y += ubH + 48
+
+    // Verification badge
+    ctx.letterSpacing = '2px'; ctx.font = '700 26px Inter, system-ui, sans-serif'
+    const verText = '✓  VERIFICADO · OCEANPRINT'
+    const verW = ctx.measureText(verText).width + 80
+    const vx = (W - verW) / 2
+    ctx.fillStyle = 'rgba(74,222,128,0.10)'
+    roundRect(ctx, vx, y, verW, 64, 32); ctx.fill()
+    ctx.strokeStyle = 'rgba(74,222,128,0.30)'; ctx.lineWidth = 1.5
+    roundRect(ctx, vx, y, verW, 64, 32); ctx.stroke()
+    ctx.fillStyle = '#4ade80'; ctx.textAlign = 'center'
+    ctx.fillText(verText, W / 2, y + 43)
+    y += 64 + 32; ctx.letterSpacing = '0px'
+
+    // Footer URL
+    ctx.letterSpacing = '4px'; ctx.font = '400 20px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.22)'
+    ctx.fillText('oceanprint.co  ·  divinglife.co', W / 2, y + 28)
+    ctx.letterSpacing = '0px'
+
+    resolve(canvas.toDataURL('image/png'))
+  })
 }
 
 /* ─────────────────────────────────────────────
@@ -493,10 +338,8 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   const [result, setResult] = useState(null)
   const [shareLoading, setShareLoading] = useState(null) // 'wa' | 'ig' | 'copy' | 'dl' | 'receipt'
   const [toast, setToast] = useState(null)
-  const socialCardRef  = useRef(null)   // preview only (unused for export)
-  const receiptCardRef = useRef(null)   // legacy (unused for export)
-  const socialExportRef  = useRef(null) // 1080×1920 export card
-  const receiptExportRef = useRef(null) // 800×1200 export card
+  const [socialDataUrl,  setSocialDataUrl]  = useState(null)
+  const [receiptDataUrl, setReceiptDataUrl] = useState(null)
 
   function showToast(msg, duration = 3500) {
     setToast(msg)
@@ -515,6 +358,12 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
       const res = await axios.post(`${API}/compensations`, { type: selected.id, units })
       setResult(res.data)
       onSuccess(res.data)
+      const [su, ru] = await Promise.all([
+        generateSocialCard(selected, units, res.data, user),
+        generateReceiptCard(selected, units, res.data, user),
+      ])
+      setSocialDataUrl(su)
+      setReceiptDataUrl(ru)
       setStep(3)
     } catch (e) {
       console.error(e)
@@ -527,85 +376,46 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
     try { await axios.post(`${API}/compensations/shared`) } catch {}
   }
 
-  async function getCanvas() {
-    const html2canvas = (await import('html2canvas')).default
-    return html2canvas(socialExportRef.current, {
-      backgroundColor: '#020c1b',
-      useCORS: true,
-      scale: 1,
-      width: 1080,
-      height: 1920,
-      scrollX: 0,
-      scrollY: 0,
-      logging: false,
-    })
-  }
-
   async function downloadReceipt() {
-    if (!receiptExportRef.current || shareLoading) return
+    if (!receiptDataUrl || shareLoading) return
     setShareLoading('receipt')
-    try {
-      const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(receiptExportRef.current, {
-        backgroundColor: '#020c1b',
-        useCORS: true,
-        scale: 2,
-        width: 600,
-        height: 900,
-        scrollX: 0,
-        scrollY: 0,
-        logging: false,
-      })
-      const url = canvas.toDataURL('image/png')
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'oceanprint-comprobante.png'
-      document.body.appendChild(a); a.click(); document.body.removeChild(a)
-    } catch (e) { console.error(e) }
-    finally { setShareLoading(null) }
+    const a = document.createElement('a')
+    a.href = receiptDataUrl
+    a.download = 'oceanprint-comprobante.png'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    setShareLoading(null)
   }
 
   async function downloadCard() {
-    if (!socialExportRef.current || shareLoading) return
+    if (!socialDataUrl || shareLoading) return
     setShareLoading('dl')
-    try {
-      const canvas = await getCanvas()
-      const url = canvas.toDataURL('image/png')
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'oceanprint-compensacion.png'
-      document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      markShared()
-    } catch (e) { console.error(e) }
-    finally { setShareLoading(null) }
+    const a = document.createElement('a')
+    a.href = socialDataUrl
+    a.download = 'oceanprint-compensacion.png'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    markShared()
+    setShareLoading(null)
   }
 
   async function copyToClipboard() {
-    if (!socialExportRef.current || shareLoading) return
+    if (!socialDataUrl || shareLoading) return
     setShareLoading('copy')
     try {
-      const canvas = await getCanvas()
-      await new Promise(resolve => canvas.toBlob(async blob => {
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-          showToast('✅ Imagen copiada al portapapeles')
-          markShared()
-        } catch {
-          // Clipboard API blocked — fall back to download
-          const url = canvas.toDataURL('image/png')
-          const a = document.createElement('a')
-          a.href = url; a.download = 'oceanprint-compensacion.png'
-          document.body.appendChild(a); a.click(); document.body.removeChild(a)
-          showToast('Imagen descargada')
-        }
-        resolve()
-      }, 'image/png'))
-    } catch (e) { console.error(e) }
-    finally { setShareLoading(null) }
+      const blob = await fetch(socialDataUrl).then(r => r.blob())
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      showToast('✅ Imagen copiada al portapapeles')
+      markShared()
+    } catch {
+      const a = document.createElement('a')
+      a.href = socialDataUrl; a.download = 'oceanprint-compensacion.png'
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      showToast('Imagen descargada')
+    }
+    setShareLoading(null)
   }
 
   async function shareWhatsApp() {
-    if (!socialExportRef.current || shareLoading) return
+    if (!socialDataUrl || shareLoading) return
     setShareLoading('wa')
     const co2n = result?.co2_compensated ?? co2
     const pct  = result?.compensation_pct ?? 0
@@ -621,28 +431,21 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
 
     try {
       if (navigator.share) {
-        // Mobile: Web Share API — try with image first
-        const canvas = await getCanvas()
-        await new Promise(resolve => canvas.toBlob(async blob => {
-          const file = new File([blob], 'oceanprint-compensacion.png', { type: 'image/png' })
-          try {
-            await navigator.share({
-              files: navigator.canShare?.({ files: [file] }) ? [file] : undefined,
-              text: `Compensé ${co2n} kg de CO₂ con Diving Life 🌊 Calcula tu huella en oceanprint.co`,
-            })
-          } catch (e) {
-            if (e.name !== 'AbortError') {
-              try { await navigator.share({ text }) } catch {}
-            }
+        const blob = await fetch(socialDataUrl).then(r => r.blob())
+        const file = new File([blob], 'oceanprint-compensacion.png', { type: 'image/png' })
+        try {
+          await navigator.share({
+            files: navigator.canShare?.({ files: [file] }) ? [file] : undefined,
+            text: `Compensé ${co2n} kg de CO₂ con Diving Life 🌊 Calcula tu huella en oceanprint.co`,
+          })
+        } catch (e) {
+          if (e.name !== 'AbortError') {
+            try { await navigator.share({ text }) } catch {}
           }
-          resolve()
-        }, 'image/png'))
+        }
       } else {
-        // Desktop: download image + open WhatsApp Web
-        const canvas = await getCanvas()
-        const url = canvas.toDataURL('image/png')
         const a = document.createElement('a')
-        a.href = url; a.download = 'oceanprint-compensacion.png'
+        a.href = socialDataUrl; a.download = 'oceanprint-compensacion.png'
         document.body.appendChild(a); a.click(); document.body.removeChild(a)
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
       }
@@ -652,18 +455,13 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
   }
 
   async function shareInstagram() {
-    if (!socialExportRef.current || shareLoading) return
+    if (!socialDataUrl || shareLoading) return
     setShareLoading('ig')
     try {
-      const canvas = await getCanvas()
-      await new Promise(resolve => canvas.toBlob(async blob => {
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-        } catch {}
-        resolve()
-      }, 'image/png'))
-    } catch (e) { console.error(e) }
-    finally { setShareLoading(null) }
+      const blob = await fetch(socialDataUrl).then(r => r.blob())
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    } catch {}
+    setShareLoading(null)
 
     showToast('📋 Imagen copiada. Ábrela en Instagram y pégala en tu Story.', 4000)
     markShared()
@@ -687,23 +485,6 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
       style={{ background: 'rgba(2,12,27,0.92)', backdropFilter: 'blur(10px)' }}
       onClick={e => step < 3 && e.target === e.currentTarget && onClose()}
     >
-      {/* Hidden export cards for html2canvas — fixed pixel dimensions, off-screen */}
-      <div style={{ position: 'fixed', top: 0, left: '-2200px', zIndex: -1, pointerEvents: 'none' }}>
-        <SocialCardExport
-          cardRef={socialExportRef}
-          selected={selected}
-          units={units}
-          user={user}
-          result={result}
-        />
-        <ReceiptCardExport
-          cardRef={receiptExportRef}
-          selected={selected}
-          units={units}
-          user={user}
-          result={result}
-        />
-      </div>
 
       <div
         className="w-full max-w-[480px] rounded-3xl overflow-y-auto animate-slide-up"
@@ -1222,18 +1003,17 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
                 )}
               </div>
 
-              {/* Social card preview (scaled) */}
-              <div
-                className="rounded-2xl overflow-hidden mb-5"
-                style={{ height: '352px', position: 'relative' }}
-              >
-                <div style={{ transform: 'scale(0.55)', transformOrigin: 'top center', pointerEvents: 'none' }}>
-                  <SocialCard
-                    selected={selected} units={units} user={user} result={result}
-                    cardRef={null}
-                  />
+              {/* Social card preview */}
+              {socialDataUrl ? (
+                <div style={{ width: '220px', margin: '0 auto', borderRadius: '16px', overflow: 'hidden', marginBottom: '20px' }}>
+                  <img src={socialDataUrl} alt="Tarjeta de compensación" style={{ width: '100%', display: 'block' }} />
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-2xl mb-5 flex items-center justify-center"
+                  style={{ height: '200px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <span className="text-ocean-foam/30 text-sm">Generando tarjeta…</span>
+                </div>
+              )}
 
               {/* Toast */}
               {toast && (
