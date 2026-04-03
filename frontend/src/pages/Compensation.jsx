@@ -78,133 +78,248 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 const CANVAS_STYLES = {
-  corales:      { accent: '#f472b6', glow: 'rgba(244,114,182,0.18)', emoji: '🪸' },
-  manglares:    { accent: '#34d399', glow: 'rgba(52,211,153,0.18)',  emoji: '🌿' },
-  limpieza:     { accent: '#60a5fa', glow: 'rgba(96,165,250,0.18)',  emoji: '♻️' },
-  voluntariado: { accent: '#a78bfa', glow: 'rgba(167,139,250,0.18)', emoji: '🤿' },
+  corales:      { accent: '#f472b6', glow: 'rgba(244,114,182,0.22)', bgFrom: '#1a0818', bgTo: '#2d0f2f' },
+  manglares:    { accent: '#34d399', glow: 'rgba(52,211,153,0.22)',  bgFrom: '#041a12', bgTo: '#082d1e' },
+  limpieza:     { accent: '#60a5fa', glow: 'rgba(96,165,250,0.22)',  bgFrom: '#041228', bgTo: '#071d42' },
+  voluntariado: { accent: '#a78bfa', glow: 'rgba(167,139,250,0.22)', bgFrom: '#0e0828', bgTo: '#170d42' },
 }
 
-function generateSocialCard(selected, units, result, user) {
-  return new Promise(resolve => {
-    const W = 1080, H = 1920
-    const canvas = document.createElement('canvas')
-    canvas.width = W; canvas.height = H
-    const ctx = canvas.getContext('2d')
-    const opt = CANVAS_STYLES[selected.id] || CANVAS_STYLES.corales
-    const co2 = result?.co2_compensated ?? selected.co2_per_unit * units
-    const pct = result?.compensation_pct ?? 0
+// Build inline SVG data URL for each option icon (uses same paths as OceanIcons.jsx)
+function getOptionIconDataUrl(id, color, size) {
+  const c = color.replace('#', '%23')
+  const attrs = `stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"`
+  const inner = {
+    corales: `
+      <path d="M12 21 L12 15" ${attrs}/>
+      <path d="M12 15 L8 10" ${attrs}/>
+      <path d="M12 15 L16 10" ${attrs}/>
+      <path d="M8 10 L6 6" ${attrs}/>
+      <path d="M8 10 L10 6" ${attrs}/>
+      <path d="M16 10 L14 6" ${attrs}/>
+      <path d="M16 10 L18 6" ${attrs}/>
+      <path d="M12 15 L12 11" ${attrs}/>
+      <path d="M11 21 Q12 23 13 21" ${attrs}/>`,
+    manglares: `
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" ${attrs}/>
+      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" ${attrs}/>`,
+    limpieza: `
+      <path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5" ${attrs}/>
+      <path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12" ${attrs}/>
+      <path d="m14 16-3 3 3 3" ${attrs}/>
+      <path d="M8.293 13.596 7.196 9.5 3.1 10.598" ${attrs}/>
+      <path d="m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843" ${attrs}/>
+      <path d="m13.378 9.633 4.096 1.098 1.097-4.096" ${attrs}/>`,
+    voluntariado: `
+      <rect x="3" y="8" width="18" height="10" rx="3" ${attrs}/>
+      <rect x="4" y="9" width="6" height="7" rx="2" ${attrs}/>
+      <rect x="14" y="9" width="6" height="7" rx="2" ${attrs}/>
+      <path d="M10 12.5 L14 12.5" ${attrs}/>
+      <path d="M3 11 Q1 8 3 6 Q6 4 8 8" ${attrs}/>
+      <path d="M21 11 Q23 8 21 6 Q18 4 16 8" ${attrs}/>`,
+  }
+  const paths = inner[id] || inner.corales
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">${paths}</svg>`
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+}
 
-    // Background gradient
-    const bg = ctx.createLinearGradient(0, 0, W * 0.6, H)
-    bg.addColorStop(0, '#020c1b'); bg.addColorStop(0.45, '#0a1628'); bg.addColorStop(1, '#0d3357')
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
-
-    // Glow blobs
-    const gl1 = ctx.createRadialGradient(-80, -100, 0, -80, -100, 650)
-    gl1.addColorStop(0, 'rgba(0,180,216,0.08)'); gl1.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = gl1; ctx.fillRect(0, 0, W, H)
-    const gl2 = ctx.createRadialGradient(W + 80, H - 350, 0, W + 80, H - 350, 580)
-    gl2.addColorStop(0, opt.glow); gl2.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = gl2; ctx.fillRect(0, 0, W, H)
-
-    ctx.textAlign = 'center'
-
-    // Brand "OCEAN PRINT"
-    ctx.letterSpacing = '14px'
-    ctx.font = '800 30px Inter, system-ui, sans-serif'
-    ctx.fillStyle = 'rgba(0,180,216,0.6)'
-    ctx.fillText('OCEAN  PRINT', W / 2, 132)
-
-    // "by Diving Life"
-    ctx.letterSpacing = '8px'
-    ctx.font = '400 22px Inter, system-ui, sans-serif'
-    ctx.fillStyle = 'rgba(144,224,239,0.28)'
-    ctx.fillText('by Diving Life', W / 2, 176)
-    ctx.letterSpacing = '0px'
-
-    // Divider
-    ctx.strokeStyle = 'rgba(0,180,216,0.28)'; ctx.lineWidth = 2
-    ctx.beginPath(); ctx.moveTo(W/2 - 52, 216); ctx.lineTo(W/2 + 52, 216); ctx.stroke()
-
-    // Icon glow
-    const ig = ctx.createRadialGradient(W/2, 370, 0, W/2, 370, 220)
-    ig.addColorStop(0, opt.glow); ig.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = ig; ctx.fillRect(0, 0, W, H)
-
-    // Emoji icon
-    ctx.font = '190px sans-serif'
-    ctx.fillText(opt.emoji, W / 2, 460)
-
-    // Action text (wrapped)
-    ctx.font = '900 62px Inter, system-ui, sans-serif'
-    ctx.fillStyle = '#ffffff'
-    const actionLines = wrapText(ctx, getActionText(selected, units), W - 200)
-    let ay = 570
-    for (const line of actionLines) { ctx.fillText(line, W / 2, ay); ay += 80 }
-
-    // "con {org}"
-    ctx.font = '400 32px Inter, system-ui, sans-serif'
-    ctx.fillStyle = 'rgba(144,224,239,0.45)'
-    ctx.fillText(`con ${selected.organization}`, W / 2, ay + 22)
-
-    // CO₂ badge
-    const badgeW = 660, badgeH = 228
-    const badgeX = (W - badgeW) / 2, badgeY = ay + 22 + 64
-    ctx.fillStyle = 'rgba(0,180,216,0.10)'
-    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 58); ctx.fill()
-    ctx.strokeStyle = 'rgba(0,180,216,0.30)'; ctx.lineWidth = 3
-    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 58); ctx.stroke()
-    ctx.font = '900 112px Inter, system-ui, sans-serif'
-    ctx.fillStyle = '#00b4d8'
-    ctx.fillText(`-${co2} kg`, W / 2, badgeY + 132)
-    ctx.letterSpacing = '6px'
-    ctx.font = '600 28px Inter, system-ui, sans-serif'
-    ctx.fillStyle = 'rgba(144,224,239,0.48)'
-    ctx.fillText('CO₂  COMPENSADO', W / 2, badgeY + 188)
-    ctx.letterSpacing = '0px'
-
-    // User name + level pill
-    let uy = badgeY + badgeH + 88
-    ctx.font = '700 46px Inter, system-ui, sans-serif'; ctx.fillStyle = '#ffffff'
-    ctx.fillText(user?.name || 'Guardián del Océano', W / 2, uy)
-    uy += 36
-    const levelText = user?.level || 'Guardián'
-    ctx.font = '600 30px Inter, system-ui, sans-serif'
-    const lw = ctx.measureText(levelText).width + 90
-    const lx = (W - lw) / 2
-    ctx.fillStyle = 'rgba(0,180,216,0.12)'
-    roundRect(ctx, lx, uy, lw, 60, 30); ctx.fill()
-    ctx.strokeStyle = 'rgba(0,180,216,0.30)'; ctx.lineWidth = 2
-    roundRect(ctx, lx, uy, lw, 60, 30); ctx.stroke()
-    ctx.fillStyle = '#48cae4'
-    ctx.fillText(levelText, W / 2, uy + 41)
-    uy += 60 + 28
-
-    if (pct > 0) {
-      ctx.font = '400 28px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(74,222,128,0.7)'
-      ctx.fillText(`${pct}% de huella compensada`, W / 2, uy); uy += 48
-    }
-    if (user?.instagram) {
-      ctx.font = '400 26px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(225,48,108,0.60)'
-      ctx.fillText(`@${user.instagram}`, W / 2, uy)
-    }
-
-    // Quote (fixed bottom)
-    ctx.font = 'italic 400 28px Inter, system-ui, sans-serif'
-    ctx.fillStyle = 'rgba(144,224,239,0.38)'
-    const qlines = wrapText(ctx, `"${QUOTES[selected.id]}"`, W - 220)
-    let qy = H - 280
-    for (const line of qlines) { ctx.fillText(line, W / 2, qy); qy += 46 }
-
-    ctx.strokeStyle = 'rgba(0,180,216,0.20)'; ctx.lineWidth = 2
-    ctx.beginPath(); ctx.moveTo(W/2 - 52, H - 138); ctx.lineTo(W/2 + 52, H - 138); ctx.stroke()
-    ctx.letterSpacing = '6px'
-    ctx.font = '400 22px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(144,224,239,0.22)'
-    ctx.fillText('oceanprint.co  ·  divinglife.co', W / 2, H - 96)
-    ctx.letterSpacing = '0px'
-
-    resolve(canvas.toDataURL('image/png'))
+function loadOptionIcon(id, color, size) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null) // graceful fallback
+    img.src = getOptionIconDataUrl(id, color, size)
   })
+}
+
+async function generateSocialCard(selected, units, result, user) {
+  const W = 1080, H = 1920
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d')
+  const opt = CANVAS_STYLES[selected.id] || CANVAS_STYLES.corales
+  const co2 = result?.co2_compensated ?? selected.co2_per_unit * units
+  const pct = result?.compensation_pct ?? 0
+  const treeMonths = Math.max(1, Math.round(co2 / 1.75))
+
+  // Load SVG icon
+  const iconImg = await loadOptionIcon(selected.id, opt.accent, 300)
+
+  // ── Background: rich dark gradient with option-color tint ─────────
+  const bg = ctx.createLinearGradient(0, 0, W * 0.6, H)
+  bg.addColorStop(0, '#010c1e')
+  bg.addColorStop(0.45, '#041e3a')
+  bg.addColorStop(1, '#072f5a')
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
+
+  // Option-color ambient wash (top-left)
+  const wash1 = ctx.createRadialGradient(-60, -80, 0, -60, -80, 780)
+  wash1.addColorStop(0, opt.glow.replace('0.22', '0.14'))
+  wash1.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = wash1; ctx.fillRect(0, 0, W, H)
+
+  // Cyan ambient (bottom-right)
+  const wash2 = ctx.createRadialGradient(W + 60, H * 0.65, 0, W + 60, H * 0.65, 700)
+  wash2.addColorStop(0, 'rgba(0,180,216,0.10)')
+  wash2.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = wash2; ctx.fillRect(0, 0, W, H)
+
+  // ── Light rays behind icon ────────────────────────────────────────
+  const iconCX = W / 2, iconCY = 430
+  ctx.save()
+  for (let i = 0; i < 18; i++) {
+    const angle = (i / 18) * Math.PI * 2
+    const spread = Math.PI / 18
+    const rayGrad = ctx.createRadialGradient(iconCX, iconCY, 80, iconCX, iconCY, 660)
+    rayGrad.addColorStop(0, opt.glow.replace('0.22', '0.18'))
+    rayGrad.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = rayGrad
+    ctx.beginPath()
+    ctx.moveTo(iconCX, iconCY)
+    ctx.arc(iconCX, iconCY, 660, angle - spread, angle + spread)
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.restore()
+
+  // ── Bright radial glow at icon center ─────────────────────────────
+  const iconGlow = ctx.createRadialGradient(iconCX, iconCY, 0, iconCX, iconCY, 380)
+  iconGlow.addColorStop(0, opt.glow.replace('0.22', '0.42'))
+  iconGlow.addColorStop(0.35, opt.glow.replace('0.22', '0.18'))
+  iconGlow.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = iconGlow; ctx.fillRect(0, 0, W, H)
+
+  // ── Header ───────────────────────────────────────────────────────
+  ctx.textAlign = 'center'
+  ctx.letterSpacing = '14px'
+  ctx.font = '800 32px Inter, system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(0,180,216,0.7)'
+  ctx.fillText('OCEAN  PRINT', W / 2, 108)
+  ctx.letterSpacing = '8px'
+  ctx.font = '400 22px Inter, system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(144,224,239,0.34)'
+  ctx.fillText('by Diving Life', W / 2, 156)
+  ctx.letterSpacing = '0px'
+  ctx.strokeStyle = 'rgba(0,180,216,0.32)'; ctx.lineWidth = 1.5
+  ctx.beginPath(); ctx.moveTo(W/2 - 64, 188); ctx.lineTo(W/2 + 64, 188); ctx.stroke()
+
+  // ── SVG Icon ─────────────────────────────────────────────────────
+  const iconSize = 310
+  if (iconImg) {
+    ctx.drawImage(iconImg, (W - iconSize) / 2, iconCY - iconSize / 2, iconSize, iconSize)
+  }
+
+  // ── Action text ──────────────────────────────────────────────────
+  ctx.font = '900 68px Inter, system-ui, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  const actionLines = wrapText(ctx, getActionText(selected, units), W - 160)
+  let ay = 628
+  for (const line of actionLines) { ctx.fillText(line, W / 2, ay); ay += 86 }
+
+  ctx.font = '400 34px Inter, system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(144,224,239,0.52)'
+  ctx.fillText(`con ${selected.organization}`, W / 2, ay + 22)
+
+  // ── CO₂ badge (fixed position, clears action text even at 3 lines) ─
+  const badgeY = Math.max(920, ay + 80)
+  const badgeW = 700, badgeH = 210, bx = (W - badgeW) / 2
+  const badgeFill = ctx.createLinearGradient(bx, badgeY, bx + badgeW, badgeY + badgeH)
+  badgeFill.addColorStop(0, 'rgba(0,180,216,0.16)')
+  badgeFill.addColorStop(1, 'rgba(0,180,216,0.07)')
+  ctx.fillStyle = badgeFill
+  roundRect(ctx, bx, badgeY, badgeW, badgeH, 62); ctx.fill()
+  ctx.strokeStyle = 'rgba(0,180,216,0.40)'; ctx.lineWidth = 2.5
+  roundRect(ctx, bx, badgeY, badgeW, badgeH, 62); ctx.stroke()
+  ctx.font = '900 118px Inter, system-ui, sans-serif'
+  ctx.fillStyle = '#00d4ff'
+  ctx.fillText(`-${co2} kg`, W / 2, badgeY + 143)
+  ctx.letterSpacing = '7px'
+  ctx.font = '600 28px Inter, system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(144,224,239,0.52)'
+  ctx.fillText('CO₂  COMPENSADO', W / 2, badgeY + 195)
+  ctx.letterSpacing = '0px'
+
+  // ── User section ─────────────────────────────────────────────────
+  const userY = badgeY + badgeH + 70
+  ctx.font = '700 50px Inter, system-ui, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText(user?.name || 'Guardián del Océano', W / 2, userY)
+
+  const levelText = user?.level || 'Plancton'
+  ctx.font = '600 30px Inter, system-ui, sans-serif'
+  const lw = ctx.measureText(levelText).width + 88
+  const lx = (W - lw) / 2
+  const levelPillY = userY + 36
+  ctx.fillStyle = 'rgba(0,180,216,0.14)'
+  roundRect(ctx, lx, levelPillY, lw, 64, 32); ctx.fill()
+  ctx.strokeStyle = 'rgba(0,180,216,0.35)'; ctx.lineWidth = 2
+  roundRect(ctx, lx, levelPillY, lw, 64, 32); ctx.stroke()
+  ctx.fillStyle = '#48cae4'
+  ctx.fillText(levelText, W / 2, levelPillY + 44)
+
+  // ── Stats section ────────────────────────────────────────────────
+  const statsY = levelPillY + 64 + 60
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(W/2 - 300, statsY - 24); ctx.lineTo(W/2 + 300, statsY - 24); ctx.stroke()
+
+  if (pct > 0) {
+    // Two-column stats
+    const col1X = W / 2 - 200, col2X = W / 2 + 200
+    ctx.font = '700 44px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(74,222,128,0.9)'
+    ctx.fillText(`${pct}%`, col1X, statsY + 14)
+    ctx.font = '400 24px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.42)'
+    ctx.fillText('de tu huella', col1X, statsY + 52)
+    ctx.fillText('compensada', col1X, statsY + 82)
+
+    ctx.font = '700 44px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(248,196,113,0.9)'
+    ctx.fillText(`≈ ${treeMonths}`, col2X, statsY + 14)
+    ctx.font = '400 24px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.42)'
+    ctx.fillText(treeMonths === 1 ? 'mes de absorción' : 'meses de absorción', col2X, statsY + 52)
+    ctx.fillText('de un árbol adulto', col2X, statsY + 82)
+
+    // Divider between columns
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(W/2, statsY - 8); ctx.lineTo(W/2, statsY + 96); ctx.stroke()
+  } else {
+    // Single stat: tree months
+    ctx.font = '700 48px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(248,196,113,0.9)'
+    ctx.fillText(`≈ ${treeMonths} ${treeMonths === 1 ? 'mes' : 'meses'}`, W / 2, statsY + 14)
+    ctx.font = '400 28px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(144,224,239,0.42)'
+    ctx.fillText('de absorción de un árbol adulto', W / 2, statsY + 60)
+  }
+
+  if (user?.instagram) {
+    const igY = statsY + 120
+    ctx.font = '400 28px Inter, system-ui, sans-serif'
+    ctx.fillStyle = 'rgba(225,48,108,0.65)'
+    ctx.fillText(`@${user.instagram}`, W / 2, igY)
+  }
+
+  // ── Quote ────────────────────────────────────────────────────────
+  const quoteY = statsY + (user?.instagram ? 186 : 156)
+  ctx.strokeStyle = 'rgba(0,180,216,0.16)'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(W/2 - 220, quoteY - 24); ctx.lineTo(W/2 + 220, quoteY - 24); ctx.stroke()
+  ctx.font = 'italic 400 30px Inter, system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(144,224,239,0.38)'
+  const qlines = wrapText(ctx, `"${QUOTES[selected.id]}"`, W - 200)
+  let qy = quoteY + 8
+  for (const line of qlines) { ctx.fillText(line, W / 2, qy); qy += 52 }
+
+  // ── Footer ───────────────────────────────────────────────────────
+  ctx.strokeStyle = 'rgba(0,180,216,0.24)'; ctx.lineWidth = 1.5
+  ctx.beginPath(); ctx.moveTo(W/2 - 64, H - 128); ctx.lineTo(W/2 + 64, H - 128); ctx.stroke()
+  ctx.letterSpacing = '6px'
+  ctx.font = '400 22px Inter, system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(144,224,239,0.26)'
+  ctx.fillText('oceanprint.co  ·  divinglife.co', W / 2, H - 84)
+  ctx.letterSpacing = '0px'
+
+  return canvas.toDataURL('image/png')
 }
 
 function generateReceiptCard(selected, units, result, user) {
