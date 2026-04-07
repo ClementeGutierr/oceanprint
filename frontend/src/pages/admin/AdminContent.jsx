@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
-import { LeafIcon, StarIcon, BrainIcon, CreditCardIcon, MissionIcon, OptionIcon } from '../../components/OceanIcons'
+import { LeafIcon, StarIcon, BrainIcon, CreditCardIcon, MissionIcon, OptionIcon, DESTINATION_ICONS_LIST } from '../../components/OceanIcons'
 import AdminSelect from './AdminSelect'
 
 const TABS = ['Misiones', 'Quizzes', 'Compensaciones']
@@ -18,7 +18,25 @@ const BTN = { background: 'linear-gradient(135deg,#00b4d8,#48cae4)', border: 'no
 const BTN_DANGER = { background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }
 const BTN_EDIT = { background: 'rgba(0,180,216,0.12)', border: '1px solid rgba(0,180,216,0.25)', borderRadius: '8px', padding: '5px 10px', color: '#48cae4', cursor: 'pointer', fontSize: '12px', fontWeight: 600, marginRight: '6px' }
 
-const EMPTY_MISSION = { name: '', description: '', icon: '🌊', points: 50, category: 'conservacion', quiz_id: '' }
+const EMPTY_MISSION = { name: '', description: '', icon: 'wave', points: 50, category: 'conservacion', quiz_id: '' }
+
+function IconPicker({ value, onChange }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(58px,1fr))', gap: '6px' }}>
+      {DESTINATION_ICONS_LIST.map(({ id, label, Icon }) => (
+        <button key={id} type="button" onClick={() => onChange(id)} title={label}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '8px 4px', borderRadius: '10px', cursor: 'pointer', border: '1px solid', transition: 'all 0.15s',
+            background: value === id ? 'rgba(0,180,216,0.18)' : 'rgba(255,255,255,0.04)',
+            borderColor: value === id ? '#00b4d8' : 'rgba(255,255,255,0.08)',
+            color: value === id ? '#48cae4' : 'rgba(255,255,255,0.45)',
+          }}>
+          <Icon size={22} />
+          <span style={{ fontSize: '8px', textAlign: 'center', lineHeight: 1.2, fontWeight: value === id ? 700 : 400 }}>{label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
 const EMPTY_QUIZ = { question: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_answer: 'A', explanation: '', category: 'conservacion', points: 20 }
 
 // ── MISSIONS ─────────────────────────────────────────────
@@ -68,7 +86,6 @@ function MissionsPanel({ token }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '12px' }}>
             <div><label style={LABEL}>Nombre</label><input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-            <div><label style={LABEL}>Ícono (emoji)</label><input style={INPUT} value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} /></div>
             <div><label style={LABEL}>Puntos</label><input type="number" style={INPUT} value={form.points} onChange={e => setForm({ ...form, points: e.target.value })} /></div>
             <div>
               <label style={LABEL}>Categoría</label>
@@ -76,6 +93,10 @@ function MissionsPanel({ token }) {
             </div>
             <div><label style={LABEL}>Quiz ID (opcional)</label><input type="number" style={INPUT} value={form.quiz_id} onChange={e => setForm({ ...form, quiz_id: e.target.value })} placeholder="ID del quiz asociado" /></div>
             <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Descripción</label><input style={INPUT} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={LABEL}>Ícono de la misión</label>
+              <div style={{ marginTop: '8px' }}><IconPicker value={form.icon} onChange={v => setForm({ ...form, icon: v })} /></div>
+            </div>
           </div>
           {err && <p style={{ color: '#f87171', fontSize: '13px', margin: '10px 0 0' }}>{err}</p>}
           <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
@@ -289,13 +310,16 @@ function CompOptionsPanel({ token }) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '12px' }}>
                 <div><label style={LABEL}>Nombre</label><input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                <div><label style={LABEL}>Ícono</label><input style={INPUT} value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} /></div>
                 <div><label style={LABEL}>Organización</label><input style={INPUT} value={form.organization} onChange={e => setForm({ ...form, organization: e.target.value })} /></div>
                 <div><label style={LABEL}>Unidad</label><input style={INPUT} value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} /></div>
                 <div><label style={LABEL}>kg CO₂ por unidad</label><input type="number" step="0.1" style={INPUT} value={form.co2_per_unit} onChange={e => setForm({ ...form, co2_per_unit: e.target.value })} /></div>
                 <div><label style={LABEL}>Costo por unidad (COP)</label><input type="number" style={INPUT} value={form.cost_per_unit} onChange={e => setForm({ ...form, cost_per_unit: e.target.value })} /></div>
                 <div><label style={LABEL}>Puntos por unidad</label><input type="number" style={INPUT} value={form.points_per_unit} onChange={e => setForm({ ...form, points_per_unit: e.target.value })} /></div>
                 <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Descripción</label><textarea style={{ ...INPUT, height: '70px', resize: 'vertical' }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+                <div style={{ gridColumn: '1/-1' }}>
+                  <label style={LABEL}>Ícono</label>
+                  <div style={{ marginTop: '8px' }}><IconPicker value={form.icon} onChange={v => setForm({ ...form, icon: v })} /></div>
+                </div>
               </div>
               {err && <p style={{ color: '#f87171', fontSize: '13px', margin: '10px 0 0' }}>{err}</p>}
               <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>

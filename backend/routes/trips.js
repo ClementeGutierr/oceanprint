@@ -100,6 +100,12 @@ function updateUserLevel(userId) {
 }
 
 // Airport autocomplete search (public — no auth)
+// Public destinations list (used by calculator)
+router.get('/destinations', (req, res) => {
+  const rows = db.prepare('SELECT name, icon, local_km, dive_hours FROM destinations ORDER BY sort_order, name').all();
+  res.json(rows);
+});
+
 router.get('/airports', (req, res) => {
   const q = (req.query.q || '').trim();
   if (q.length < 2) return res.json([]);

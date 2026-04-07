@@ -1,4 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="48" fill="#0a1628"/>
-  <text y=".9em" font-size="80" x="10">🌊</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Dark ocean background -->
+  <circle cx="32" cy="32" r="32" fill="#0a1628"/>
+  <!-- Glowing ocean depth circle -->
+  <circle cx="32" cy="32" r="28" fill="#0d1f3c"/>
+  <!-- Upper wave -->
+  <path d="M8 28 Q14 20 20 28 Q26 36 32 28 Q38 20 44 28 Q50 36 56 28"
+        fill="none" stroke="#00b4d8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Lower wave -->
+  <path d="M8 38 Q14 30 20 38 Q26 46 32 38 Q38 30 44 38 Q50 46 56 38"
+        fill="none" stroke="#48cae4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+  <!-- Subtle highlight arc -->
+  <path d="M18 22 Q32 17 46 22"
+        fill="none" stroke="#90e0ef" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
 </svg>

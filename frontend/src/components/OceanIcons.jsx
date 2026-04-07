@@ -405,6 +405,7 @@ export function MedalIcon({ rank = 1, size = 24 }) {
    Maps emoji strings (stored in DB) → SVG components
 ───────────────────────────────────────────── */
 const MISSION_ICON_MAP = {
+  // Legacy emoji keys
   '🪸': CoralIcon,
   '🌊': OceanWaveIcon,
   '🐠': TropicalFishIcon,
@@ -417,6 +418,23 @@ const MISSION_ICON_MAP = {
   '♻️': RecycleIcon,
   '🎯': TargetIcon,
   '⭐': StarIcon,
+  // String keys (same as DESTINATION_ICON_MAP — used by icon picker)
+  'shark':     SharkIcon,
+  'whale':     WhaleIcon,
+  'turtle':    TurtleIcon,
+  'dolphin':   DolphinIcon,
+  'manta':     MantaRayIcon,
+  'octopus':   OctopusIcon,
+  'fish':      TropicalFishIcon,
+  'coral':     CoralIcon,
+  'seahorse':  SeahorseIcon,
+  'jellyfish': JellyfishIcon,
+  'seal':      SealIcon,
+  'starfish':  StarfishIcon,
+  'crab':      CrabIcon,
+  'plankton':  PlanktonIcon,
+  'wave':      OceanWaveIcon,
+  'island':    IslandIcon,
 }
 
 /** MissionIcon — renders the correct SVG for a backend-provided emoji string */

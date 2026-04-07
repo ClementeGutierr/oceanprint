@@ -9,8 +9,6 @@ import {
   OceanWaveIcon, TrophyIcon, LockIcon, PlusIcon,
 } from '../components/OceanIcons'
 
-const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla del Coco', 'Raja Ampat', 'Providencia']
-
 const SEA_OPTIONS = [
   { value: 'bote_buceo', label: 'Bote de buceo',        Icon: DiveMaskIcon   },
   { value: 'lancha',     label: 'Lancha rápida',         Icon: SpeedboatIcon  },
@@ -26,10 +24,6 @@ const LAND_OPTIONS = [
   { value: 'none', label: 'Caminando',     Icon: WalkingPersonIcon },
 ]
 
-const LOCAL_DISTANCES = {
-  'Galápagos': 25, 'Isla Malpelo': 0, 'Isla del Coco': 0,
-  'Islas Revillagigedo': 15, 'Raja Ampat': 30, 'Providencia': 20,
-}
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -62,7 +56,7 @@ function TypeSelector({ options, value, onChange, disabled }) {
 }
 
 /* ── Sea segment row ── */
-function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination }) {
+function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, localKm }) {
   return (
     <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-center justify-between mb-1">
@@ -89,9 +83,9 @@ function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination
           )}
         </div>
       )}
-      {seg.type === 'ferry' && destination && (
+      {seg.type === 'ferry' && localKm !== undefined && (
         <p className="text-xs text-ocean-foam/40">
-          Distancia local: {LOCAL_DISTANCES[destination] ?? 20} km × 2 (ida y vuelta)
+          Distancia local: {localKm} km × 2 (ida y vuelta)
         </p>
       )}
     </div>
@@ -99,8 +93,8 @@ function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination
 }
 
 /* ── Land segment row ── */
-function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked, destination }) {
-  const defaultKm = LOCAL_DISTANCES[destination] ?? 20
+function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked, localKm }) {
+  const defaultKm = localKm ?? 20
   const displayKm = (seg.km != null && seg.km > 0) ? seg.km : defaultKm
   return (
     <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -233,6 +227,7 @@ export default function Calculator() {
   const { API, refreshUser, user } = useAuth()
   const navigate = useNavigate()
 
+  const [destList, setDestList]       = useState([])   // [{ name, icon, local_km, dive_hours }]
   const [originApt, setOriginApt]     = useState(null)  // { iata, city, country, lat, lng }
   const [destination, setDestination] = useState('')
   const [routeStops, setRouteStops]   = useState([])   // array of airport objects | null (unresolved)
@@ -244,6 +239,11 @@ export default function Calculator() {
   const [expeditionLocked, setExpeditionLocked] = useState(false)
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
+
+  // Fetch destinations from backend on mount
+  useEffect(() => {
+    axios.get(`${API}/trips/destinations`).then(r => setDestList(r.data)).catch(() => {})
+  }, [])
 
   // Pre-select origin from user profile city
   useEffect(() => {
@@ -377,18 +377,21 @@ export default function Calculator() {
             {expeditionLocked && <span className="ml-auto flex items-center gap-1 text-amber-400/70"><LockIcon size={11} /> bloqueado por expedición</span>}
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {DESTINATIONS.map(dest => (
-              <button key={dest} type="button"
-                onClick={() => !expeditionLocked && setDestination(dest)}
-                className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150"
-                style={
-                  destination === dest
-                    ? { background: 'linear-gradient(135deg,rgba(0,180,216,0.3),rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
-                    : expeditionLocked
-                    ? { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.2)', cursor: 'not-allowed' }
-                    : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
-                }>{dest}</button>
-            ))}
+            {destList.length === 0
+              ? <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '13px', gridColumn: '1/-1', textAlign: 'center', padding: '12px 0' }}>Cargando destinos…</p>
+              : destList.map(dest => (
+                <button key={dest.name} type="button"
+                  onClick={() => !expeditionLocked && setDestination(dest.name)}
+                  className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-150"
+                  style={
+                    destination === dest.name
+                      ? { background: 'linear-gradient(135deg,rgba(0,180,216,0.3),rgba(72,202,228,0.2))', border: '1px solid rgba(0,180,216,0.5)', color: '#90e0ef' }
+                      : expeditionLocked
+                      ? { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.2)', cursor: 'not-allowed' }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }
+                  }>{dest.name}</button>
+              ))
+            }
           </div>
         </div>
 
@@ -539,7 +542,7 @@ export default function Calculator() {
                 onChange={val => updateSeaSeg(i, val)}
                 onRemove={() => removeSeaSeg(i)}
                 canRemove={seaSegments.length > 1}
-                locked={expeditionLocked} destination={destination} />
+                locked={expeditionLocked} localKm={destList.find(d => d.name === destination)?.local_km} />
             ))}
           </div>
           {!expeditionLocked && seaSegments.length < 3 && (
@@ -563,7 +566,7 @@ export default function Calculator() {
                 onChange={val => updateLandSeg(i, val)}
                 onRemove={() => removeLandSeg(i)}
                 canRemove={landSegments.length > 1}
-                locked={expeditionLocked} destination={destination} />
+                locked={expeditionLocked} localKm={destList.find(d => d.name === destination)?.local_km} />
             ))}
           </div>
           {!expeditionLocked && landSegments.length < 3 && (
