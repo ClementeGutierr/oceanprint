@@ -263,6 +263,126 @@ export function IslandIcon({ size = 24 }) {
   )
 }
 
+/** SharkIcon — side-profile shark */
+export function SharkIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 14 Q5 10 11 12 Q17 14 21 11" />
+      <path d="M21 11 Q23 9 22 7" />
+      <path d="M21 11 Q23 13 22 15" />
+      <path d="M11 12 Q12 7 14 5 Q15 8 14 12" />
+      <path d="M8 13 Q7 16 5 18" />
+      <circle cx="5" cy="13" r="0.8" fill="currentColor" />
+      <path d="M2 14 Q4 15 6 15 Q9 15 11 14" strokeWidth="0.75" strokeOpacity="0.4"/>
+    </svg>
+  )
+}
+
+/** OctopusIcon — octopus with curling tentacles */
+export function OctopusIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 11 Q6 4 12 4 Q18 4 18 11 Q18 14 12 15 Q6 14 6 11Z" />
+      <circle cx="9.5" cy="9" r="1" fill="currentColor" />
+      <circle cx="14.5" cy="9" r="1" fill="currentColor" />
+      <path d="M8 14 Q6 18 7 21 Q8 22 9 20 Q10 18 9 15" />
+      <path d="M10.5 15 Q9.5 19 10.5 22 Q11.5 23 12 21 Q12.5 19 11.5 15" />
+      <path d="M13.5 15 Q14.5 19 13.5 22 Q12.5 23 12 21 Q11.5 19 12.5 15" />
+      <path d="M16 14 Q18 18 17 21 Q16 22 15 20 Q14 18 15 15" />
+    </svg>
+  )
+}
+
+/** DolphinIcon — dolphin in mid-leap */
+export function DolphinIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 17 Q5 9 11 7 Q17 5 20 9 Q22 12 20 15" />
+      <path d="M20 15 Q22 12 23 10" />
+      <path d="M20 15 Q22 17 22 20" />
+      <path d="M13 7.5 Q14 4 16 5 Q15.5 7 14.5 8" />
+      <path d="M9 11 Q7 14 8 16" />
+      <path d="M3 17 Q1 15 2 12" />
+      <circle cx="5.5" cy="15" r="0.8" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** JellyfishIcon — jellyfish bell with wavy tentacles */
+export function JellyfishIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12 Q5 4 12 4 Q19 4 19 12" />
+      <path d="M5 12 Q8 15 12 14 Q16 15 19 12" />
+      <path d="M8 14 Q7 17 8 20 Q9 21 9 19 Q9 17 10 15" />
+      <path d="M11 14 Q10.5 18 11.5 21 Q12 22 12.5 21 Q13 18 12 14" />
+      <path d="M14 14 Q15 17 14 20 Q13 21 13 19 Q13 17 14 15" />
+      <path d="M17 14 Q18 17 17 20 Q16 21 15 19 Q15 17 16 15" />
+    </svg>
+  )
+}
+
+/** SealIcon — seal lounging */
+export function SealIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 16 Q4 9 9 7 Q15 5 18 10 Q21 14 18 18 Q14 22 9 20 Q4 19 4 16Z" />
+      <circle cx="18" cy="9" r="2.5" />
+      <circle cx="19" cy="8.2" r="0.8" fill="currentColor" />
+      <line x1="20.5" y1="9.5" x2="23" y2="8.5" />
+      <line x1="20.5" y1="10.5" x2="23" y2="10.5" />
+      <path d="M4 16 Q1 15 2 18" />
+      <path d="M10 20 Q9 23 13 23 Q15 22 14 20" />
+    </svg>
+  )
+}
+
+/** StarfishIcon — five-armed starfish */
+export function StarfishIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 12 L12 2" />
+      <path d="M12 12 L21.5 18.5" />
+      <path d="M12 12 L17.5 23" />
+      <path d="M12 12 L6.5 23" />
+      <path d="M12 12 L2.5 18.5" />
+      <circle cx="12" cy="2" r="1.5" />
+      <circle cx="21.5" cy="18.5" r="1.5" />
+      <circle cx="17.5" cy="23" r="1.5" />
+      <circle cx="6.5" cy="23" r="1.5" />
+      <circle cx="2.5" cy="18.5" r="1.5" />
+      <circle cx="12" cy="12" r="2.5" />
+    </svg>
+  )
+}
+
+/** CrabIcon — top-down crab with claws */
+export function CrabIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="13" rx="5" ry="4" />
+      <path d="M10 9.5 L9 7.5" />
+      <circle cx="8.5" cy="6.8" r="1" />
+      <path d="M14 9.5 L15 7.5" />
+      <circle cx="15.5" cy="6.8" r="1" />
+      <path d="M7 11 Q3 9 2 7 Q4 6 5.5 8.5" />
+      <path d="M7 13 Q3 13 2 16 Q4 17 6 15" />
+      <path d="M17 11 Q21 9 22 7 Q20 6 18.5 8.5" />
+      <path d="M17 13 Q21 13 22 16 Q20 17 18 15" />
+      <path d="M9 16.5 Q8 19 7 21" />
+      <path d="M12 17 Q12 20 11.5 22" />
+      <path d="M15 16.5 Q16 19 17 21" />
+    </svg>
+  )
+}
+
 /** MedalIcon — podium medal component (rank 1/2/3) */
 export function MedalIcon({ rank = 1, size = 24 }) {
   const COLORS = { 1: '#ffd700', 2: '#c0c0c0', 3: '#cd7f32' }
@@ -329,6 +449,64 @@ export function OptionIcon({ id, size = 24, color = 'currentColor' }) {
 
 /** CONFETTI_ICONS — for mission completion animation */
 export const CONFETTI_ICONS = [CoralIcon, TropicalFishIcon, StarIcon, OceanWaveIcon, WhaleIcon]
+
+/* ─────────────────────────────────────────────
+   DESTINATION ICONS
+   Icon key (stored in DB) → SVG component
+───────────────────────────────────────────── */
+
+const DESTINATION_ICON_MAP = {
+  'shark':     SharkIcon,
+  'whale':     WhaleIcon,
+  'turtle':    TurtleIcon,
+  'dolphin':   DolphinIcon,
+  'manta':     MantaRayIcon,
+  'octopus':   OctopusIcon,
+  'fish':      TropicalFishIcon,
+  'coral':     CoralIcon,
+  'seahorse':  SeahorseIcon,
+  'jellyfish': JellyfishIcon,
+  'seal':      SealIcon,
+  'starfish':  StarfishIcon,
+  'crab':      CrabIcon,
+  'plankton':  PlanktonIcon,
+  'wave':      OceanWaveIcon,
+  'island':    IslandIcon,
+}
+
+/** Ordered list for the admin icon picker */
+export const DESTINATION_ICONS_LIST = [
+  { id: 'shark',     label: 'Tiburón',          Icon: SharkIcon },
+  { id: 'whale',     label: 'Ballena',           Icon: WhaleIcon },
+  { id: 'turtle',    label: 'Tortuga',           Icon: TurtleIcon },
+  { id: 'dolphin',   label: 'Delfín',            Icon: DolphinIcon },
+  { id: 'manta',     label: 'Mantarraya',        Icon: MantaRayIcon },
+  { id: 'octopus',   label: 'Pulpo',             Icon: OctopusIcon },
+  { id: 'fish',      label: 'Pez tropical',      Icon: TropicalFishIcon },
+  { id: 'coral',     label: 'Coral',             Icon: CoralIcon },
+  { id: 'seahorse',  label: 'Caballito de mar',  Icon: SeahorseIcon },
+  { id: 'jellyfish', label: 'Medusa',            Icon: JellyfishIcon },
+  { id: 'seal',      label: 'Foca',              Icon: SealIcon },
+  { id: 'starfish',  label: 'Estrella de mar',   Icon: StarfishIcon },
+  { id: 'crab',      label: 'Cangrejo',          Icon: CrabIcon },
+  { id: 'plankton',  label: 'Plancton',          Icon: PlanktonIcon },
+  { id: 'wave',      label: 'Ola marina',        Icon: OceanWaveIcon },
+  { id: 'island',    label: 'Isla tropical',     Icon: IslandIcon },
+]
+
+/**
+ * DestinationIcon — renders the SVG icon for a destination by key.
+ * Falls back to emoji/text rendering for legacy values.
+ */
+export function DestinationIcon({ icon, size = 24, color = 'currentColor' }) {
+  const IconComp = DESTINATION_ICON_MAP[icon]
+  if (!IconComp) return <span style={{ fontSize: Math.round(size * 0.8), lineHeight: 1 }}>{icon}</span>
+  return (
+    <span style={{ color, display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
+      <IconComp size={size} />
+    </span>
+  )
+}
 
 /* ─────────────────────────────────────────────
    SOCIAL / BRAND ICONS

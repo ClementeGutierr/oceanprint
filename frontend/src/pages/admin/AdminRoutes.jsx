@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
 import AdminSelect from './AdminSelect'
+import { DESTINATION_ICONS_LIST, DestinationIcon } from '../../components/OceanIcons'
 
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
 const TH = { padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }
@@ -15,7 +16,7 @@ const BTN_EDIT = { background: 'rgba(0,180,216,0.12)', border: '1px solid rgba(0
 const TABS = ['Destinos']
 
 // ── DESTINATIONS ────────────────────────────────────────────────────────────
-const EMPTY_DEST = { name: '', country: '', icon: '🦈', local_km: '', dive_hours: '6', sort_order: '0' }
+const EMPTY_DEST = { name: '', country: '', icon: 'shark', local_km: '', dive_hours: '6', sort_order: '0' }
 
 function DestinosPanel({ token }) {
   const [items, setItems]     = useState([])
@@ -67,10 +68,25 @@ function DestinosPanel({ token }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '12px' }}>
             <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Nombre *</label><input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Isla Malpelo" /></div>
             <div><label style={LABEL}>País</label><input style={INPUT} value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="Colombia" /></div>
-            <div><label style={LABEL}>Ícono</label><input style={INPUT} value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} /></div>
             <div><label style={LABEL}>Distancia local (km)</label><input type="number" min="0" style={INPUT} value={form.local_km} onChange={e => setForm({ ...form, local_km: e.target.value })} placeholder="0" /></div>
             <div><label style={LABEL}>Horas de buceo típicas</label><input type="number" min="0" style={INPUT} value={form.dive_hours} onChange={e => setForm({ ...form, dive_hours: e.target.value })} placeholder="6" /></div>
             <div><label style={LABEL}>Orden</label><input type="number" min="0" style={INPUT} value={form.sort_order} onChange={e => setForm({ ...form, sort_order: e.target.value })} /></div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={LABEL}>Ícono — selecciona el animal del destino</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(68px,1fr))', gap: '8px', marginTop: '8px' }}>
+                {DESTINATION_ICONS_LIST.map(({ id, label, Icon }) => (
+                  <button key={id} type="button" onClick={() => setForm({ ...form, icon: id })} title={label}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', padding: '10px 4px', borderRadius: '10px', cursor: 'pointer', border: '1px solid', transition: 'all 0.15s',
+                      background: form.icon === id ? 'rgba(0,180,216,0.18)' : 'rgba(255,255,255,0.04)',
+                      borderColor: form.icon === id ? '#00b4d8' : 'rgba(255,255,255,0.08)',
+                      color: form.icon === id ? '#48cae4' : 'rgba(255,255,255,0.45)',
+                    }}>
+                    <Icon size={24} />
+                    <span style={{ fontSize: '9px', textAlign: 'center', lineHeight: 1.2, fontWeight: form.icon === id ? 700 : 400 }}>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           {err && <p style={{ color: '#f87171', fontSize: '13px', margin: '10px 0 0' }}>{err}</p>}
           <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
@@ -99,7 +115,7 @@ function DestinosPanel({ token }) {
               {items.map(item => (
                 <tr key={item.id}>
                   <td style={TD}>
-                    <span style={{ marginRight: '6px' }}>{item.icon}</span>
+                    <span style={{ marginRight: '8px', display: 'inline-flex', verticalAlign: 'middle', color: '#48cae4' }}><DestinationIcon icon={item.icon} size={18} /></span>
                     <span style={{ fontWeight: 600 }}>{item.name}</span>
                   </td>
                   <td style={{ ...TD, color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>{item.country}</td>

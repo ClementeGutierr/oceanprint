@@ -4,7 +4,6 @@ import { API_BASE, authCfg } from './AdminApp'
 import { TrophyIcon } from '../../components/OceanIcons'
 import AdminSelect from './AdminSelect'
 
-const DESTINATIONS = ['Galápagos', 'Isla Malpelo', 'Islas Revillagigedo', 'Isla del Coco', 'Raja Ampat', 'Providencia']
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
 const TH = { padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }
 const TD = { padding: '12px 14px', fontSize: '13px', color: 'rgba(255,255,255,0.8)', borderBottom: '1px solid rgba(255,255,255,0.04)' }
@@ -37,10 +36,11 @@ const LAND_TYPES = [
   { value: 'taxi', label: 'Taxi' },
   { value: 'suv',  label: 'SUV' },
 ]
-const EMPTY_FORM = { name: '', destination: 'Isla Malpelo', start_date: '', end_date: '', invite_code: '', prize_description: '', sea_transports: [], land_transports: [], fixed_passengers: '' }
+const EMPTY_FORM = { name: '', destination: '', start_date: '', end_date: '', invite_code: '', prize_description: '', sea_transports: [], land_transports: [], fixed_passengers: '' }
 
 export default function AdminExpeditions({ token }) {
   const [expeditions, setExpeditions] = useState([])
+  const [destinations, setDestinations] = useState([])
   const [loading, setLoading]       = useState(true)
   const [form, setForm]             = useState(EMPTY_FORM)
   const [editing, setEditing]       = useState(null)
@@ -53,6 +53,13 @@ export default function AdminExpeditions({ token }) {
   const [recalcResult, setRecalcResult] = useState(null)
   const today = new Date().toISOString().split('T')[0]
 
+  async function loadDestinations() {
+    try {
+      const r = await axios.get(`${API_BASE}/admin/destinations`, authCfg(token))
+      setDestinations(r.data.map(d => d.name))
+    } catch {}
+  }
+
   function load() {
     setLoading(true)
     axios.get(`${API_BASE}/admin/expeditions`, authCfg(token))
@@ -63,6 +70,7 @@ export default function AdminExpeditions({ token }) {
   useEffect(load, [token])
 
   function openCreate() {
+    loadDestinations()
     setForm(EMPTY_FORM)
     setEditing(null)
     setShowForm(true)
@@ -73,6 +81,7 @@ export default function AdminExpeditions({ token }) {
   }
 
   function openEdit(exp) {
+    loadDestinations()
     let seaT = [], landT = []
     try { if (exp.sea_transports) seaT = JSON.parse(exp.sea_transports) } catch {}
     try { if (exp.land_transports) landT = JSON.parse(exp.land_transports) } catch {}
@@ -190,7 +199,7 @@ export default function AdminExpeditions({ token }) {
             </div>
             <div>
               <label style={LABEL}>Destino</label>
-              <AdminSelect value={form.destination} onChange={v => handleFormChange('destination', v)} options={DESTINATIONS} />
+              <AdminSelect value={form.destination} onChange={v => handleFormChange('destination', v)} options={[{ value: '', label: 'Seleccionar destino...' }, ...destinations.map(d => ({ value: d, label: d }))]} />
             </div>
             <div>
               <label style={LABEL}>Código de invitación</label>
