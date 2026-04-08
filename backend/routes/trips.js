@@ -43,7 +43,6 @@ const LAND_FACTORS = {
   'none': 0,
 };
 
-
 function getFlightFactor(distanceKm) {
   if (distanceKm < 1500) return FLIGHT_FACTORS.short;
   if (distanceKm < 4000) return FLIGHT_FACTORS.medium;
@@ -79,13 +78,50 @@ function updateUserLevel(userId) {
   db.prepare('UPDATE users SET level = ? WHERE id = ?').run(level, userId);
 }
 
-// Airport autocomplete search (public — no auth)
+function r2(n) { return Math.round(n * 100) / 100; }
+
+// ── Per-leg CO2 helpers (one direction only, no ×2) ──────────────────────────
+
+function calcFlightCO2(waypoints) {
+  if (!Array.isArray(waypoints) || waypoints.length < 2) return { co2: 0, distKm: 0 };
+  const resolved = waypoints.map(q => findAirport(q));
+  if (!resolved.every(a => a !== null)) return { co2: 0, distKm: 0 };
+  let co2 = 0, distKm = 0;
+  for (let i = 0; i < resolved.length - 1; i++) {
+    const d = haversine(resolved[i].lat, resolved[i].lng, resolved[i + 1].lat, resolved[i + 1].lng);
+    co2 += d * getFlightFactor(d);
+    distKm += d;
+  }
+  return { co2, distKm };
+}
+
+function calcSeaCO2(seaSegs) {
+  let co2 = 0;
+  for (const seg of (seaSegs || [])) {
+    if (!seg.type || seg.type === 'none') continue;
+    const factor = SEA_FACTORS[seg.type] || 0;
+    co2 += seg.type === 'ferry' ? (seg.km ?? 20) * factor : factor * (seg.hours || 6);
+  }
+  return co2;
+}
+
+function calcLandCO2(landSegs) {
+  let co2 = 0;
+  for (const seg of (landSegs || [])) {
+    if (!seg.type || seg.type === 'none') continue;
+    const factor = LAND_FACTORS[seg.type] || 0;
+    co2 += ((seg.km != null && seg.km > 0) ? seg.km : 20) * factor;
+  }
+  return co2;
+}
+
 // Public destinations list (used by calculator)
 router.get('/destinations', (req, res) => {
   const rows = db.prepare('SELECT name, icon, dive_hours FROM destinations ORDER BY sort_order, name').all();
   res.json(rows);
 });
 
+// Airport autocomplete search (public — no auth)
 router.get('/airports', (req, res) => {
   const q = (req.query.q || '').trim();
   if (q.length < 2) return res.json([]);
@@ -102,7 +138,6 @@ router.get('/airports', (req, res) => {
     ORDER BY relevance, city
     LIMIT 10
   `).all(q, `${q}%`, `${q}%`, q, `%${q}%`, `%${q}%`);
-  // deduplicate (OR conditions can produce duplicates)
   const seen = new Set();
   res.json(rows.filter(r => { if (seen.has(r.iata)) return false; seen.add(r.iata); return true; }));
 });
@@ -114,11 +149,13 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       origin, destination,
       passengers = 1,
       expedition_id = null,
-      route_waypoints = null,   // e.g. ['Bogotá','PTY','UIO','Galápagos']
-      // Multi-segment format (new)
-      sea_segments: rawSeaSegs,
-      land_segments: rawLandSegs,
-      // Legacy single-transport format (backward compat)
+      // New format: separate outbound and return legs
+      outbound: rawOutbound,
+      return_trip: rawReturn,
+      // Legacy format (backward compat — treated as outbound + same return)
+      route_waypoints: legacyWaypoints = null,
+      sea_segments: legacySeaSegs,
+      land_segments: legacyLandSegs,
       transport_sea = 'bote_buceo',
       transport_land = 'van',
       sea_hours = 6,
@@ -128,66 +165,49 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       return res.status(400).json({ error: 'Origen y destino son requeridos' });
     }
 
-    // Normalize to segment arrays
-    const seaSegments = rawSeaSegs || [{ type: transport_sea, hours: sea_hours }];
-    const landSegments = rawLandSegs || [{ type: transport_land, km: null }];
-
-    // ── CO2 FLIGHT ──────────────────────────────────────────────────────────
-    // Calculated exclusively from the airport waypoints the user entered.
-    // The dive-site destination is an organisational label; it plays no role here.
-    let co2Flight = 0;
-    let actualFlightDistance = 0;
-
-    if (Array.isArray(route_waypoints) && route_waypoints.length >= 2) {
-      const resolved = route_waypoints.map(q => findAirport(q));
-
-      // Only proceed if every waypoint resolves to a known airport with coordinates
-      if (resolved.every(a => a !== null)) {
-        let segCo2 = 0;
-        let segDist = 0;
-        for (let i = 0; i < resolved.length - 1; i++) {
-          const d = haversine(resolved[i].lat, resolved[i].lng, resolved[i + 1].lat, resolved[i + 1].lng);
-          segCo2 += d * getFlightFactor(d);
-          segDist += d;
-        }
-        co2Flight = segCo2 * 2; // round trip
-        actualFlightDistance = Math.round(segDist);
-      } else {
-        // Some airports not found — skip flight CO2 (user should fix their route)
-        co2Flight = 0;
-        actualFlightDistance = 0;
-      }
-    }
-    // If < 2 waypoints provided, flight CO2 stays 0
-
-    // CO2 sea — sum all segments
-    let co2Sea = 0;
-    for (const seg of seaSegments) {
-      if (!seg.type || seg.type === 'none') continue;
-      const factor = SEA_FACTORS[seg.type] || 0;
-      if (seg.type === 'ferry') {
-        const localDist = seg.km ?? 20;
-        co2Sea += localDist * 2 * factor;
-      } else {
-        co2Sea += factor * (seg.hours || 6);
-      }
+    // Normalize to outbound / return structure
+    let outboundData, returnData;
+    if (rawOutbound) {
+      outboundData = rawOutbound;
+      returnData = rawReturn || { same_as_outbound: true };
+    } else {
+      // Legacy: single set of segments → treat as outbound, mirror for return
+      outboundData = {
+        route_waypoints: legacyWaypoints,
+        sea_segments: legacySeaSegs || [{ type: transport_sea, hours: sea_hours }],
+        land_segments: legacyLandSegs || [{ type: transport_land, km: null }],
+      };
+      returnData = { same_as_outbound: true };
     }
 
-    // CO2 land — sum all segments
-    let co2Land = 0;
-    for (const seg of landSegments) {
-      if (!seg.type || seg.type === 'none') continue;
-      const factor = LAND_FACTORS[seg.type] || 0;
-      const dist = (seg.km != null && seg.km > 0) ? seg.km : 20;
-      co2Land += dist * 2 * factor;
-    }
-
-    // Divide shared-vehicle emissions by passenger count
     const pax = Math.max(1, passengers);
-    co2Sea  = co2Sea  / pax;
-    co2Land = co2Land / pax;
 
-    const co2Total = co2Flight + co2Sea + co2Land;
+    // ── Outbound leg ────────────────────────────────────────
+    const obFlight = calcFlightCO2(outboundData.route_waypoints);
+    const obSea    = calcSeaCO2(outboundData.sea_segments) / pax;
+    const obLand   = calcLandCO2(outboundData.land_segments) / pax;
+    const obTotal  = obFlight.co2 + obSea + obLand;
+
+    // ── Return leg ──────────────────────────────────────────
+    let retFlightCO2, retSea, retLand;
+    if (returnData.same_as_outbound) {
+      retFlightCO2 = obFlight.co2;
+      retSea       = obSea;
+      retLand      = obLand;
+    } else {
+      const rf = calcFlightCO2(returnData.route_waypoints);
+      retFlightCO2 = rf.co2;
+      retSea  = calcSeaCO2(returnData.sea_segments) / pax;
+      retLand = calcLandCO2(returnData.land_segments) / pax;
+    }
+    const retTotal = retFlightCO2 + retSea + retLand;
+
+    // ── Grand totals ────────────────────────────────────────
+    const co2Flight = obFlight.co2 + retFlightCO2;
+    const co2Sea    = obSea + retSea;
+    const co2Land   = obLand + retLand;
+    const co2Total  = co2Flight + co2Sea + co2Land;
+    const flightDistKm = Math.round(obFlight.distKm);
 
     // Validate expedition_id
     let validExpeditionId = null;
@@ -200,9 +220,9 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       }
     }
 
-    // Store transport segments as JSON for audit trail
-    const transportSeaStr = JSON.stringify(seaSegments.filter(s => s.type && s.type !== 'none'));
-    const transportLandStr = JSON.stringify(landSegments.filter(s => s.type && s.type !== 'none'));
+    // Store outbound segments for audit trail
+    const transportSeaStr  = JSON.stringify((outboundData.sea_segments  || []).filter(s => s.type && s.type !== 'none'));
+    const transportLandStr = JSON.stringify((outboundData.land_segments || []).filter(s => s.type && s.type !== 'none'));
 
     // Save trip
     const result = db.prepare(`
@@ -211,27 +231,23 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       req.user.id, origin, destination, 'economica', transportSeaStr, transportLandStr,
-      Math.round(co2Flight * 100) / 100,
-      Math.round(co2Sea * 100) / 100,
-      Math.round(co2Land * 100) / 100,
-      Math.round(co2Total * 100) / 100,
-      passengers,
-      validExpeditionId
+      r2(co2Flight), r2(co2Sea), r2(co2Land), r2(co2Total),
+      passengers, validExpeditionId
     );
 
     // Update user stats
     db.prepare(`
       UPDATE users SET
-        total_co2 = total_co2 + ?,
+        total_co2   = total_co2 + ?,
         trips_count = trips_count + 1
       WHERE id = ?
-    `).run(Math.round(co2Total * 100) / 100, req.user.id);
+    `).run(r2(co2Total), req.user.id);
 
     // Award points for calculating (10 pts per trip)
     db.prepare('UPDATE users SET points = points + 10 WHERE id = ?').run(req.user.id);
     updateUserLevel(req.user.id);
 
-    // Check mission: Buceador Consciente (5 trips) — award points only if newly completed
+    // Check mission: Buceador Consciente (5 trips)
     let missionCompleted = null;
     const tripsCount = db.prepare('SELECT trips_count FROM users WHERE id = ?').get(req.user.id);
     if (tripsCount.trips_count >= 5) {
@@ -250,18 +266,21 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       trip_id: result.lastInsertRowid,
       origin,
       destination,
-      flight_distance_km: actualFlightDistance,
-      route_waypoints: route_waypoints || null,
+      flight_distance_km: flightDistKm,
+      route_waypoints: outboundData.route_waypoints || null,
+      return_same_as_outbound: returnData.same_as_outbound,
       co2: {
-        flight: Math.round(co2Flight * 100) / 100,
-        sea: Math.round(co2Sea * 100) / 100,
-        land: Math.round(co2Land * 100) / 100,
-        total: Math.round(co2Total * 100) / 100,
+        flight: r2(co2Flight),
+        sea:    r2(co2Sea),
+        land:   r2(co2Land),
+        total:  r2(co2Total),
+        outbound: { flight: r2(obFlight.co2), sea: r2(obSea), land: r2(obLand),    total: r2(obTotal)  },
+        return:   { flight: r2(retFlightCO2), sea: r2(retSea), land: r2(retLand),   total: r2(retTotal) },
       },
       breakdown_pct: {
         flight: co2Total > 0 ? Math.round((co2Flight / co2Total) * 100) : 0,
-        sea: co2Total > 0 ? Math.round((co2Sea / co2Total) * 100) : 0,
-        land: co2Total > 0 ? Math.round((co2Land / co2Total) * 100) : 0,
+        sea:    co2Total > 0 ? Math.round((co2Sea    / co2Total) * 100) : 0,
+        land:   co2Total > 0 ? Math.round((co2Land   / co2Total) * 100) : 0,
       },
       points_earned: 10,
       expedition_id: validExpeditionId,

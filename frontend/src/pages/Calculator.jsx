@@ -24,7 +24,6 @@ const LAND_OPTIONS = [
   { value: 'none', label: 'Caminando',     Icon: WalkingPersonIcon },
 ]
 
-
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const [y, m, d] = dateStr.split('-')
@@ -123,18 +122,16 @@ function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked }) {
 
 /* ── City autocomplete input ── */
 function CityAutocomplete({ value, onChange, placeholder = 'Ciudad o aeropuerto...', apiBase }) {
-  const [query, setQuery]           = useState('')
+  const [query, setQuery]             = useState('')
   const [suggestions, setSuggestions] = useState([])
-  const [open, setOpen]             = useState(false)
-  const ref     = useRef(null)
+  const [open, setOpen]               = useState(false)
+  const ref      = useRef(null)
   const timerRef = useRef(null)
 
-  // Sync display when value changes externally
   useEffect(() => {
     setQuery(value ? `${value.city} (${value.iata})` : '')
   }, [value?.iata])
 
-  // Outside-click closes dropdown
   useEffect(() => {
     function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', h)
@@ -144,7 +141,7 @@ function CityAutocomplete({ value, onChange, placeholder = 'Ciudad o aeropuerto.
   function handleChange(e) {
     const q = e.target.value
     setQuery(q)
-    onChange(null) // deselect while user types
+    onChange(null)
     clearTimeout(timerRef.current)
     if (q.length < 2) { setSuggestions([]); setOpen(false); return }
     timerRef.current = setTimeout(async () => {
@@ -164,10 +161,7 @@ function CityAutocomplete({ value, onChange, placeholder = 'Ciudad o aeropuerto.
   }
 
   function clear() {
-    setQuery('')
-    onChange(null)
-    setSuggestions([])
-    setOpen(false)
+    setQuery(''); onChange(null); setSuggestions([]); setOpen(false)
   }
 
   return (
@@ -217,25 +211,68 @@ function CityAutocomplete({ value, onChange, placeholder = 'Ciudad o aeropuerto.
   )
 }
 
+/* ── Section divider ── */
+function SectionDivider({ label, color = 'rgba(0,180,216,0.5)' }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '4px 0' }}>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+      <span style={{ color, fontSize: '10px', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+    </div>
+  )
+}
+
+/* ── Segment summary (read-only) ── */
+function SegmentSummary({ seaSegs, landSegs }) {
+  const seaLabels = { bote_buceo: 'Bote de buceo', lancha: 'Lancha rápida', ferry: 'Ferry', none: 'Sin marítimo' }
+  const landLabels = { van: 'Van / Minibus', bus: 'Bus público', taxi: 'Taxi / Uber', suv: 'SUV', none: 'Caminando' }
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+      {seaSegs.map((s, i) => (
+        <span key={i} style={{ background: 'rgba(0,180,216,0.1)', border: '1px solid rgba(0,180,216,0.2)', borderRadius: '8px', padding: '3px 8px', fontSize: '11px', color: '#90e0ef' }}>
+          <ShipIcon size={10} style={{ display: 'inline', marginRight: '4px' }} />{seaLabels[s.type] || s.type}{s.hours ? ` · ${s.hours}h` : ''}
+        </span>
+      ))}
+      {landSegs.map((s, i) => (
+        <span key={i} style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '8px', padding: '3px 8px', fontSize: '11px', color: '#fde68a' }}>
+          <CarIcon size={10} style={{ display: 'inline', marginRight: '4px' }} />{landLabels[s.type] || s.type}{s.km ? ` · ${s.km}km` : ''}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 /* ── Main Calculator ── */
 export default function Calculator() {
   const { API, refreshUser, user } = useAuth()
   const navigate = useNavigate()
 
-  const [destList, setDestList]       = useState([])   // [{ name, icon, dive_hours }]
-  const [originApt, setOriginApt]     = useState(null)  // { iata, city, country, lat, lng }
+  // Destinations
+  const [destList, setDestList] = useState([])
+
+  // ── Outbound (IDA) ───────────────────────────────────────
+  const [originApt, setOriginApt]     = useState(null)
   const [destination, setDestination] = useState('')
-  const [routeStops, setRouteStops]   = useState([])   // array of airport objects | null (unresolved)
+  const [routeStops, setRouteStops]   = useState([])
   const [seaSegments, setSeaSegments]   = useState([{ type: 'bote_buceo', hours: 6 }])
   const [landSegments, setLandSegments] = useState([{ type: 'van', km: null }])
-  const [passengers, setPassengers]   = useState(1)
-  const [expeditions, setExpeditions] = useState([])
-  const [selectedExpId, setSelectedExpId] = useState(null)
-  const [expeditionLocked, setExpeditionLocked] = useState(false)
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
 
-  // Fetch destinations from backend on mount
+  // ── Return (VUELTA) ─────────────────────────────────────
+  const [returnSameAsOutbound, setReturnSameAsOutbound] = useState(null) // null | true | false
+  const [returnDepartureApt, setReturnDepartureApt]     = useState(null) // airport at destination for return flight
+  const [returnRouteStops, setReturnRouteStops]         = useState([])
+  const [returnSeaSegments, setReturnSeaSegments]       = useState([{ type: 'bote_buceo', hours: 6 }])
+  const [returnLandSegments, setReturnLandSegments]     = useState([{ type: 'van', km: null }])
+
+  // ── Shared ──────────────────────────────────────────────
+  const [passengers, setPassengers]         = useState(1)
+  const [expeditions, setExpeditions]       = useState([])
+  const [selectedExpId, setSelectedExpId]   = useState(null)
+  const [expeditionLocked, setExpeditionLocked] = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
+
+  // Fetch destinations on mount
   useEffect(() => {
     axios.get(`${API}/trips/destinations`).then(r => setDestList(r.data)).catch(() => {})
   }, [])
@@ -249,16 +286,18 @@ export default function Calculator() {
     }
   }, [user?.origin_city])
 
-  // Reset route stops when origin or destination changes
-  useEffect(() => { setRouteStops([]) }, [originApt?.iata, destination])
+  // Reset route / return state when origin or destination changes
+  useEffect(() => {
+    setRouteStops([])
+    setReturnSameAsOutbound(null)
+    setReturnDepartureApt(null)
+    setReturnRouteStops([])
+  }, [originApt?.iata, destination])
 
   // Fetch active expeditions when destination changes
   useEffect(() => {
     if (!destination) {
-      setExpeditions([])
-      setSelectedExpId(null)
-      setExpeditionLocked(false)
-      return
+      setExpeditions([]); setSelectedExpId(null); setExpeditionLocked(false); return
     }
     axios.get(`${API}/expeditions/active?destination=${encodeURIComponent(destination)}`)
       .then(res => {
@@ -272,18 +311,26 @@ export default function Calculator() {
 
   function selectExpedition(exp) {
     if (!exp) {
-      setSelectedExpId(null)
-      setExpeditionLocked(false)
+      setSelectedExpId(null); setExpeditionLocked(false)
       setSeaSegments([{ type: 'bote_buceo', hours: 6 }])
       setLandSegments([{ type: 'van', km: null }])
-      setPassengers(1)
-      return
+      setReturnSeaSegments([{ type: 'bote_buceo', hours: 6 }])
+      setReturnLandSegments([{ type: 'van', km: null }])
+      setPassengers(1); return
     }
     setSelectedExpId(exp.id)
     try {
       const hasFixed = exp.sea_transports || exp.land_transports
-      if (exp.sea_transports) setSeaSegments(JSON.parse(exp.sea_transports))
-      if (exp.land_transports) setLandSegments(JSON.parse(exp.land_transports))
+      if (exp.sea_transports) {
+        const segs = JSON.parse(exp.sea_transports)
+        setSeaSegments(segs)
+        setReturnSeaSegments(segs)
+      }
+      if (exp.land_transports) {
+        const segs = JSON.parse(exp.land_transports)
+        setLandSegments(segs)
+        setReturnLandSegments(segs)
+      }
       if (exp.fixed_passengers) setPassengers(exp.fixed_passengers)
       setExpeditionLocked(!!hasFixed)
     } catch { setExpeditionLocked(false) }
@@ -294,40 +341,71 @@ export default function Calculator() {
     else selectExpedition(exp)
   }
 
-  // Sea helpers
-  function updateSeaSeg(i, val) { setSeaSegments(s => s.map((x, idx) => idx === i ? val : x)) }
-  function addSeaSeg()           { setSeaSegments(s => [...s, { type: 'bote_buceo', hours: 6 }]) }
-  function removeSeaSeg(i)       { setSeaSegments(s => s.filter((_, idx) => idx !== i)) }
+  // ── Outbound helpers ────────────────────────────────────
+  function updateSeaSeg(i, val)  { setSeaSegments(s => s.map((x, idx) => idx === i ? val : x)) }
+  function addSeaSeg()            { setSeaSegments(s => [...s, { type: 'bote_buceo', hours: 6 }]) }
+  function removeSeaSeg(i)        { setSeaSegments(s => s.filter((_, idx) => idx !== i)) }
 
-  // Land helpers
   function updateLandSeg(i, val) { setLandSegments(s => s.map((x, idx) => idx === i ? val : x)) }
   function addLandSeg()           { setLandSegments(s => [...s, { type: 'van', km: null }]) }
   function removeLandSeg(i)       { setLandSegments(s => s.filter((_, idx) => idx !== i)) }
 
-  // Route stop helpers
   function addStop()          { setRouteStops(s => [...s, null]) }
   function removeStop(i)      { setRouteStops(s => s.filter((_, j) => j !== i)) }
   function updateStop(i, apt) { setRouteStops(s => s.map((x, j) => j === i ? apt : x)) }
 
+  // ── Return helpers ──────────────────────────────────────
+  function updateReturnSeaSeg(i, val)  { setReturnSeaSegments(s => s.map((x, idx) => idx === i ? val : x)) }
+  function addReturnSeaSeg()            { setReturnSeaSegments(s => [...s, { type: 'bote_buceo', hours: 6 }]) }
+  function removeReturnSeaSeg(i)        { setReturnSeaSegments(s => s.filter((_, idx) => idx !== i)) }
+
+  function updateReturnLandSeg(i, val) { setReturnLandSegments(s => s.map((x, idx) => idx === i ? val : x)) }
+  function addReturnLandSeg()           { setReturnLandSegments(s => [...s, { type: 'van', km: null }]) }
+  function removeReturnLandSeg(i)       { setReturnLandSegments(s => s.filter((_, idx) => idx !== i)) }
+
+  function addReturnStop()          { setReturnRouteStops(s => [...s, null]) }
+  function removeReturnStop(i)      { setReturnRouteStops(s => s.filter((_, j) => j !== i)) }
+  function updateReturnStop(i, apt) { setReturnRouteStops(s => s.map((x, j) => j === i ? apt : x)) }
+
   async function handleCalculate() {
     if (!originApt || !destination) { setError('Selecciona origen y destino'); return }
     if (routeStops.some(s => s === null)) {
-      setError('Completa todas las ciudades de escala o elimínalas')
-      return
+      setError('Completa todas las escalas de ida o elimínalas'); return
     }
-    setError('')
-    setLoading(true)
-    // Always use route_waypoints for accurate per-segment Haversine calculation
-    const route_waypoints = [originApt.iata, ...routeStops.map(s => s.iata)]
+    if (returnSameAsOutbound === null) {
+      setError('Indica si tu viaje de vuelta es igual o diferente al de ida'); return
+    }
+    if (!returnSameAsOutbound && returnRouteStops.some(s => s === null)) {
+      setError('Completa todas las escalas de vuelta o elimínalas'); return
+    }
+
+    setError(''); setLoading(true)
+
+    const outbound = {
+      route_waypoints: [originApt.iata, ...routeStops.map(s => s.iata)],
+      sea_segments: seaSegments,
+      land_segments: landSegments,
+    }
+
+    const return_trip = returnSameAsOutbound
+      ? { same_as_outbound: true }
+      : {
+          same_as_outbound: false,
+          route_waypoints: returnDepartureApt
+            ? [returnDepartureApt.iata, ...returnRouteStops.map(s => s.iata), originApt.iata]
+            : [],
+          sea_segments:  expeditionLocked ? seaSegments  : returnSeaSegments,
+          land_segments: expeditionLocked ? landSegments : returnLandSegments,
+        }
+
     try {
       const res = await axios.post(`${API}/trips/calculate`, {
         origin: originApt.city,
         destination,
-        sea_segments: seaSegments,
-        land_segments: landSegments,
+        outbound,
+        return_trip,
         passengers,
         expedition_id: selectedExpId,
-        route_waypoints,
       })
       refreshUser()
       navigate('/results', { state: { result: res.data, origin: originApt.city, destination } })
@@ -390,76 +468,6 @@ export default function Calculator() {
           </div>
         </div>
 
-        {/* ── Route builder ── */}
-        {originApt && destination && (
-          <div className="card animate-fade-in">
-            <p className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-4 flex items-center gap-1.5">
-              <PlaneIcon size={12} /> Ruta de vuelo
-            </p>
-
-            {/* Origin node */}
-            <div className="flex items-center gap-2.5">
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00b4d8', border: '2px solid #48cae4', flexShrink: 0 }} />
-              <span className="text-sm font-bold text-ocean-cyan">{originApt.city} <span style={{ color: 'rgba(0,180,216,0.45)', fontSize: '11px', fontWeight: 400 }}>({originApt.iata})</span></span>
-            </div>
-
-            {/* Stops */}
-            {routeStops.map((stop, i) => (
-              <div key={i}>
-                {/* connector */}
-                <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
-                <div className="flex items-center gap-2">
-                  {/* dot */}
-                  <div style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, background: stop ? 'rgba(251,191,36,0.25)' : 'transparent', border: `2px solid ${stop ? '#fbbf24' : 'rgba(255,255,255,0.2)'}` }} />
-                  <CityAutocomplete
-                    apiBase={API}
-                    value={stop}
-                    onChange={apt => updateStop(i, apt)}
-                    placeholder="Ciudad de escala..."
-                  />
-                  <button type="button" onClick={() => removeStop(i)}
-                    style={{ flexShrink: 0, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '7px', padding: '5px 9px', color: '#f87171', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>
-                    ×
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {/* Add stop */}
-            <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
-            <div className="flex items-center gap-2 mb-0.5">
-              <div style={{ width: 12, flexShrink: 0 }} />
-              <button type="button" onClick={addStop}
-                style={{ background: 'rgba(0,180,216,0.06)', border: '1px dashed rgba(0,180,216,0.25)', borderRadius: '8px', padding: '5px 14px', color: 'rgba(0,180,216,0.65)', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
-                + Agregar escala
-              </button>
-            </div>
-
-            {/* Connector to destination */}
-            <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
-
-            {/* Destination node */}
-            <div className="flex items-center gap-2.5">
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(167,139,250,0.3)', border: '2px solid #a78bfa', flexShrink: 0 }} />
-              <span className="text-sm font-bold" style={{ color: '#c4b5fd' }}>{destination}</span>
-              {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)' }} />}
-            </div>
-
-            {/* Summary */}
-            {routeStops.length > 0 && (
-              <p className="text-xs mt-3 pl-5" style={{ color: routeStops.some(s => !s) ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>
-                {routeStops.some(s => !s)
-                  ? '⚠ Completa o elimina las escalas vacías'
-                  : `${routeStops.length} escala${routeStops.length > 1 ? 's' : ''} · distancias calculadas por segmento`
-                }
-              </p>
-            )}
-            {routeStops.length === 0 && (
-              <p className="text-[11px] mt-3 pl-5 text-ocean-foam/25">Vuelo directo — agrega escalas si tu ruta las tiene</p>
-            )}
-          </div>
-        )}
-
         {/* Expedition selector */}
         {expeditions.length > 0 && (
           <div className="animate-fade-in">
@@ -490,7 +498,7 @@ export default function Calculator() {
                           <p className="text-[11px] ml-5 mt-0.5 flex items-center gap-1" style={{ color: 'rgba(253,230,138,0.6)' }}><TrophyIcon size={11} />{exp.prize_description}</p>
                         )}
                         {isSelected && exp.sea_transports && (
-                          <p className="text-[10px] ml-5 mt-1 flex items-center gap-1" style={{ color: 'rgba(167,139,250,0.6)' }}><LockIcon size={10} />Parámetros de transporte definidos por Diving Life</p>
+                          <p className="text-[10px] ml-5 mt-1 flex items-center gap-1" style={{ color: 'rgba(167,139,250,0.6)' }}><LockIcon size={10} />Transporte marítimo y terrestre definidos por Diving Life</p>
                         )}
                       </div>
                       <div className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
@@ -511,67 +519,294 @@ export default function Calculator() {
           </div>
         )}
 
-        {/* Expedition lock banner */}
-        {expeditionLocked && selectedExp && (
-          <div className="rounded-2xl px-4 py-3 animate-fade-in"
-            style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.25)' }}>
-            <div className="flex items-start gap-2.5">
-              <LockIcon size={15} style={{ color: '#a78bfa', flexShrink: 0, marginTop: '1px' }} />
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(196,181,253,0.7)' }}>
-                Los parámetros de transporte están definidos por <strong style={{ color: '#c4b5fd' }}>Diving Life</strong> para esta expedición.
-                Tu ruta de vuelo personal es libre.
+        {/* ════════════════ IDA ════════════════ */}
+        {originApt && destination && (
+          <>
+            <SectionDivider label="Tramo de ida" color="rgba(0,180,216,0.6)" />
+
+            {/* Expedition lock banner */}
+            {expeditionLocked && selectedExp && (
+              <div className="rounded-2xl px-4 py-3 animate-fade-in"
+                style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.25)' }}>
+                <div className="flex items-start gap-2.5">
+                  <LockIcon size={15} style={{ color: '#a78bfa', flexShrink: 0, marginTop: '1px' }} />
+                  <p className="text-xs leading-relaxed" style={{ color: 'rgba(196,181,253,0.7)' }}>
+                    Los parámetros de transporte están definidos por <strong style={{ color: '#c4b5fd' }}>Diving Life</strong>.
+                    Tu ruta de vuelo personal es libre.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Route builder — IDA */}
+            <div className="card animate-fade-in">
+              <p className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                <PlaneIcon size={12} /> Ruta de vuelo — Ida
               </p>
+
+              <div className="flex items-center gap-2.5">
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00b4d8', border: '2px solid #48cae4', flexShrink: 0 }} />
+                <span className="text-sm font-bold text-ocean-cyan">{originApt.city} <span style={{ color: 'rgba(0,180,216,0.45)', fontSize: '11px', fontWeight: 400 }}>({originApt.iata})</span></span>
+              </div>
+
+              {routeStops.map((stop, i) => (
+                <div key={i}>
+                  <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+                  <div className="flex items-center gap-2">
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, background: stop ? 'rgba(251,191,36,0.25)' : 'transparent', border: `2px solid ${stop ? '#fbbf24' : 'rgba(255,255,255,0.2)'}` }} />
+                    <CityAutocomplete apiBase={API} value={stop} onChange={apt => updateStop(i, apt)} placeholder="Ciudad de escala..." />
+                    <button type="button" onClick={() => removeStop(i)}
+                      style={{ flexShrink: 0, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '7px', padding: '5px 9px', color: '#f87171', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+              <div className="flex items-center gap-2 mb-0.5">
+                <div style={{ width: 12, flexShrink: 0 }} />
+                <button type="button" onClick={addStop}
+                  style={{ background: 'rgba(0,180,216,0.06)', border: '1px dashed rgba(0,180,216,0.25)', borderRadius: '8px', padding: '5px 14px', color: 'rgba(0,180,216,0.65)', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                  + Agregar escala
+                </button>
+              </div>
+
+              <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+              <div className="flex items-center gap-2.5">
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(167,139,250,0.3)', border: '2px solid #a78bfa', flexShrink: 0 }} />
+                <span className="text-sm font-bold" style={{ color: '#c4b5fd' }}>{destination}</span>
+                {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)' }} />}
+              </div>
+
+              {routeStops.length > 0 && (
+                <p className="text-xs mt-3 pl-5" style={{ color: routeStops.some(s => !s) ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>
+                  {routeStops.some(s => !s) ? '⚠ Completa o elimina las escalas vacías' : `${routeStops.length} escala${routeStops.length > 1 ? 's' : ''}`}
+                </p>
+              )}
+              {routeStops.length === 0 && (
+                <p className="text-[11px] mt-3 pl-5 text-ocean-foam/25">Vuelo directo — agrega escalas si tu ruta las tiene</p>
+              )}
             </div>
-          </div>
+
+            {/* Sea transport — IDA */}
+            <div>
+              <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <ShipIcon size={13} /> Transporte Marítimo — Ida
+                {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)', marginLeft: 'auto' }} />}
+              </label>
+              <div className="space-y-2">
+                {seaSegments.map((seg, i) => (
+                  <SeaSegmentRow key={i} seg={seg}
+                    onChange={val => updateSeaSeg(i, val)}
+                    onRemove={() => removeSeaSeg(i)}
+                    canRemove={seaSegments.length > 1}
+                    locked={expeditionLocked} />
+                ))}
+              </div>
+              {!expeditionLocked && seaSegments.length < 3 && (
+                <button type="button" onClick={addSeaSeg}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
+                  style={{ background: 'rgba(0,180,216,0.05)', border: '1px dashed rgba(0,180,216,0.2)', color: 'rgba(0,180,216,0.5)' }}>
+                  <PlusIcon size={13} /> Añadir tramo marítimo
+                </button>
+              )}
+            </div>
+
+            {/* Land transport — IDA */}
+            <div>
+              <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <MapIcon size={13} /> Transporte Terrestre — Ida
+                {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)', marginLeft: 'auto' }} />}
+              </label>
+              <div className="space-y-2">
+                {landSegments.map((seg, i) => (
+                  <LandSegmentRow key={i} seg={seg}
+                    onChange={val => updateLandSeg(i, val)}
+                    onRemove={() => removeLandSeg(i)}
+                    canRemove={landSegments.length > 1}
+                    locked={expeditionLocked} />
+                ))}
+              </div>
+              {!expeditionLocked && landSegments.length < 3 && (
+                <button type="button" onClick={addLandSeg}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
+                  style={{ background: 'rgba(0,180,216,0.05)', border: '1px dashed rgba(0,180,216,0.2)', color: 'rgba(0,180,216,0.5)' }}>
+                  <PlusIcon size={13} /> Añadir tramo terrestre
+                </button>
+              )}
+            </div>
+          </>
         )}
 
-        {/* Sea transport */}
-        <div>
-          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <ShipIcon size={13} /> Transporte Marítimo
-            {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)', marginLeft: 'auto' }} />}
-          </label>
-          <div className="space-y-2">
-            {seaSegments.map((seg, i) => (
-              <SeaSegmentRow key={i} seg={seg}
-                onChange={val => updateSeaSeg(i, val)}
-                onRemove={() => removeSeaSeg(i)}
-                canRemove={seaSegments.length > 1}
-                locked={expeditionLocked} />
-            ))}
-          </div>
-          {!expeditionLocked && seaSegments.length < 3 && (
-            <button type="button" onClick={addSeaSeg}
-              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
-              style={{ background: 'rgba(0,180,216,0.05)', border: '1px dashed rgba(0,180,216,0.2)', color: 'rgba(0,180,216,0.5)' }}>
-              <PlusIcon size={13} /> Añadir tramo marítimo
-            </button>
-          )}
-        </div>
+        {/* ════════════════ VUELTA ════════════════ */}
+        {originApt && destination && (
+          <>
+            <SectionDivider label="Tramo de vuelta" color="rgba(167,139,250,0.7)" />
 
-        {/* Land transport */}
-        <div>
-          <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <MapIcon size={13} /> Transporte Terrestre
-            {expeditionLocked && <LockIcon size={11} style={{ color: 'rgba(167,139,250,0.5)', marginLeft: 'auto' }} />}
-          </label>
-          <div className="space-y-2">
-            {landSegments.map((seg, i) => (
-              <LandSegmentRow key={i} seg={seg}
-                onChange={val => updateLandSeg(i, val)}
-                onRemove={() => removeLandSeg(i)}
-                canRemove={landSegments.length > 1}
-                locked={expeditionLocked} />
-            ))}
-          </div>
-          {!expeditionLocked && landSegments.length < 3 && (
-            <button type="button" onClick={addLandSeg}
-              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
-              style={{ background: 'rgba(0,180,216,0.05)', border: '1px dashed rgba(0,180,216,0.2)', color: 'rgba(0,180,216,0.5)' }}>
-              <PlusIcon size={13} /> Añadir tramo terrestre
-            </button>
-          )}
-        </div>
+            {/* Same / different toggle */}
+            <div className="card animate-fade-in">
+              <p className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <PlaneIcon size={15} /> ¿Tu viaje de vuelta es igual al de ida?
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setReturnSameAsOutbound(true)}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all"
+                  style={returnSameAsOutbound === true
+                    ? { background: 'rgba(74,222,128,0.2)', border: '1px solid rgba(74,222,128,0.5)', color: '#86efac' }
+                    : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)' }
+                  }>
+                  <span style={{ fontSize: '16px', lineHeight: 1 }}>✓</span> Sí, misma ruta
+                </button>
+                <button type="button" onClick={() => setReturnSameAsOutbound(false)}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all"
+                  style={returnSameAsOutbound === false
+                    ? { background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.5)', color: '#c4b5fd' }
+                    : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)' }
+                  }>
+                  <span style={{ fontSize: '16px', lineHeight: 1 }}>~</span> No, es diferente
+                </button>
+              </div>
+            </div>
+
+            {/* ── Same as outbound: summary ── */}
+            {returnSameAsOutbound === true && (
+              <div className="rounded-2xl p-4 animate-fade-in"
+                style={{ background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.2)' }}>
+                <p className="text-xs font-bold text-green-400 mb-2 flex items-center gap-1.5">
+                  <span style={{ fontSize: '13px' }}>✓</span> Vuelta idéntica a la ida
+                </p>
+                <p className="text-[11px] mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  Ruta: {destination} → {routeStops.length > 0 ? routeStops.filter(Boolean).map(s => s.city).join(' → ') + ' → ' : ''}{originApt.city} ({originApt.iata})
+                </p>
+                <SegmentSummary seaSegs={seaSegments} landSegs={landSegments} />
+              </div>
+            )}
+
+            {/* ── Different return: full form ── */}
+            {returnSameAsOutbound === false && (
+              <div className="space-y-5 animate-fade-in">
+
+                {/* Return route builder */}
+                <div className="card">
+                  <p className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <PlaneIcon size={12} /> Ruta de vuelo — Vuelta
+                  </p>
+
+                  {/* Departure airport at destination */}
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(167,139,250,0.3)', border: '2px solid #a78bfa', flexShrink: 0 }} />
+                    <span className="text-sm font-bold" style={{ color: '#c4b5fd' }}>{destination}</span>
+                  </div>
+                  <div style={{ marginLeft: 5, width: 1, height: 10, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+                  <div className="flex items-center gap-2">
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, background: returnDepartureApt ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.05)', border: `2px solid ${returnDepartureApt ? '#fbbf24' : 'rgba(255,255,255,0.2)'}` }} />
+                    <CityAutocomplete
+                      apiBase={API}
+                      value={returnDepartureApt}
+                      onChange={apt => setReturnDepartureApt(apt)}
+                      placeholder="Aeropuerto de salida (cerca al destino)..."
+                    />
+                  </div>
+
+                  {returnRouteStops.map((stop, i) => (
+                    <div key={i}>
+                      <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, background: stop ? 'rgba(251,191,36,0.25)' : 'transparent', border: `2px solid ${stop ? '#fbbf24' : 'rgba(255,255,255,0.2)'}` }} />
+                        <CityAutocomplete apiBase={API} value={stop} onChange={apt => updateReturnStop(i, apt)} placeholder="Ciudad de escala..." />
+                        <button type="button" onClick={() => removeReturnStop(i)}
+                          style={{ flexShrink: 0, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '7px', padding: '5px 9px', color: '#f87171', cursor: 'pointer', fontSize: '13px', lineHeight: 1 }}>
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div style={{ width: 12, flexShrink: 0 }} />
+                    <button type="button" onClick={addReturnStop}
+                      style={{ background: 'rgba(167,139,250,0.06)', border: '1px dashed rgba(167,139,250,0.25)', borderRadius: '8px', padding: '5px 14px', color: 'rgba(167,139,250,0.65)', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                      + Agregar escala
+                    </button>
+                  </div>
+
+                  <div style={{ marginLeft: 5, width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '3px 0 3px 5px' }} />
+                  <div className="flex items-center gap-2.5">
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#00b4d8', border: '2px solid #48cae4', flexShrink: 0 }} />
+                    <span className="text-sm font-bold text-ocean-cyan">{originApt.city} <span style={{ color: 'rgba(0,180,216,0.45)', fontSize: '11px', fontWeight: 400 }}>({originApt.iata})</span></span>
+                  </div>
+
+                  {!returnDepartureApt && (
+                    <p className="text-[11px] mt-3 pl-5" style={{ color: 'rgba(251,191,36,0.5)' }}>
+                      Selecciona el aeropuerto desde donde sales en el regreso
+                    </p>
+                  )}
+                </div>
+
+                {/* Return sea transport — only if not expedition locked */}
+                {expeditionLocked ? (
+                  <div className="rounded-2xl px-4 py-3"
+                    style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)' }}>
+                    <p className="text-xs flex items-center gap-2" style={{ color: 'rgba(196,181,253,0.6)' }}>
+                      <LockIcon size={12} /> Transporte marítimo y terrestre de vuelta: definidos por Diving Life (igual que la ida)
+                    </p>
+                    <SegmentSummary seaSegs={seaSegments} landSegs={landSegments} />
+                  </div>
+                ) : (
+                  <>
+                    {/* Return sea */}
+                    <div>
+                      <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <ShipIcon size={13} /> Transporte Marítimo — Vuelta
+                      </label>
+                      <div className="space-y-2">
+                        {returnSeaSegments.map((seg, i) => (
+                          <SeaSegmentRow key={i} seg={seg}
+                            onChange={val => updateReturnSeaSeg(i, val)}
+                            onRemove={() => removeReturnSeaSeg(i)}
+                            canRemove={returnSeaSegments.length > 1}
+                            locked={false} />
+                        ))}
+                      </div>
+                      {returnSeaSegments.length < 3 && (
+                        <button type="button" onClick={addReturnSeaSeg}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
+                          style={{ background: 'rgba(167,139,250,0.05)', border: '1px dashed rgba(167,139,250,0.2)', color: 'rgba(167,139,250,0.5)' }}>
+                          <PlusIcon size={13} /> Añadir tramo marítimo
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Return land */}
+                    <div>
+                      <label className="text-xs text-ocean-foam/60 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <MapIcon size={13} /> Transporte Terrestre — Vuelta
+                      </label>
+                      <div className="space-y-2">
+                        {returnLandSegments.map((seg, i) => (
+                          <LandSegmentRow key={i} seg={seg}
+                            onChange={val => updateReturnLandSeg(i, val)}
+                            onRemove={() => removeReturnLandSeg(i)}
+                            canRemove={returnLandSegments.length > 1}
+                            locked={false} />
+                        ))}
+                      </div>
+                      {returnLandSegments.length < 3 && (
+                        <button type="button" onClick={addReturnLandSeg}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all"
+                          style={{ background: 'rgba(167,139,250,0.05)', border: '1px dashed rgba(167,139,250,0.2)', color: 'rgba(167,139,250,0.5)' }}>
+                          <PlusIcon size={13} /> Añadir tramo terrestre
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        )}
 
         {/* Passengers */}
         <div className="card">

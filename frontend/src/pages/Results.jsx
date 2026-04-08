@@ -7,7 +7,7 @@ import {
 } from '../components/OceanIcons'
 
 const BREAKDOWN_ICONS = { flight: PlaneIcon, sea: ShipIcon, land: CarIcon }
-const LEVEL_LABELS = { flight: 'Vuelo (ida y vuelta)', sea: 'Transporte marítimo', land: 'Transporte terrestre' }
+const LEVEL_LABELS = { flight: 'Vuelo (total)', sea: 'Transporte marítimo', land: 'Transporte terrestre' }
 const LEVEL_COLORS = {
   flight: 'from-blue-500 to-cyan-400',
   sea: 'from-teal-500 to-emerald-400',
@@ -75,7 +75,7 @@ export default function Results() {
         <h2 className="text-2xl font-black text-white mb-1">
           {result.origin} → {result.destination}
         </h2>
-        <p className="text-ocean-foam/40 text-xs">{flight_distance_km?.toLocaleString()} km de vuelo (ida y vuelta)</p>
+        <p className="text-ocean-foam/40 text-xs">{flight_distance_km?.toLocaleString()} km de vuelo (por sentido)</p>
       </div>
 
       {/* Total CO2 - Hero card */}
@@ -137,6 +137,41 @@ export default function Results() {
           })}
         </div>
       </div>
+
+      {/* Per-leg breakdown */}
+      {co2.outbound && (
+        <div className="card mb-5">
+          <h3 className="text-sm font-bold text-ocean-foam/70 uppercase tracking-wider mb-4">Desglose ida / vuelta</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Ida', data: co2.outbound, color: '#00b4d8', borderColor: 'rgba(0,180,216,0.3)' },
+              { label: result.return_same_as_outbound ? 'Vuelta (igual)' : 'Vuelta', data: co2.return, color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)' },
+            ].map(({ label, data, color, borderColor }) => (
+              <div key={label} className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${borderColor}` }}>
+                <p className="text-xs font-bold mb-2" style={{ color }}>{label}</p>
+                {[
+                  { key: 'flight', Icon: PlaneIcon, label: 'Vuelo' },
+                  { key: 'sea',    Icon: ShipIcon,  label: 'Mar' },
+                  { key: 'land',   Icon: CarIcon,   label: 'Tierra' },
+                ].map(({ key, Icon, label: lbl }) => data[key] > 0 && (
+                  <div key={key} className="flex items-center justify-between text-xs mb-1">
+                    <span className="flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      <Icon size={11} /> {lbl}
+                    </span>
+                    <span style={{ color, fontWeight: 600 }}>{formatCO2(data[key])}</span>
+                  </div>
+                ))}
+                <div className="border-t mt-2 pt-2" style={{ borderColor: `${borderColor}` }}>
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Total</span>
+                    <span style={{ color, fontWeight: 700 }}>{formatCO2(data.total)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Points earned */}
       <div
