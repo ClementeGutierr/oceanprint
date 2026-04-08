@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
-import { LeafIcon, CheckIcon, XIcon, RefreshIcon } from '../../components/OceanIcons'
+import { LeafIcon, CheckIcon, XIcon, RefreshIcon, BarChartIcon } from '../../components/OceanIcons'
 
 const CARD = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px' }
 const TH   = { padding: '8px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.35)', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' }
@@ -142,7 +142,7 @@ export default function AdminImport({ token }) {
             transition: 'all 0.15s',
           }}
         >
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>📊</div>
+          <div style={{ marginBottom: '12px', color: '#48cae4', display: 'flex', justifyContent: 'center' }}><BarChartIcon size={40} /></div>
           <p style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: '0 0 6px' }}>
             {dragging ? 'Suelta el archivo aquí' : 'Arrastra tu archivo Excel aquí'}
           </p>

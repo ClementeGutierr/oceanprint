@@ -4,7 +4,7 @@ import axios from 'axios'
 import Bubbles from './Bubbles'
 import { useAuth } from '../context/AuthContext'
 import {
-  LevelIcon, MedalIcon, OceanWaveIcon,
+  LevelIcon, MedalIcon, OceanWaveIcon, SettingsIcon,
   ThermometerIcon, TargetIcon, LeafIcon, TrophyIcon, DiveMaskIcon,
 } from './OceanIcons'
 
@@ -185,7 +185,7 @@ export default function Layout() {
                 className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200"
                 style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', color: '#c4b5fd', textDecoration: 'none' }}
               >
-                <span style={{ fontSize: '16px' }}>⚙️</span>
+                <SettingsIcon size={16} />
                 Panel Admin
               </a>
             </div>
@@ -235,7 +235,7 @@ export default function Layout() {
             fontWeight: 700,
           }}
         >
-          <span style={{ fontSize: '14px' }}>⚙️</span> Admin
+          <SettingsIcon size={14} /> Admin
         </a>
       )}
 

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import SplashScreen from './pages/SplashScreen'
+import { OceanWaveIcon } from './components/OceanIcons'
 import AuthPage from './pages/AuthPage'
 import Layout from './components/Layout'
 import Calculator from './pages/Calculator'
@@ -17,7 +18,7 @@ function AppRoutes() {
   if (loading) {
     return (
       <div className="min-h-screen ocean-bg flex items-center justify-center">
-        <div className="text-ocean-cyan animate-pulse text-2xl">🌊</div>
+        <div className="text-ocean-cyan animate-pulse"><OceanWaveIcon size={36} /></div>
       </div>
     )
   }

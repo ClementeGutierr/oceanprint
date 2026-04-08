@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import {
-  PlaneIcon, ShipIcon, CarIcon, StarIcon, LeafIcon, RefreshIcon, ThermometerIcon,
+  PlaneIcon, ShipIcon, CarIcon, StarIcon, LeafIcon, RefreshIcon, ThermometerIcon, TrophyIcon,
 } from '../components/OceanIcons'
 
 const BREAKDOWN_ICONS = { flight: PlaneIcon, sea: ShipIcon, land: CarIcon }
@@ -164,7 +164,7 @@ export default function Results() {
             border: '1px solid rgba(167,139,250,0.3)',
           }}
         >
-          <div className="text-2xl flex-shrink-0">🏆</div>
+          <div className="flex-shrink-0" style={{ color: '#c4b5fd', display: 'inline-flex' }}><TrophyIcon size={28} /></div>
           <div>
             <p className="text-purple-300 font-bold text-sm">¡Misión completada!</p>
             <p className="text-white font-semibold text-sm">{result.mission_completed.name}</p>

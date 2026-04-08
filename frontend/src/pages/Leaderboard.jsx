@@ -132,7 +132,7 @@ function GroupStats({ stats }) {
         </div>
         <p className="text-[10px] text-ocean-foam/30 mt-1.5 text-center">
           {pct >= 100
-            ? '¡Huella 100% compensada! 🌊'
+            ? '¡Huella 100% compensada!'
             : `Falta ${Math.max(0, 100 - pct)}% para compensar toda la huella grupal`}
         </p>
       </div>
@@ -274,7 +274,7 @@ function ExpeditionPanel({ expeditionId, API }) {
             className="rounded-2xl px-3 py-2.5 flex items-start gap-2 mb-3"
             style={{ background: 'rgba(253,230,138,0.06)', border: '1px solid rgba(253,230,138,0.15)' }}
           >
-            <span className="text-base flex-shrink-0">🏆</span>
+            <span className="flex-shrink-0" style={{ color: 'rgba(253,230,138,0.8)', display: 'inline-flex' }}><TrophyIcon size={18} /></span>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: 'rgba(253,230,138,0.5)' }}>
                 Premio al ganador
@@ -425,7 +425,7 @@ export default function Leaderboard() {
               : { color: 'rgba(255,255,255,0.35)', border: '1px solid transparent' }
           }
         >
-          🌊 General
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><OceanWaveIcon size={13} />General</span>
         </button>
         <button
           onClick={() => setTab('expedition')}
@@ -436,7 +436,7 @@ export default function Leaderboard() {
               : { color: 'rgba(255,255,255,0.35)', border: '1px solid transparent' }
           }
         >
-          🏆 Mi Expedición
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><TrophyIcon size={13} />Mi Expedición</span>
           {myExpeditions.length > 0 && (
             <span
               className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center"

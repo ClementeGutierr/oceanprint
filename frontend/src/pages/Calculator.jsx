@@ -492,10 +492,10 @@ export default function Calculator() {
                           {formatDate(exp.start_date)} – {formatDate(exp.end_date)} · {exp.member_count} miembro{exp.member_count !== 1 ? 's' : ''}
                         </p>
                         {exp.prize_description && (
-                          <p className="text-[11px] ml-5 mt-0.5" style={{ color: 'rgba(253,230,138,0.6)' }}>🏆 {exp.prize_description}</p>
+                          <p className="text-[11px] ml-5 mt-0.5 flex items-center gap-1" style={{ color: 'rgba(253,230,138,0.6)' }}><TrophyIcon size={11} />{exp.prize_description}</p>
                         )}
                         {isSelected && exp.sea_transports && (
-                          <p className="text-[10px] ml-5 mt-1" style={{ color: 'rgba(167,139,250,0.6)' }}>🔒 Parámetros de transporte definidos por Diving Life</p>
+                          <p className="text-[10px] ml-5 mt-1 flex items-center gap-1" style={{ color: 'rgba(167,139,250,0.6)' }}><LockIcon size={10} />Parámetros de transporte definidos por Diving Life</p>
                         )}
                       </div>
                       <div className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"

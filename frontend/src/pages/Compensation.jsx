@@ -535,13 +535,13 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
     const co2n = result?.co2_compensated ?? co2
     const pct  = result?.compensation_pct ?? 0
     const text = [
-      `🌊 *Compensé ${co2n} kg de CO₂* con Diving Life`,
+      `*Compensé ${co2n} kg de CO₂* con Diving Life`,
       ``,
       `${getActionText(selected, units)} con ${selected.organization}`,
       ``,
-      `📊 Soy *${user?.level || 'Guardián'}* — llevo el *${pct}%* de mi huella compensada.`,
+      `Soy *${user?.level || 'Guardián'}* — llevo el *${pct}%* de mi huella compensada.`,
       ``,
-      `🐠 ¡Únete y protege el océano! 👉 oceanprint.co`,
+      `¡Únete y protege el océano! oceanprint.co`,
     ].join('\n')
 
     try {
@@ -551,7 +551,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
         try {
           await navigator.share({
             files: navigator.canShare?.({ files: [file] }) ? [file] : undefined,
-            text: `Compensé ${co2n} kg de CO₂ con Diving Life 🌊 Calcula tu huella en oceanprint.co`,
+            text: `Compensé ${co2n} kg de CO₂ con Diving Life. Calcula tu huella en oceanprint.co`,
           })
         } catch (e) {
           if (e.name !== 'AbortError') {
@@ -1186,7 +1186,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
               <div className="rounded-xl px-3 py-2 mb-3" style={{ background: 'rgba(225,48,108,0.05)', border: '1px solid rgba(225,48,108,0.12)' }}>
                 <p className="text-[10px] text-ocean-foam/30 mb-1 font-semibold uppercase tracking-wide">Caption sugerido para Instagram</p>
                 <p className="text-[11px] text-ocean-foam/50 leading-relaxed select-all">
-                  Compensé {result?.co2_compensated ?? co2} kg de CO₂ con @divinglife.co 🌊🐢 #OceanPrint #ConservacionMarina
+                  Compensé {result?.co2_compensated ?? co2} kg de CO₂ con @divinglife.co #OceanPrint #ConservacionMarina
                 </p>
               </div>
 

@@ -757,7 +757,7 @@ export default function Profile() {
                         </div>
                         {exp.prize_description && (
                           <p className="text-[10px] flex-1 leading-snug" style={{ color: 'rgba(253,230,138,0.55)' }}>
-                            🏆 {exp.prize_description}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><TrophyIcon size={10} />{exp.prize_description}</span>
                           </p>
                         )}
                       </div>

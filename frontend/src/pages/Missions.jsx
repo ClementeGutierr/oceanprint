@@ -230,7 +230,7 @@ function ActionModal({ mission, onClose, onComplete }) {
 
   const isCiencia    = mission.category === 'ciencia'
   const isComunidad  = mission.category === 'comunidad'
-  const shareText    = encodeURIComponent(`Acabo de completar la misión "${mission.name}" en OceanPrint 🌊`)
+  const shareText    = encodeURIComponent(`Acabo de completar la misión "${mission.name}" en OceanPrint`)
   const waUrl        = `https://wa.me/?text=${shareText}`
   const igUrl        = `https://instagram.com`
 

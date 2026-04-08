@@ -7,7 +7,7 @@ import {
   Plane, Ship, Car, Bus, Trophy, Star, Trash2, Lock, Target,
   Thermometer, Leaf, RefreshCw, CreditCard, Sparkles, Lightbulb,
   Brain, Users, X, Check, Search, Recycle, Globe, Frown, Map,
-  Pencil, Camera, MapPin, AtSign, Phone, Plus,
+  Pencil, Camera, MapPin, AtSign, Phone, Plus, Settings, BarChart2,
 } from 'lucide-react'
 
 /* ─────────────────────────────────────────────
@@ -48,6 +48,8 @@ export const MapPinIcon       = lucide(MapPin)
 export const AtSignIcon       = lucide(AtSign)
 export const PhoneIcon        = lucide(Phone)
 export const PlusIcon         = lucide(Plus)
+export const SettingsIcon     = lucide(Settings)
+export const BarChartIcon     = lucide(BarChart2)
 
 /* ─────────────────────────────────────────────
    LEVEL SYSTEM
@@ -405,19 +407,19 @@ export function MedalIcon({ rank = 1, size = 24 }) {
    Maps emoji strings (stored in DB) → SVG components
 ───────────────────────────────────────────── */
 const MISSION_ICON_MAP = {
-  // Legacy emoji keys
-  '🪸': CoralIcon,
-  '🌊': OceanWaveIcon,
-  '🐠': TropicalFishIcon,
-  '🐡': TropicalFishIcon,
-  '🌍': GlobeIcon,
-  '🐋': WhaleIcon,
-  '🌱': LeafIcon,
-  '🌿': LeafIcon,
-  '🤿': DiveMaskIcon,
-  '♻️': RecycleIcon,
-  '🎯': TargetIcon,
-  '⭐': StarIcon,
+  // Legacy emoji keys — Unicode escapes map DB-stored emoji values to SVG components
+  '\u{1F9F8}': CoralIcon,        // coral
+  '\u{1F30A}': OceanWaveIcon,    // wave
+  '\u{1F420}': TropicalFishIcon, // tropical fish
+  '\u{1F421}': TropicalFishIcon, // blowfish
+  '\u{1F30D}': GlobeIcon,        // globe
+  '\u{1F40B}': WhaleIcon,        // whale
+  '\u{1F331}': LeafIcon,         // seedling
+  '\u{1F33F}': LeafIcon,         // herb
+  '\u{1F93F}': DiveMaskIcon,     // diving mask
+  '\u267B\uFE0F': RecycleIcon,   // recycle
+  '\u{1F3AF}': TargetIcon,       // target
+  '\u2B50': StarIcon,            // star
   // String keys (same as DESTINATION_ICON_MAP — used by icon picker)
   'shark':     SharkIcon,
   'whale':     WhaleIcon,
