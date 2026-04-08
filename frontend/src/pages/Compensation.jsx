@@ -461,7 +461,7 @@ function CompensationFlowModal({ selected, user, API, onClose, onSuccess }) {
     setTimeout(() => setToast(null), duration)
   }
 
-  const isVolunteer = selected.id === 'voluntariado'
+  const isVolunteer = !!selected.is_volunteering
   const co2 = selected.co2_per_unit * units
   const cost = selected.cost_per_unit * units
   const pts = selected.points_per_unit * units

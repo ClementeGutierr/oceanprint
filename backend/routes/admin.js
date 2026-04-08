@@ -369,12 +369,35 @@ router.get('/compensation-options', (req, res) => {
   res.json(db.prepare('SELECT * FROM compensation_options ORDER BY sort_order').all());
 });
 
+router.post('/compensation-options', (req, res) => {
+  const { name, organization, description, co2_per_unit, cost_per_unit, unit, icon, points_per_unit, is_volunteering = 0, sort_order = 0 } = req.body;
+  if (!name) return res.status(400).json({ error: 'Nombre requerido' });
+  const id = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 24) + '_' + Date.now().toString(36);
+  try {
+    db.prepare('INSERT INTO compensation_options (id, name, organization, description, co2_per_unit, cost_per_unit, unit, icon, points_per_unit, is_volunteering, currency, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(id, name, organization || '', description || '', parseFloat(co2_per_unit) || 0, parseFloat(cost_per_unit) || 0, unit || 'unidad', icon || 'coral', parseInt(points_per_unit) || 0, is_volunteering ? 1 : 0, 'COP', parseInt(sort_order) || 0);
+    res.status(201).json(db.prepare('SELECT * FROM compensation_options WHERE id = ?').get(id));
+  } catch (e) {
+    res.status(500).json({ error: 'Error creando opción de compensación' });
+  }
+});
+
 router.put('/compensation-options/:id', (req, res) => {
-  const { name, organization, description, co2_per_unit, cost_per_unit, unit, icon, points_per_unit } = req.body;
+  const { name, organization, description, co2_per_unit, cost_per_unit, unit, icon, points_per_unit, is_volunteering = 0, sort_order } = req.body;
   const id = req.params.id;
-  db.prepare('UPDATE compensation_options SET name=?, organization=?, description=?, co2_per_unit=?, cost_per_unit=?, unit=?, icon=?, points_per_unit=? WHERE id=?')
-    .run(name, organization, description, parseFloat(co2_per_unit), parseFloat(cost_per_unit), unit, icon, parseInt(points_per_unit), id);
+  const existing = db.prepare('SELECT sort_order FROM compensation_options WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'No encontrado' });
+  db.prepare('UPDATE compensation_options SET name=?, organization=?, description=?, co2_per_unit=?, cost_per_unit=?, unit=?, icon=?, points_per_unit=?, is_volunteering=?, sort_order=? WHERE id=?')
+    .run(name, organization, description, parseFloat(co2_per_unit), parseFloat(cost_per_unit), unit, icon, parseInt(points_per_unit), is_volunteering ? 1 : 0, sort_order != null ? parseInt(sort_order) : existing.sort_order, id);
   res.json(db.prepare('SELECT * FROM compensation_options WHERE id = ?').get(id));
+});
+
+router.delete('/compensation-options/:id', (req, res) => {
+  const id = req.params.id;
+  const row = db.prepare('SELECT id FROM compensation_options WHERE id = ?').get(id);
+  if (!row) return res.status(404).json({ error: 'No encontrado' });
+  db.prepare('DELETE FROM compensation_options WHERE id = ?').run(id);
+  res.json({ success: true });
 });
 
 // ── DESTINATIONS ──────────────────────────────────────────

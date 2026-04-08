@@ -115,6 +115,7 @@ function initDatabase() {
       unit TEXT NOT NULL,
       icon TEXT NOT NULL,
       points_per_unit INTEGER NOT NULL,
+      is_volunteering INTEGER DEFAULT 0,
       currency TEXT DEFAULT 'COP',
       sort_order INTEGER DEFAULT 0
     );
@@ -196,6 +197,7 @@ function initDatabase() {
     "ALTER TABLE destinations ADD COLUMN lat REAL",
     "ALTER TABLE destinations ADD COLUMN lng REAL",
     "ALTER TABLE destinations DROP COLUMN local_km",
+    "ALTER TABLE compensation_options ADD COLUMN is_volunteering INTEGER DEFAULT 0",
   ]) {
     try { db.exec(sql) } catch {}
   }
@@ -518,12 +520,12 @@ function seedData() {
   const destCount = db.prepare('SELECT COUNT(*) as count FROM destinations').get();
   if (destCount.count === 0) {
     const insD = db.prepare('INSERT OR IGNORE INTO destinations (name, country, icon, dive_hours, sort_order) VALUES (?, ?, ?, ?, ?)');
-    insD.run('Galápagos',           'Ecuador',    '🦈', 6, 1);
-    insD.run('Isla Malpelo',        'Colombia',   '🦈', 8, 2);
-    insD.run('Islas Revillagigedo', 'México',     '🦈', 6, 3);
-    insD.run('Isla del Coco',       'Costa Rica', '🦈', 8, 4);
-    insD.run('Raja Ampat',          'Indonesia',  '🐙', 6, 5);
-    insD.run('Providencia',         'Colombia',   '🦀', 4, 6);
+    insD.run('Galápagos',           'Ecuador',    'turtle',  6, 1);
+    insD.run('Isla Malpelo',        'Colombia',   'shark',   8, 2);
+    insD.run('Islas Revillagigedo', 'México',     'whale',   6, 3);
+    insD.run('Isla del Coco',       'Costa Rica', 'octopus', 8, 4);
+    insD.run('Raja Ampat',          'Indonesia',  'fish',    6, 5);
+    insD.run('Providencia',         'Colombia',   'coral',   4, 6);
   }
 
   // Seed origins (idempotent)
@@ -567,12 +569,12 @@ function seedData() {
   const compOptCount = db.prepare('SELECT COUNT(*) as count FROM compensation_options').get();
   if (compOptCount.count === 0) {
     const insertOpt = db.prepare(
-      'INSERT INTO compensation_options (id, name, organization, description, co2_per_unit, cost_per_unit, unit, icon, points_per_unit, currency, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO compensation_options (id, name, organization, description, co2_per_unit, cost_per_unit, unit, icon, points_per_unit, is_volunteering, currency, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    insertOpt.run('corales',    'Plantar Corales',     'Fundación Corales de Paz', 'Cada coral plantado captura 0.5 kg CO2/año durante 20+ años en los arrecifes del Caribe', 0.5,  15000, 'coral',       '🪸', 25,  'COP', 1);
-    insertOpt.run('manglares',  'Plantar Manglares',   'Fundación Mar Viva',       'Los manglares secuestran hasta 4x más carbono que los bosques tropicales. Cada árbol captura 12 kg CO2/año', 12, 25000, 'árbol', '🌿', 40, 'COP', 2);
-    insertOpt.run('limpieza',   'Limpieza de Playa',   'Ocean Conservancy',        'Patrocina la recolección de residuos plásticos que afectan la vida marina. Cada jornada remueve 50 kg de plástico', 8, 50000, 'jornada', '♻️', 60, 'COP', 3);
-    insertOpt.run('voluntariado','Voluntariado Marino', 'Diving Life Foundation',   'Participa activamente en expediciones de monitoreo y restauración de ecosistemas marinos', 20, 0, 'expedición', '🤿', 100, 'COP', 4);
+    insertOpt.run('corales',     'Plantar Corales',     'Fundación Corales de Paz', 'Cada coral plantado captura 0.5 kg CO2/año durante 20+ años en los arrecifes del Caribe', 0.5,  15000, 'coral',      'coral',   25,  0, 'COP', 1);
+    insertOpt.run('manglares',   'Plantar Manglares',   'Fundación Mar Viva',       'Los manglares secuestran hasta 4x más carbono que los bosques tropicales. Cada árbol captura 12 kg CO2/año', 12, 25000, 'árbol', 'island',  40,  0, 'COP', 2);
+    insertOpt.run('limpieza',    'Limpieza de Playa',   'Ocean Conservancy',        'Patrocina la recolección de residuos plásticos que afectan la vida marina. Cada jornada remueve 50 kg de plástico', 8, 50000, 'jornada', 'wave', 60,  0, 'COP', 3);
+    insertOpt.run('voluntariado','Voluntariado Marino', 'Diving Life Foundation',   'Participa activamente en expediciones de monitoreo y restauración de ecosistemas marinos', 20, 0, 'expedición', 'dolphin', 100, 1, 'COP', 4);
   }
 
   // Seed demo users for leaderboard (idempotent — uses INSERT OR IGNORE)

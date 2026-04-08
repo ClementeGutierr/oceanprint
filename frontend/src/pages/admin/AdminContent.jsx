@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE, authCfg } from './AdminApp'
-import { LeafIcon, StarIcon, BrainIcon, CreditCardIcon, MissionIcon, OptionIcon, DESTINATION_ICONS_LIST } from '../../components/OceanIcons'
+import { LeafIcon, StarIcon, BrainIcon, CreditCardIcon, MissionIcon, DestinationIcon, DESTINATION_ICONS_LIST } from '../../components/OceanIcons'
 import AdminSelect from './AdminSelect'
 
 const TABS = ['Misiones', 'Quizzes', 'Compensaciones']
@@ -262,104 +262,136 @@ function QuizzesPanel({ token }) {
   )
 }
 
+const EMPTY_COMP = { name: '', organization: '', description: '', co2_per_unit: '', cost_per_unit: '0', unit: 'unidad', icon: 'coral', points_per_unit: '25', is_volunteering: false, sort_order: '0' }
+
 // ── COMPENSATION OPTIONS ──────────────────────────────────
 function CompOptionsPanel({ token }) {
-  const [items, setItems]     = useState([])
-  const [editing, setEditing] = useState(null)
-  const [form, setForm]       = useState({})
-  const [saving, setSaving]   = useState(false)
-  const [err, setErr]         = useState('')
+  const [items, setItems]       = useState([])
+  const [form, setForm]         = useState(EMPTY_COMP)
+  const [editing, setEditing]   = useState(null)   // item.id string, or null for create
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving]     = useState(false)
+  const [err, setErr]           = useState('')
 
   useEffect(() => {
     axios.get(`${API_BASE}/admin/compensation-options`, authCfg(token)).then(r => setItems(r.data)).catch(console.error)
   }, [token])
 
+  function openCreate() {
+    setForm(EMPTY_COMP); setEditing(null); setShowForm(true); setErr('')
+  }
   function openEdit(item) {
-    setForm({ name: item.name, organization: item.organization, description: item.description, co2_per_unit: item.co2_per_unit, cost_per_unit: item.cost_per_unit, unit: item.unit, icon: item.icon, points_per_unit: item.points_per_unit })
-    setEditing(item.id)
-    setErr('')
+    setForm({ name: item.name, organization: item.organization, description: item.description, co2_per_unit: String(item.co2_per_unit), cost_per_unit: String(item.cost_per_unit), unit: item.unit, icon: item.icon, points_per_unit: String(item.points_per_unit), is_volunteering: !!item.is_volunteering, sort_order: String(item.sort_order ?? 0) })
+    setEditing(item.id); setShowForm(true); setErr('')
   }
 
   async function save() {
     setSaving(true); setErr('')
     try {
-      const r = await axios.put(`${API_BASE}/admin/compensation-options/${editing}`, form, authCfg(token))
-      setItems(prev => prev.map(x => x.id === editing ? r.data : x))
-      setEditing(null)
+      const payload = { ...form, co2_per_unit: parseFloat(form.co2_per_unit) || 0, cost_per_unit: parseFloat(form.cost_per_unit) || 0, points_per_unit: parseInt(form.points_per_unit) || 0, is_volunteering: form.is_volunteering ? 1 : 0, sort_order: parseInt(form.sort_order) || 0 }
+      if (editing) {
+        const r = await axios.put(`${API_BASE}/admin/compensation-options/${editing}`, payload, authCfg(token))
+        setItems(prev => prev.map(x => x.id === editing ? r.data : x))
+      } else {
+        const r = await axios.post(`${API_BASE}/admin/compensation-options`, payload, authCfg(token))
+        setItems(prev => [...prev, r.data])
+      }
+      setShowForm(false)
     } catch (e) { setErr(e.response?.data?.error || 'Error') } finally { setSaving(false) }
+  }
+
+  async function del(item) {
+    if (!window.confirm(`¿Eliminar "${item.name}"? Los usuarios que ya la hayan usado conservarán sus registros.`)) return
+    await axios.delete(`${API_BASE}/admin/compensation-options/${item.id}`, authCfg(token))
+    setItems(prev => prev.filter(x => x.id !== item.id))
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ ...CARD, border: '1px solid rgba(74,222,128,0.2)' }}>
-        <p style={{ color: '#4ade80', fontSize: '13px', margin: '0 0 4px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <LeafIcon size={14} /> Opciones de compensación
-        </p>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0 }}>Edita el precio, kg de CO₂, organización y descripción de cada opción de compensación disponible en la app.</p>
-      </div>
-
-      {items.map(item => (
-        <div key={item.id} style={CARD}>
-          {editing === item.id ? (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <h4 style={{ color: '#4ade80', fontWeight: 700, fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <OptionIcon id={item.id} size={16} color="#4ade80" /> Editando: {item.name}
-                </h4>
-                <button onClick={() => setEditing(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '20px' }}>×</button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '12px' }}>
-                <div><label style={LABEL}>Nombre</label><input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                <div><label style={LABEL}>Organización</label><input style={INPUT} value={form.organization} onChange={e => setForm({ ...form, organization: e.target.value })} /></div>
-                <div><label style={LABEL}>Unidad</label><input style={INPUT} value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} /></div>
-                <div><label style={LABEL}>kg CO₂ por unidad</label><input type="number" step="0.1" style={INPUT} value={form.co2_per_unit} onChange={e => setForm({ ...form, co2_per_unit: e.target.value })} /></div>
-                <div><label style={LABEL}>Costo por unidad (COP)</label><input type="number" style={INPUT} value={form.cost_per_unit} onChange={e => setForm({ ...form, cost_per_unit: e.target.value })} /></div>
-                <div><label style={LABEL}>Puntos por unidad</label><input type="number" style={INPUT} value={form.points_per_unit} onChange={e => setForm({ ...form, points_per_unit: e.target.value })} /></div>
-                <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Descripción</label><textarea style={{ ...INPUT, height: '70px', resize: 'vertical' }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-                <div style={{ gridColumn: '1/-1' }}>
-                  <label style={LABEL}>Ícono</label>
-                  <div style={{ marginTop: '8px' }}><IconPicker value={form.icon} onChange={v => setForm({ ...form, icon: v })} /></div>
-                </div>
-              </div>
-              {err && <p style={{ color: '#f87171', fontSize: '13px', margin: '10px 0 0' }}>{err}</p>}
-              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-                <button onClick={save} disabled={saving} style={BTN}>{saving ? 'Guardando...' : 'Guardar cambios'}</button>
-                <button onClick={() => setEditing(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 14px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '12px' }}>Cancelar</button>
-              </div>
+      {showForm && (
+        <div style={{ ...CARD, border: '1px solid rgba(74,222,128,0.3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h4 style={{ color: '#4ade80', fontWeight: 700, fontSize: '14px', margin: 0 }}>{editing ? 'Editar compensación' : 'Nueva compensación'}</h4>
+            <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '20px' }}>×</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '12px' }}>
+            <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Título</label><input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Plantar Corales" /></div>
+            <div><label style={LABEL}>Organización / Fundación</label><input style={INPUT} value={form.organization} onChange={e => setForm({ ...form, organization: e.target.value })} placeholder="Ej: Fundación Corales de Paz" /></div>
+            <div><label style={LABEL}>Unidad</label><input style={INPUT} value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="coral / árbol / jornada" /></div>
+            <div><label style={LABEL}>kg CO₂ por unidad</label><input type="number" step="0.1" min="0" style={INPUT} value={form.co2_per_unit} onChange={e => setForm({ ...form, co2_per_unit: e.target.value })} /></div>
+            <div><label style={LABEL}>Precio por unidad (COP)</label><input type="number" min="0" style={INPUT} value={form.cost_per_unit} onChange={e => setForm({ ...form, cost_per_unit: e.target.value })} placeholder="0 = gratis" /></div>
+            <div><label style={LABEL}>Puntos por unidad</label><input type="number" min="0" style={INPUT} value={form.points_per_unit} onChange={e => setForm({ ...form, points_per_unit: e.target.value })} /></div>
+            <div><label style={LABEL}>Orden (sort)</label><input type="number" min="0" style={INPUT} value={form.sort_order} onChange={e => setForm({ ...form, sort_order: e.target.value })} /></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '22px' }}>
+              <label style={{ ...LABEL, margin: 0 }}>Voluntariado</label>
+              <button type="button" onClick={() => setForm({ ...form, is_volunteering: !form.is_volunteering })}
+                style={{ width: '40px', height: '22px', borderRadius: '11px', border: 'none', cursor: 'pointer', transition: 'background 0.2s', position: 'relative',
+                  background: form.is_volunteering ? '#4ade80' : 'rgba(255,255,255,0.12)' }}>
+                <span style={{ position: 'absolute', top: '3px', width: '16px', height: '16px', borderRadius: '50%', background: 'white', transition: 'left 0.2s',
+                  left: form.is_volunteering ? '21px' : '3px' }} />
+              </button>
+              <span style={{ fontSize: '11px', color: form.is_volunteering ? '#4ade80' : 'rgba(255,255,255,0.3)' }}>{form.is_volunteering ? 'Sí' : 'No'}</span>
             </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+            <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Descripción</label><textarea style={{ ...INPUT, height: '70px', resize: 'vertical' }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={LABEL}>Ícono</label>
+              <div style={{ marginTop: '8px' }}><IconPicker value={form.icon} onChange={v => setForm({ ...form, icon: v })} /></div>
+            </div>
+          </div>
+          {err && <p style={{ color: '#f87171', fontSize: '13px', margin: '10px 0 0' }}>{err}</p>}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+            <button onClick={save} disabled={saving} style={BTN}>{saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear compensación'}</button>
+            <button onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 14px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '12px' }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      <div style={CARD}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <h4 style={{ color: 'white', fontWeight: 700, fontSize: '14px', margin: 0 }}>Compensaciones ({items.length})</h4>
+          <button onClick={openCreate} style={{ ...BTN, background: 'linear-gradient(135deg,#4ade80,#22c55e)' }}>+ Nueva</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {items.map(item => (
+            <div key={item.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
               <div style={{ flexShrink: 0, color: '#4ade80' }}>
-                <OptionIcon id={item.id} size={32} color="#4ade80" />
+                <DestinationIcon icon={item.icon} size={30} color="#4ade80" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
-                    <h4 style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: '0 0 2px' }}>{item.name}</h4>
-                    <p style={{ color: '#4ade80', fontSize: '12px', fontWeight: 600, margin: '0 0 6px' }}>{item.organization}</p>
-                    <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', margin: 0 }}>{item.description}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h4 style={{ color: 'white', fontWeight: 700, fontSize: '14px', margin: 0 }}>{item.name}</h4>
+                      {!!item.is_volunteering && <span style={{ background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: '6px', padding: '1px 7px', fontSize: '10px', color: '#a78bfa', fontWeight: 700 }}>Voluntariado</span>}
+                    </div>
+                    <p style={{ color: '#4ade80', fontSize: '12px', fontWeight: 600, margin: '2px 0 5px' }}>{item.organization}</p>
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0 }}>{item.description}</p>
                   </div>
-                  <button onClick={() => openEdit(item)} style={BTN_EDIT}>Editar</button>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                    <button onClick={() => openEdit(item)} style={BTN_EDIT}>Editar</button>
+                    <button onClick={() => del(item)} style={BTN_DANGER}>Eliminar</button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ color: '#4ade80', display: 'inline-flex' }}><LeafIcon size={13} /></span>
+                <div style={{ display: 'flex', gap: '14px', marginTop: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: '#4ade80', display: 'inline-flex' }}><LeafIcon size={12} /></span>
                     <b style={{ color: '#4ade80' }}>{item.co2_per_unit} kg</b> CO₂ / {item.unit}
                   </span>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ color: '#fbbf24', display: 'inline-flex' }}><CreditCardIcon size={13} /></span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: '#fbbf24', display: 'inline-flex' }}><CreditCardIcon size={12} /></span>
                     <b style={{ color: '#fbbf24' }}>{item.cost_per_unit === 0 ? 'Gratis' : `$${Number(item.cost_per_unit).toLocaleString()} COP`}</b> / {item.unit}
                   </span>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ color: '#48cae4', display: 'inline-flex' }}><StarIcon size={13} /></span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: '#48cae4', display: 'inline-flex' }}><StarIcon size={12} /></span>
                     <b style={{ color: '#48cae4' }}>{item.points_per_unit} pts</b> / {item.unit}
                   </span>
                 </div>
               </div>
             </div>
-          )}
+          ))}
+          {!items.length && <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '13px', textAlign: 'center', padding: '20px 0', margin: 0 }}>Sin opciones de compensación</p>}
         </div>
-      ))}
+      </div>
     </div>
   )
 }
