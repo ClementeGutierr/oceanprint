@@ -514,6 +514,17 @@ function seedData() {
     // ── Islas Pacífico relevantes para buceo ──
     insB.run('SEZ','Seychelles International','Victoria','Seychelles',-4.6743,55.5218);
     insB.run('MRU','Sir Seewoosagur Ramgoolam','Mauricio','Mauricio',-20.4302,57.6836);
+    // ── Destinos de buceo adicionales ──
+    insB.run('CNS','Cairns','Cairns','Australia',-16.8858,145.7553);
+    insB.run('POM','Jacksons','Port Moresby','Papua Nueva Guinea',-5.8626,147.2153);
+    insB.run('ZNZ','Abeid Amani Karume','Zanzíbar','Tanzania',-6.2199,39.2248);
+    insB.run('HRG','Hurghada','Hurghada','Egipto',27.1783,33.7994);
+    insB.run('SSH','Sharm el-Sheikh','Sharm El Sheikh','Egipto',27.9773,34.3947);
+    insB.run('CZM','Cozumel','Cozumel','México',20.5224,-86.9256);
+    insB.run('BON','Flamingo','Bonaire','Caribe Neerlandés',12.1310,-68.2685);
+    insB.run('TWU','Tawau','Tawau (Sipadan)','Malasia',4.3202,118.1270);
+    insB.run('NAN','Nadi','Nadi (Fiyi)','Fiyi',-17.7554,177.4436);
+    insB.run('LBJ','Komodo','Labuan Bajo (Komodo)','Indonesia',-8.4867,119.8894);
   }
 
   // Seed destinations (idempotent)

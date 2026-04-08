@@ -593,4 +593,60 @@ router.post('/import-excel', upload.single('file'), (req, res) => {
   }
 });
 
+// ── AIRPORTS ──────────────────────────────────────────────
+router.get('/airports', (req, res) => {
+  const { q = '' } = req.query;
+  let rows;
+  if (q.trim().length >= 2) {
+    rows = db.prepare(`
+      SELECT * FROM airports
+      WHERE UPPER(iata) LIKE UPPER(?) OR LOWER(city) LIKE LOWER(?) OR LOWER(name) LIKE LOWER(?)
+      ORDER BY country, city LIMIT 100
+    `).all(`%${q}%`, `%${q}%`, `%${q}%`);
+  } else {
+    rows = db.prepare('SELECT * FROM airports ORDER BY country, city LIMIT 500').all();
+  }
+  res.json(rows);
+});
+
+router.post('/airports', (req, res) => {
+  const { iata, name, city, country, lat, lng } = req.body;
+  if (!iata || !name || !city || !country || lat == null || lng == null) {
+    return res.status(400).json({ error: 'Todos los campos son requeridos (iata, name, city, country, lat, lng)' });
+  }
+  const code = String(iata).trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(code)) {
+    return res.status(400).json({ error: 'El código IATA debe tener exactamente 3 letras' });
+  }
+  try {
+    const r = db.prepare('INSERT INTO airports (iata, name, city, country, lat, lng) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(code, String(name).trim(), String(city).trim(), String(country).trim(), parseFloat(lat), parseFloat(lng));
+    res.status(201).json(db.prepare('SELECT * FROM airports WHERE id = ?').get(r.lastInsertRowid));
+  } catch (e) {
+    if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: `El código IATA ${code} ya existe` });
+    res.status(500).json({ error: 'Error creando aeropuerto' });
+  }
+});
+
+router.put('/airports/:iata', (req, res) => {
+  const code = req.params.iata.toUpperCase();
+  const { name, city, country, lat, lng } = req.body;
+  if (!name || !city || !country || lat == null || lng == null) {
+    return res.status(400).json({ error: 'Todos los campos son requeridos' });
+  }
+  const existing = db.prepare('SELECT iata FROM airports WHERE iata = ?').get(code);
+  if (!existing) return res.status(404).json({ error: 'Aeropuerto no encontrado' });
+  db.prepare('UPDATE airports SET name=?, city=?, country=?, lat=?, lng=? WHERE iata=?')
+    .run(String(name).trim(), String(city).trim(), String(country).trim(), parseFloat(lat), parseFloat(lng), code);
+  res.json(db.prepare('SELECT * FROM airports WHERE iata = ?').get(code));
+});
+
+router.delete('/airports/:iata', (req, res) => {
+  const code = req.params.iata.toUpperCase();
+  const row = db.prepare('SELECT iata FROM airports WHERE iata = ?').get(code);
+  if (!row) return res.status(404).json({ error: 'Aeropuerto no encontrado' });
+  db.prepare('DELETE FROM airports WHERE iata = ?').run(code);
+  res.json({ success: true });
+});
+
 module.exports = router;

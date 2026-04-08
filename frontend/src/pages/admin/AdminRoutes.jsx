@@ -13,7 +13,7 @@ const BTN = { background: 'linear-gradient(135deg,#00b4d8,#48cae4)', border: 'no
 const BTN_DANGER = { background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', padding: '5px 10px', color: '#f87171', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }
 const BTN_EDIT = { background: 'rgba(0,180,216,0.12)', border: '1px solid rgba(0,180,216,0.25)', borderRadius: '8px', padding: '5px 10px', color: '#48cae4', cursor: 'pointer', fontSize: '12px', fontWeight: 600, marginRight: '6px' }
 
-const TABS = ['Destinos']
+const TABS = ['Destinos', 'Aeropuertos']
 
 // ── DESTINATIONS ────────────────────────────────────────────────────────────
 const EMPTY_DEST = { name: '', country: '', icon: 'shark', dive_hours: '6', sort_order: '0' }
@@ -376,6 +376,153 @@ function EscalasPanel({ token }) {
   )
 }
 
+// ── AIRPORTS ────────────────────────────────────────────────────────────────
+const EMPTY_APT = { iata: '', name: '', city: '', country: '', lat: '', lng: '' }
+
+function AeropuertosPanel({ token }) {
+  const [items, setItems]     = useState([])
+  const [form, setForm]       = useState(EMPTY_APT)
+  const [editing, setEditing] = useState(null) // IATA code when editing
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving]   = useState(false)
+  const [err, setErr]         = useState('')
+  const [search, setSearch]   = useState('')
+
+  function load() {
+    axios.get(`${API_BASE}/admin/airports`, authCfg(token)).then(r => setItems(r.data)).catch(console.error)
+  }
+  useEffect(() => { load() }, [token])
+
+  function openCreate() { setForm(EMPTY_APT); setEditing(null); setShowForm(true); setErr('') }
+  function openEdit(item) {
+    setForm({ iata: item.iata, name: item.name, city: item.city, country: item.country, lat: String(item.lat), lng: String(item.lng) })
+    setEditing(item.iata); setShowForm(true); setErr('')
+  }
+
+  async function save() {
+    setSaving(true); setErr('')
+    try {
+      const payload = { ...form, lat: parseFloat(form.lat), lng: parseFloat(form.lng) }
+      if (editing) {
+        const r = await axios.put(`${API_BASE}/admin/airports/${editing}`, payload, authCfg(token))
+        setItems(prev => prev.map(x => x.iata === editing ? r.data : x))
+      } else {
+        const r = await axios.post(`${API_BASE}/admin/airports`, payload, authCfg(token))
+        setItems(prev => [...prev, r.data])
+      }
+      setShowForm(false); setForm(EMPTY_APT)
+    } catch (e) { setErr(e.response?.data?.error || 'Error') } finally { setSaving(false) }
+  }
+
+  async function del(item) {
+    if (!window.confirm(`¿Eliminar aeropuerto ${item.iata} — ${item.name}?`)) return
+    await axios.delete(`${API_BASE}/admin/airports/${item.iata}`, authCfg(token))
+    setItems(prev => prev.filter(x => x.iata !== item.iata))
+  }
+
+  const filtered = search.trim().length > 0
+    ? items.filter(a => a.iata.toLowerCase().includes(search.toLowerCase()) || a.city.toLowerCase().includes(search.toLowerCase()) || a.country.toLowerCase().includes(search.toLowerCase()) || a.name.toLowerCase().includes(search.toLowerCase()))
+    : items
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ ...CARD, border: '1px solid rgba(251,191,36,0.2)' }}>
+        <p style={{ color: '#fbbf24', fontSize: '13px', margin: 0, fontWeight: 600 }}>Base de datos de aeropuertos</p>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '4px 0 0' }}>
+          Los aeropuertos se usan para el autocompletado en la calculadora y para calcular distancias de vuelo con la fórmula Haversine. El código IATA debe ser único (3 letras).
+        </p>
+      </div>
+
+      {showForm && (
+        <div style={{ ...CARD, border: '1px solid rgba(251,191,36,0.3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h4 style={{ color: '#fbbf24', fontWeight: 700, fontSize: '14px', margin: 0 }}>{editing ? `Editar ${editing}` : 'Nuevo aeropuerto'}</h4>
+            <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '20px' }}>×</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: '12px' }}>
+            <div>
+              <label style={LABEL}>Código IATA *</label>
+              <input style={{ ...INPUT, textTransform: 'uppercase', fontFamily: 'monospace', fontWeight: 700 }}
+                value={form.iata} maxLength={3} disabled={!!editing}
+                onChange={e => setForm({ ...form, iata: e.target.value.toUpperCase() })} placeholder="CNS" />
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={LABEL}>Nombre del aeropuerto *</label>
+              <input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Cairns Airport" />
+            </div>
+            <div>
+              <label style={LABEL}>Ciudad *</label>
+              <input style={INPUT} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} placeholder="Cairns" />
+            </div>
+            <div>
+              <label style={LABEL}>País *</label>
+              <input style={INPUT} value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="Australia" />
+            </div>
+            <div>
+              <label style={LABEL}>Latitud *</label>
+              <input type="number" step="any" style={INPUT} value={form.lat} onChange={e => setForm({ ...form, lat: e.target.value })} placeholder="-16.8858" />
+            </div>
+            <div>
+              <label style={LABEL}>Longitud *</label>
+              <input type="number" step="any" style={INPUT} value={form.lng} onChange={e => setForm({ ...form, lng: e.target.value })} placeholder="145.7553" />
+            </div>
+          </div>
+          {err && <p style={{ color: '#f87171', fontSize: '13px', margin: '10px 0 0' }}>{err}</p>}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+            <button onClick={save} disabled={saving} style={BTN}>{saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Agregar aeropuerto'}</button>
+            <button onClick={() => { setShowForm(false); setForm(EMPTY_APT) }} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 14px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '12px' }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      <div style={CARD}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+          <h4 style={{ color: 'white', fontWeight: 700, fontSize: '14px', margin: 0 }}>Aeropuertos ({items.length})</h4>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <input style={{ ...INPUT, width: '200px' }} placeholder="Buscar IATA, ciudad, país..." value={search} onChange={e => setSearch(e.target.value)} />
+            <button onClick={openCreate} style={BTN}>+ Agregar</button>
+          </div>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+            <thead><tr>
+              <th style={TH}>IATA</th>
+              <th style={TH}>Aeropuerto</th>
+              <th style={TH}>Ciudad</th>
+              <th style={TH}>País</th>
+              <th style={TH}>Lat</th>
+              <th style={TH}>Lng</th>
+              <th style={TH}>Acciones</th>
+            </tr></thead>
+            <tbody>
+              {filtered.slice(0, 200).map(item => (
+                <tr key={item.iata}>
+                  <td style={{ ...TD, fontFamily: 'monospace', fontWeight: 700, color: '#fbbf24' }}>{item.iata}</td>
+                  <td style={{ ...TD, fontSize: '12px' }}>{item.name}</td>
+                  <td style={{ ...TD, fontWeight: 600 }}>{item.city}</td>
+                  <td style={{ ...TD, color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>{item.country}</td>
+                  <td style={{ ...TD, color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }}>{item.lat}</td>
+                  <td style={{ ...TD, color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }}>{item.lng}</td>
+                  <td style={{ ...TD, whiteSpace: 'nowrap' }}>
+                    <button onClick={() => openEdit(item)} style={BTN_EDIT}>Editar</button>
+                    <button onClick={() => del(item)} style={BTN_DANGER}>Eliminar</button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length > 200 && (
+                <tr><td colSpan={7} style={{ ...TD, textAlign: 'center', color: 'rgba(255,255,255,0.3)', padding: '12px' }}>
+                  Mostrando 200 de {filtered.length} — usa el buscador para filtrar
+                </td></tr>
+              )}
+              {!filtered.length && <tr><td colSpan={7} style={{ ...TD, textAlign: 'center', color: 'rgba(255,255,255,0.2)', padding: '30px' }}>Sin resultados</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── MAIN ─────────────────────────────────────────────────
 export default function AdminRoutes({ token }) {
   const [tab, setTab] = useState(0)
@@ -395,6 +542,7 @@ export default function AdminRoutes({ token }) {
       </div>
 
       {tab === 0 && <DestinosPanel token={token} />}
+      {tab === 1 && <AeropuertosPanel token={token} />}
     </div>
   )
 }
