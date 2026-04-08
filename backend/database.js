@@ -140,7 +140,7 @@ function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT UNIQUE NOT NULL,
       country TEXT NOT NULL DEFAULT '',
-      icon TEXT NOT NULL DEFAULT '🌊',
+      icon TEXT NOT NULL DEFAULT 'wave',
       dive_hours REAL DEFAULT 6,
       sort_order INTEGER DEFAULT 0
     )
@@ -214,16 +214,16 @@ function seedData() {
   );
 
   const missions = [
-    ['Protector Reef-Safe', 'Usa solo protector solar libre de oxibenzona y octinoxato en tus buceos', '🪸', 50, 'conservacion', 1],
-    ['Cero Plástico', 'Completa un viaje sin usar plásticos de un solo uso', '🌊', 75, 'sostenibilidad', 2],
-    ['Avistamiento Registrado', 'Registra y reporta un avistamiento de fauna marina en iNaturalist', '🐠', 60, 'ciencia', 3],
-    ['Embajador Digital', 'Comparte tu compensación en WhatsApp o descarga la tarjeta para Instagram', '📣', 100, 'social', null],
-    ['Ritual del Océano', 'Completa el quiz sobre fauna marina con 100% de aciertos', '🐋', 80, 'educacion', 4],
-    ['Compensador Activo', 'Compensa al menos 1 tonelada de CO2 en una sola acción', '🌱', 120, 'compensacion', null],
-    ['Guardián de Manglares', 'Participa en la plantación de manglares con Fundación Mar Viva', '🌿', 150, 'voluntariado', 5],
-    ['Buceador Consciente', 'Calcula la huella de carbono de 5 viajes de buceo', '🤿', 90, 'calculadora', null],
-    ['Limpieza Oceánica', 'Participa en una limpieza de playa con Ocean Conservancy', '♻️', 110, 'voluntariado', 6],
-    ['Maestro del Coral', 'Completa todos los quizzes sobre coral y arrecifes', '🐡', 200, 'educacion', 7],
+    ['Protector Reef-Safe', 'Usa solo protector solar libre de oxibenzona y octinoxato en tus buceos', 'coral',    50, 'conservacion', 1],
+    ['Cero Plástico', 'Completa un viaje sin usar plásticos de un solo uso',                             'wave',     75, 'sostenibilidad', 2],
+    ['Avistamiento Registrado', 'Registra y reporta un avistamiento de fauna marina en iNaturalist',     'fish',     60, 'ciencia', 3],
+    ['Embajador Digital', 'Comparte tu compensación en WhatsApp o descarga la tarjeta para Instagram',   'dolphin', 100, 'social', null],
+    ['Ritual del Océano', 'Completa el quiz sobre fauna marina con 100% de aciertos',                    'whale',    80, 'educacion', 4],
+    ['Compensador Activo', 'Compensa al menos 1 tonelada de CO2 en una sola acción',                     'plankton',120, 'compensacion', null],
+    ['Guardián de Manglares', 'Participa en la plantación de manglares con Fundación Mar Viva',          'island',  150, 'voluntariado', 5],
+    ['Buceador Consciente', 'Calcula la huella de carbono de 5 viajes de buceo',                         'turtle',   90, 'calculadora', null],
+    ['Limpieza Oceánica', 'Participa en una limpieza de playa con Ocean Conservancy',                    'crab',    110, 'voluntariado', 6],
+    ['Maestro del Coral', 'Completa todos los quizzes sobre coral y arrecifes',                          'seahorse',200, 'educacion', 7],
   ];
 
   for (const mission of missions) {

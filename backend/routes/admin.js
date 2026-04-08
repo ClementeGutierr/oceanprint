@@ -406,7 +406,7 @@ router.get('/destinations', (req, res) => {
 });
 
 router.post('/destinations', (req, res) => {
-  const { name, country = '', icon = '🌊', dive_hours = 6, sort_order = 0 } = req.body;
+  const { name, country = '', icon = 'wave', dive_hours = 6, sort_order = 0 } = req.body;
   if (!name) return res.status(400).json({ error: 'Nombre requerido' });
   try {
     const r = db.prepare('INSERT INTO destinations (name, country, icon, dive_hours, sort_order) VALUES (?, ?, ?, ?, ?)')
@@ -419,7 +419,7 @@ router.post('/destinations', (req, res) => {
 });
 
 router.put('/destinations/:id', (req, res) => {
-  const { name, country = '', icon = '🌊', dive_hours = 6, sort_order = 0 } = req.body;
+  const { name, country = '', icon = 'wave', dive_hours = 6, sort_order = 0 } = req.body;
   const id = parseInt(req.params.id);
   try {
     db.prepare('UPDATE destinations SET name=?, country=?, icon=?, dive_hours=?, sort_order=? WHERE id=?')
