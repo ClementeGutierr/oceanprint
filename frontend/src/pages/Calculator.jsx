@@ -323,7 +323,7 @@ export default function Calculator() {
     setError('')
     setLoading(true)
     // Always use route_waypoints for accurate per-segment Haversine calculation
-    const route_waypoints = [originApt.iata, ...routeStops.map(s => s.iata), destination]
+    const route_waypoints = [originApt.iata, ...routeStops.map(s => s.iata)]
     try {
       const res = await axios.post(`${API}/trips/calculate`, {
         origin: originApt.city,

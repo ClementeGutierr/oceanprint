@@ -16,7 +16,7 @@ const BTN_EDIT = { background: 'rgba(0,180,216,0.12)', border: '1px solid rgba(0
 const TABS = ['Destinos']
 
 // ── DESTINATIONS ────────────────────────────────────────────────────────────
-const EMPTY_DEST = { name: '', country: '', icon: 'shark', local_km: '', dive_hours: '6', sort_order: '0', lat: '', lng: '' }
+const EMPTY_DEST = { name: '', country: '', icon: 'shark', local_km: '', dive_hours: '6', sort_order: '0' }
 
 function DestinosPanel({ token }) {
   const [items, setItems]     = useState([])
@@ -32,14 +32,14 @@ function DestinosPanel({ token }) {
 
   function openCreate() { setForm(EMPTY_DEST); setEditing(null); setShowForm(true); setErr('') }
   function openEdit(item) {
-    setForm({ name: item.name, country: item.country, icon: item.icon, local_km: String(item.local_km), dive_hours: String(item.dive_hours), sort_order: String(item.sort_order), lat: item.lat ?? '', lng: item.lng ?? '' })
+    setForm({ name: item.name, country: item.country, icon: item.icon, local_km: String(item.local_km), dive_hours: String(item.dive_hours), sort_order: String(item.sort_order) })
     setEditing(item.id); setShowForm(true); setErr('')
   }
 
   async function save() {
     setSaving(true); setErr('')
     try {
-      const payload = { ...form, local_km: parseFloat(form.local_km) || 0, dive_hours: parseFloat(form.dive_hours) || 6, sort_order: parseInt(form.sort_order) || 0, lat: form.lat !== '' ? parseFloat(form.lat) : null, lng: form.lng !== '' ? parseFloat(form.lng) : null }
+      const payload = { ...form, local_km: parseFloat(form.local_km) || 0, dive_hours: parseFloat(form.dive_hours) || 6, sort_order: parseInt(form.sort_order) || 0 }
       if (editing) {
         const r = await axios.put(`${API_BASE}/admin/destinations/${editing}`, payload, authCfg(token))
         setItems(prev => prev.map(x => x.id === editing ? r.data : x))
@@ -68,20 +68,6 @@ function DestinosPanel({ token }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '12px' }}>
             <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Nombre *</label><input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Isla Malpelo" /></div>
             <div><label style={LABEL}>País</label><input style={INPUT} value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="Colombia" /></div>
-            <div>
-              <label style={LABEL}>Latitud <span style={{ color: '#48cae4' }}>*</span></label>
-              <input type="number" step="any" style={INPUT} value={form.lat} onChange={e => setForm({ ...form, lat: e.target.value })} placeholder="Ej: 4.003 (positivo=N, negativo=S)" />
-            </div>
-            <div>
-              <label style={LABEL}>Longitud <span style={{ color: '#48cae4' }}>*</span></label>
-              <input type="number" step="any" style={INPUT} value={form.lng} onChange={e => setForm({ ...form, lng: e.target.value })} placeholder="Ej: -81.600 (positivo=E, negativo=O)" />
-            </div>
-            <div style={{ gridColumn: '1/-1', background: 'rgba(72,202,228,0.06)', border: '1px solid rgba(72,202,228,0.15)', borderRadius: '8px', padding: '8px 12px' }}>
-              <p style={{ color: 'rgba(72,202,228,0.7)', fontSize: '11px', margin: 0 }}>
-                Las coordenadas permiten calcular la distancia de vuelo con precisión (Haversine). Sin ellas se usa una distancia por defecto de 2 000 km.
-                Búscalas en Google Maps: clic derecho sobre el punto → aparecen lat, lng.
-              </p>
-            </div>
             <div><label style={LABEL}>Distancia local (km)</label><input type="number" min="0" style={INPUT} value={form.local_km} onChange={e => setForm({ ...form, local_km: e.target.value })} placeholder="0" /></div>
             <div><label style={LABEL}>Horas de buceo típicas</label><input type="number" min="0" style={INPUT} value={form.dive_hours} onChange={e => setForm({ ...form, dive_hours: e.target.value })} placeholder="6" /></div>
             <div><label style={LABEL}>Orden</label><input type="number" min="0" style={INPUT} value={form.sort_order} onChange={e => setForm({ ...form, sort_order: e.target.value })} /></div>
