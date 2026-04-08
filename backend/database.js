@@ -194,6 +194,8 @@ function initDatabase() {
     "ALTER TABLE expeditions ADD COLUMN sea_transports TEXT",
     "ALTER TABLE expeditions ADD COLUMN land_transports TEXT",
     "ALTER TABLE expeditions ADD COLUMN fixed_passengers INTEGER",
+    "ALTER TABLE destinations ADD COLUMN lat REAL",
+    "ALTER TABLE destinations ADD COLUMN lng REAL",
   ]) {
     try { db.exec(sql) } catch {}
   }

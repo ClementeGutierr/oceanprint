@@ -383,11 +383,13 @@ router.get('/destinations', (req, res) => {
 });
 
 router.post('/destinations', (req, res) => {
-  const { name, country = '', icon = '🌊', local_km = 0, dive_hours = 6, sort_order = 0 } = req.body;
+  const { name, country = '', icon = '🌊', local_km = 0, dive_hours = 6, sort_order = 0, lat = null, lng = null } = req.body;
   if (!name) return res.status(400).json({ error: 'Nombre requerido' });
   try {
-    const r = db.prepare('INSERT INTO destinations (name, country, icon, local_km, dive_hours, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(name, country, icon, parseFloat(local_km) || 0, parseFloat(dive_hours) || 6, parseInt(sort_order) || 0);
+    const r = db.prepare('INSERT INTO destinations (name, country, icon, local_km, dive_hours, sort_order, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(name, country, icon, parseFloat(local_km) || 0, parseFloat(dive_hours) || 6, parseInt(sort_order) || 0,
+        lat !== '' && lat !== null ? parseFloat(lat) : null,
+        lng !== '' && lng !== null ? parseFloat(lng) : null);
     res.status(201).json(db.prepare('SELECT * FROM destinations WHERE id = ?').get(r.lastInsertRowid));
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El destino ya existe' });
@@ -396,11 +398,14 @@ router.post('/destinations', (req, res) => {
 });
 
 router.put('/destinations/:id', (req, res) => {
-  const { name, country = '', icon = '🌊', local_km = 0, dive_hours = 6, sort_order = 0 } = req.body;
+  const { name, country = '', icon = '🌊', local_km = 0, dive_hours = 6, sort_order = 0, lat = null, lng = null } = req.body;
   const id = parseInt(req.params.id);
   try {
-    db.prepare('UPDATE destinations SET name=?, country=?, icon=?, local_km=?, dive_hours=?, sort_order=? WHERE id=?')
-      .run(name, country, icon, parseFloat(local_km) || 0, parseFloat(dive_hours) || 6, parseInt(sort_order) || 0, id);
+    db.prepare('UPDATE destinations SET name=?, country=?, icon=?, local_km=?, dive_hours=?, sort_order=?, lat=?, lng=? WHERE id=?')
+      .run(name, country, icon, parseFloat(local_km) || 0, parseFloat(dive_hours) || 6, parseInt(sort_order) || 0,
+        lat !== '' && lat !== null ? parseFloat(lat) : null,
+        lng !== '' && lng !== null ? parseFloat(lng) : null,
+        id);
     res.json(db.prepare('SELECT * FROM destinations WHERE id = ?').get(id));
   } catch (e) {
     if (e.message?.includes('UNIQUE')) return res.status(400).json({ error: 'El destino ya existe' });

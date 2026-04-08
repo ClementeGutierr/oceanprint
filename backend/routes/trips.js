@@ -60,10 +60,18 @@ const DISTANCES = {
   'Lima-Islas Revillagigedo': 4200, 'Lima-Raja Ampat': 17800, 'Lima-Providencia': 2400,
 };
 
-const LOCAL_DISTANCES = {
+// Legacy hardcoded local distances (kept for backward compat; DB takes precedence)
+const LOCAL_DISTANCES_FALLBACK = {
   'Galápagos': 25, 'Isla Malpelo': 0, 'Isla del Coco': 0,
   'Islas Revillagigedo': 15, 'Raja Ampat': 30, 'Providencia': 20,
 };
+
+/** Returns the local km for a destination, preferring the DB record over the hardcoded map */
+function getLocalKm(destination) {
+  const row = db.prepare('SELECT local_km FROM destinations WHERE LOWER(name) = LOWER(?) LIMIT 1').get(destination);
+  if (row && row.local_km != null) return row.local_km;
+  return LOCAL_DISTANCES_FALLBACK[destination] ?? 20;
+}
 
 function getFlightFactor(distanceKm) {
   if (distanceKm < 1500) return FLIGHT_FACTORS.short;
@@ -86,7 +94,23 @@ function findAirport(q) {
   return db.prepare(
     `SELECT iata, city, lat, lng FROM airports
      WHERE UPPER(iata) = UPPER(?) OR LOWER(city) = LOWER(?) LIMIT 1`
-  ).get(s, s);
+  ).get(s, s) ?? null;  // better-sqlite3 returns undefined on no match; normalise to null
+}
+
+/**
+ * Like findAirport but also falls back to the destinations table (which stores
+ * lat/lng for dive sites that are not served by a named airport).
+ */
+function findLocation(q) {
+  if (!q) return null;
+  const apt = findAirport(q);
+  if (apt) return apt;
+  const s = String(q).trim();
+  const dest = db.prepare(
+    `SELECT name AS city, lat, lng FROM destinations
+     WHERE LOWER(name) = LOWER(?) AND lat IS NOT NULL AND lng IS NOT NULL LIMIT 1`
+  ).get(s);
+  return dest ?? null;
 }
 
 function updateUserLevel(userId) {
@@ -154,15 +178,15 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
 
     const distanceKey = `${origin}-${destination}`;
     const dbRoute = db.prepare('SELECT distancia_km, distancia_local_km FROM emission_routes WHERE origen=? AND destino=?').get(origin, destination);
-    const flightDistance = dbRoute?.distancia_km ?? DISTANCES[distanceKey] ?? 2000;
+    const fallbackDistance = dbRoute?.distancia_km ?? DISTANCES[distanceKey] ?? null;
 
     // CO2 flight — multi-segment route or direct
     let co2Flight;
-    let actualFlightDistance = flightDistance;
+    let actualFlightDistance;
 
     if (route_waypoints && Array.isArray(route_waypoints) && route_waypoints.length >= 2) {
-      // Resolve all waypoints to airport coords
-      const resolved = route_waypoints.map(q => findAirport(q));
+      // Resolve waypoints: use findLocation (tries airports then destinations table)
+      const resolved = route_waypoints.map(q => findLocation(q));
       const allFound = resolved.every(a => a !== null);
 
       if (allFound) {
@@ -177,12 +201,16 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
         co2Flight = segCo2 * 2; // round trip
         actualFlightDistance = Math.round(segDist);
       } else {
-        // Some waypoints not found — fallback: direct + 10% per unresolved stop
+        // Some waypoints not found — fallback to precalculated or default distance
+        const flightDistance = fallbackDistance ?? 2000;
         const misses = resolved.filter(a => a === null).length;
         co2Flight = flightDistance * 2 * getFlightFactor(flightDistance) * (1 + 0.1 * misses);
+        actualFlightDistance = flightDistance;
       }
     } else {
+      const flightDistance = fallbackDistance ?? 2000;
       co2Flight = flightDistance * 2 * getFlightFactor(flightDistance);
+      actualFlightDistance = flightDistance;
     }
 
     // CO2 sea — sum all segments
@@ -191,7 +219,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       if (!seg.type || seg.type === 'none') continue;
       const factor = SEA_FACTORS[seg.type] || 0;
       if (seg.type === 'ferry') {
-        const localDist = dbRoute?.distancia_local_km ?? LOCAL_DISTANCES[destination] ?? 20;
+        const localDist = dbRoute?.distancia_local_km ?? getLocalKm(destination);
         co2Sea += localDist * 2 * factor;
       } else {
         co2Sea += factor * (seg.hours || 6);
@@ -203,7 +231,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
     for (const seg of landSegments) {
       if (!seg.type || seg.type === 'none') continue;
       const factor = LAND_FACTORS[seg.type] || 0;
-      const dist = (seg.km != null && seg.km > 0) ? seg.km : (LOCAL_DISTANCES[destination] ?? 20);
+      const dist = (seg.km != null && seg.km > 0) ? seg.km : getLocalKm(destination);
       co2Land += dist * 2 * factor;
     }
 
@@ -294,7 +322,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
     });
   } catch (error) {
     console.error('Calculate error:', error);
-    res.status(500).json({ error: 'Error calculando la huella de carbono' });
+    res.status(500).json({ error: `Error calculando la huella de carbono: ${error.message}` });
   }
 });
 
