@@ -16,7 +16,7 @@ const BTN_EDIT = { background: 'rgba(0,180,216,0.12)', border: '1px solid rgba(0
 const TABS = ['Destinos']
 
 // ── DESTINATIONS ────────────────────────────────────────────────────────────
-const EMPTY_DEST = { name: '', country: '', icon: 'shark', local_km: '', dive_hours: '6', sort_order: '0' }
+const EMPTY_DEST = { name: '', country: '', icon: 'shark', dive_hours: '6', sort_order: '0' }
 
 function DestinosPanel({ token }) {
   const [items, setItems]     = useState([])
@@ -32,14 +32,14 @@ function DestinosPanel({ token }) {
 
   function openCreate() { setForm(EMPTY_DEST); setEditing(null); setShowForm(true); setErr('') }
   function openEdit(item) {
-    setForm({ name: item.name, country: item.country, icon: item.icon, local_km: String(item.local_km), dive_hours: String(item.dive_hours), sort_order: String(item.sort_order) })
+    setForm({ name: item.name, country: item.country, icon: item.icon, dive_hours: String(item.dive_hours), sort_order: String(item.sort_order) })
     setEditing(item.id); setShowForm(true); setErr('')
   }
 
   async function save() {
     setSaving(true); setErr('')
     try {
-      const payload = { ...form, local_km: parseFloat(form.local_km) || 0, dive_hours: parseFloat(form.dive_hours) || 6, sort_order: parseInt(form.sort_order) || 0 }
+      const payload = { ...form, dive_hours: parseFloat(form.dive_hours) || 6, sort_order: parseInt(form.sort_order) || 0 }
       if (editing) {
         const r = await axios.put(`${API_BASE}/admin/destinations/${editing}`, payload, authCfg(token))
         setItems(prev => prev.map(x => x.id === editing ? r.data : x))
@@ -68,7 +68,6 @@ function DestinosPanel({ token }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '12px' }}>
             <div style={{ gridColumn: '1/-1' }}><label style={LABEL}>Nombre *</label><input style={INPUT} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Isla Malpelo" /></div>
             <div><label style={LABEL}>País</label><input style={INPUT} value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="Colombia" /></div>
-            <div><label style={LABEL}>Distancia local (km)</label><input type="number" min="0" style={INPUT} value={form.local_km} onChange={e => setForm({ ...form, local_km: e.target.value })} placeholder="0" /></div>
             <div><label style={LABEL}>Horas de buceo típicas</label><input type="number" min="0" style={INPUT} value={form.dive_hours} onChange={e => setForm({ ...form, dive_hours: e.target.value })} placeholder="6" /></div>
             <div><label style={LABEL}>Orden</label><input type="number" min="0" style={INPUT} value={form.sort_order} onChange={e => setForm({ ...form, sort_order: e.target.value })} /></div>
             <div style={{ gridColumn: '1/-1' }}>
@@ -106,7 +105,6 @@ function DestinosPanel({ token }) {
             <thead><tr>
               <th style={TH}>Destino</th>
               <th style={TH}>País</th>
-              <th style={TH}>Dist. local</th>
               <th style={TH}>Horas buceo</th>
               <th style={TH}>Orden</th>
               <th style={TH}>Acciones</th>
@@ -119,7 +117,6 @@ function DestinosPanel({ token }) {
                     <span style={{ fontWeight: 600 }}>{item.name}</span>
                   </td>
                   <td style={{ ...TD, color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>{item.country}</td>
-                  <td style={{ ...TD, color: '#48cae4' }}>{item.local_km} km</td>
                   <td style={{ ...TD, color: '#a78bfa' }}>{item.dive_hours}h</td>
                   <td style={{ ...TD, color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>{item.sort_order}</td>
                   <td style={{ ...TD, whiteSpace: 'nowrap' }}>
@@ -128,7 +125,7 @@ function DestinosPanel({ token }) {
                   </td>
                 </tr>
               ))}
-              {!items.length && <tr><td colSpan={6} style={{ ...TD, textAlign: 'center', color: 'rgba(255,255,255,0.2)', padding: '30px' }}>Sin destinos</td></tr>}
+              {!items.length && <tr><td colSpan={5} style={{ ...TD, textAlign: 'center', color: 'rgba(255,255,255,0.2)', padding: '30px' }}>Sin destinos</td></tr>}
             </tbody>
           </table>
         </div>

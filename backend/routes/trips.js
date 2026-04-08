@@ -43,14 +43,6 @@ const LAND_FACTORS = {
   'none': 0,
 };
 
-/**
- * Returns the local surface km for a destination from the DB.
- * Used only for maritime (ferry) and land segments — NOT for flight distance.
- */
-function getLocalKm(destination) {
-  const row = db.prepare('SELECT local_km FROM destinations WHERE LOWER(name) = LOWER(?) LIMIT 1').get(destination);
-  return (row && row.local_km != null) ? row.local_km : 20;
-}
 
 function getFlightFactor(distanceKm) {
   if (distanceKm < 1500) return FLIGHT_FACTORS.short;
@@ -90,7 +82,7 @@ function updateUserLevel(userId) {
 // Airport autocomplete search (public — no auth)
 // Public destinations list (used by calculator)
 router.get('/destinations', (req, res) => {
-  const rows = db.prepare('SELECT name, icon, local_km, dive_hours FROM destinations ORDER BY sort_order, name').all();
+  const rows = db.prepare('SELECT name, icon, dive_hours FROM destinations ORDER BY sort_order, name').all();
   res.json(rows);
 });
 
@@ -174,7 +166,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
       if (!seg.type || seg.type === 'none') continue;
       const factor = SEA_FACTORS[seg.type] || 0;
       if (seg.type === 'ferry') {
-        const localDist = getLocalKm(destination);
+        const localDist = seg.km ?? 20;
         co2Sea += localDist * 2 * factor;
       } else {
         co2Sea += factor * (seg.hours || 6);
@@ -186,7 +178,7 @@ router.post('/calculate', authenticateToken, checkRateLimit, (req, res) => {
     for (const seg of landSegments) {
       if (!seg.type || seg.type === 'none') continue;
       const factor = LAND_FACTORS[seg.type] || 0;
-      const dist = (seg.km != null && seg.km > 0) ? seg.km : getLocalKm(destination);
+      const dist = (seg.km != null && seg.km > 0) ? seg.km : 20;
       co2Land += dist * 2 * factor;
     }
 

@@ -56,7 +56,7 @@ function TypeSelector({ options, value, onChange, disabled }) {
 }
 
 /* ── Sea segment row ── */
-function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, localKm }) {
+function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked }) {
   return (
     <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
       <div className="flex items-center justify-between mb-1">
@@ -83,18 +83,13 @@ function SeaSegmentRow({ seg, onChange, onRemove, canRemove, locked, localKm }) 
           )}
         </div>
       )}
-      {seg.type === 'ferry' && localKm !== undefined && (
-        <p className="text-xs text-ocean-foam/40">
-          Distancia local: {localKm} km × 2 (ida y vuelta)
-        </p>
-      )}
     </div>
   )
 }
 
 /* ── Land segment row ── */
-function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked, localKm }) {
-  const defaultKm = localKm ?? 20
+function LandSegmentRow({ seg, onChange, onRemove, canRemove, locked }) {
+  const defaultKm = 20
   const displayKm = (seg.km != null && seg.km > 0) ? seg.km : defaultKm
   return (
     <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -227,7 +222,7 @@ export default function Calculator() {
   const { API, refreshUser, user } = useAuth()
   const navigate = useNavigate()
 
-  const [destList, setDestList]       = useState([])   // [{ name, icon, local_km, dive_hours }]
+  const [destList, setDestList]       = useState([])   // [{ name, icon, dive_hours }]
   const [originApt, setOriginApt]     = useState(null)  // { iata, city, country, lat, lng }
   const [destination, setDestination] = useState('')
   const [routeStops, setRouteStops]   = useState([])   // array of airport objects | null (unresolved)
@@ -542,7 +537,7 @@ export default function Calculator() {
                 onChange={val => updateSeaSeg(i, val)}
                 onRemove={() => removeSeaSeg(i)}
                 canRemove={seaSegments.length > 1}
-                locked={expeditionLocked} localKm={destList.find(d => d.name === destination)?.local_km} />
+                locked={expeditionLocked} />
             ))}
           </div>
           {!expeditionLocked && seaSegments.length < 3 && (
@@ -566,7 +561,7 @@ export default function Calculator() {
                 onChange={val => updateLandSeg(i, val)}
                 onRemove={() => removeLandSeg(i)}
                 canRemove={landSegments.length > 1}
-                locked={expeditionLocked} localKm={destList.find(d => d.name === destination)?.local_km} />
+                locked={expeditionLocked} />
             ))}
           </div>
           {!expeditionLocked && landSegments.length < 3 && (

@@ -140,7 +140,6 @@ function initDatabase() {
       name TEXT UNIQUE NOT NULL,
       country TEXT NOT NULL DEFAULT '',
       icon TEXT NOT NULL DEFAULT '🌊',
-      local_km REAL DEFAULT 0,
       dive_hours REAL DEFAULT 6,
       sort_order INTEGER DEFAULT 0
     )
@@ -196,6 +195,7 @@ function initDatabase() {
     "ALTER TABLE expeditions ADD COLUMN fixed_passengers INTEGER",
     "ALTER TABLE destinations ADD COLUMN lat REAL",
     "ALTER TABLE destinations ADD COLUMN lng REAL",
+    "ALTER TABLE destinations DROP COLUMN local_km",
   ]) {
     try { db.exec(sql) } catch {}
   }
@@ -517,13 +517,13 @@ function seedData() {
   // Seed destinations (idempotent)
   const destCount = db.prepare('SELECT COUNT(*) as count FROM destinations').get();
   if (destCount.count === 0) {
-    const insD = db.prepare('INSERT OR IGNORE INTO destinations (name, country, icon, local_km, dive_hours, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
-    insD.run('Galápagos',           'Ecuador',    '🦈', 25, 6, 1);
-    insD.run('Isla Malpelo',        'Colombia',   '🦈',  0, 8, 2);
-    insD.run('Islas Revillagigedo', 'México',     '🦈', 15, 6, 3);
-    insD.run('Isla del Coco',       'Costa Rica', '🦈',  0, 8, 4);
-    insD.run('Raja Ampat',          'Indonesia',  '🐙', 30, 6, 5);
-    insD.run('Providencia',         'Colombia',   '🦀', 20, 4, 6);
+    const insD = db.prepare('INSERT OR IGNORE INTO destinations (name, country, icon, dive_hours, sort_order) VALUES (?, ?, ?, ?, ?)');
+    insD.run('Galápagos',           'Ecuador',    '🦈', 6, 1);
+    insD.run('Isla Malpelo',        'Colombia',   '🦈', 8, 2);
+    insD.run('Islas Revillagigedo', 'México',     '🦈', 6, 3);
+    insD.run('Isla del Coco',       'Costa Rica', '🦈', 8, 4);
+    insD.run('Raja Ampat',          'Indonesia',  '🐙', 6, 5);
+    insD.run('Providencia',         'Colombia',   '🦀', 4, 6);
   }
 
   // Seed origins (idempotent)

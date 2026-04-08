@@ -106,7 +106,6 @@ export default function AdminImport({ token }) {
                 ['origen',             'origen, origin, ciudad_origen, desde',              '✅ Sí',  'Ciudad de origen del viaje (ej: Bogotá)'],
                 ['destino',            'destino, destination, ciudad_destino, hasta',        '✅ Sí',  'Destino de buceo (ej: Isla Malpelo)'],
                 ['distancia_km',       'distancia_km, distancia, distance_km, km',           '✅ Sí',  'Distancia en km (solo ida)'],
-                ['distancia_local_km', 'distancia_local_km, distancia_local, local_km',      '⬜ No', 'Km desde aeropuerto/puerto al destino (para ferries)'],
               ].map(([col, aliases, req, desc]) => (
                 <tr key={col}>
                   <td style={{ ...TD, fontFamily: 'monospace', color: '#48cae4', fontWeight: 700 }}>{col}</td>
