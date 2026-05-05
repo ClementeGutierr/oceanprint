@@ -649,4 +649,192 @@ router.delete('/airports/:iata', (req, res) => {
   res.json({ success: true });
 });
 
+// ── DYNAMICS ──────────────────────────────────────────────
+const VALID_DYNAMIC_TYPES = ['kahoot', 'accion_verificada', 'bonus'];
+
+// GET /api/admin/dynamics?expedition_id=X
+router.get('/dynamics', (req, res) => {
+  const expId = req.query.expedition_id ? parseInt(req.query.expedition_id) : null;
+  let rows;
+  if (expId) {
+    rows = db.prepare(`
+      SELECT d.*,
+        (SELECT COUNT(*) FROM user_dynamics ud WHERE ud.dynamic_id = d.id AND ud.participated = 1) AS participants_count,
+        (SELECT COALESCE(SUM(ud.points_awarded), 0) FROM user_dynamics ud WHERE ud.dynamic_id = d.id) AS total_points_awarded
+      FROM dynamics d
+      WHERE d.expedition_id = ?
+      ORDER BY d.date DESC, d.created_at DESC
+    `).all(expId);
+  } else {
+    rows = db.prepare(`
+      SELECT d.*, e.name AS expedition_name,
+        (SELECT COUNT(*) FROM user_dynamics ud WHERE ud.dynamic_id = d.id AND ud.participated = 1) AS participants_count
+      FROM dynamics d
+      LEFT JOIN expeditions e ON e.id = d.expedition_id
+      ORDER BY d.date DESC, d.created_at DESC
+    `).all();
+  }
+  res.json(rows);
+});
+
+// POST /api/admin/dynamics — create a dynamic
+router.post('/dynamics', (req, res) => {
+  const { expedition_id, name, description = '', points = 0, type = 'bonus', date = null } = req.body;
+  if (!expedition_id || !name) {
+    return res.status(400).json({ error: 'expedition_id y name son requeridos' });
+  }
+  if (!VALID_DYNAMIC_TYPES.includes(type)) {
+    return res.status(400).json({ error: `type debe ser uno de: ${VALID_DYNAMIC_TYPES.join(', ')}` });
+  }
+  const exp = db.prepare('SELECT id FROM expeditions WHERE id = ?').get(parseInt(expedition_id));
+  if (!exp) return res.status(404).json({ error: 'Expedición no encontrada' });
+
+  const r = db.prepare(`
+    INSERT INTO dynamics (expedition_id, name, description, points, type, date)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(parseInt(expedition_id), String(name).trim(), String(description || '').trim(), parseInt(points) || 0, type, date || null);
+
+  res.status(201).json(db.prepare('SELECT * FROM dynamics WHERE id = ?').get(r.lastInsertRowid));
+});
+
+// PUT /api/admin/dynamics/:id — update dynamic metadata (does not retroactively change awarded points)
+router.put('/dynamics/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = db.prepare('SELECT * FROM dynamics WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Dinámica no encontrada' });
+
+  const { name, description, points, type, date } = req.body;
+  if (type && !VALID_DYNAMIC_TYPES.includes(type)) {
+    return res.status(400).json({ error: `type debe ser uno de: ${VALID_DYNAMIC_TYPES.join(', ')}` });
+  }
+
+  db.prepare(`
+    UPDATE dynamics SET
+      name = COALESCE(?, name),
+      description = COALESCE(?, description),
+      points = COALESCE(?, points),
+      type = COALESCE(?, type),
+      date = COALESCE(?, date)
+    WHERE id = ?
+  `).run(
+    name !== undefined ? String(name).trim() : null,
+    description !== undefined ? String(description).trim() : null,
+    points !== undefined ? parseInt(points) || 0 : null,
+    type !== undefined ? type : null,
+    date !== undefined ? (date || null) : null,
+    id,
+  );
+
+  res.json(db.prepare('SELECT * FROM dynamics WHERE id = ?').get(id));
+});
+
+// DELETE /api/admin/dynamics/:id — also reverts awarded points
+router.delete('/dynamics/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const dynamic = db.prepare('SELECT * FROM dynamics WHERE id = ?').get(id);
+  if (!dynamic) return res.status(404).json({ error: 'Dinámica no encontrada' });
+
+  db.transaction(() => {
+    const assignments = db.prepare('SELECT user_id, points_awarded FROM user_dynamics WHERE dynamic_id = ?').all(id);
+    for (const a of assignments) {
+      if (a.points_awarded > 0) {
+        db.prepare('UPDATE users SET points = MAX(0, points - ?) WHERE id = ?').run(a.points_awarded, a.user_id);
+      }
+    }
+    const affectedUsers = [...new Set(assignments.map(a => a.user_id))];
+    db.prepare('DELETE FROM user_dynamics WHERE dynamic_id = ?').run(id);
+    db.prepare('DELETE FROM dynamics WHERE id = ?').run(id);
+    for (const uid of affectedUsers) _updateLevel(uid);
+  })();
+
+  res.json({ success: true });
+});
+
+// GET /api/admin/dynamics/:id/users — expedition members + their assignment for this dynamic
+router.get('/dynamics/:id/users', (req, res) => {
+  const id = parseInt(req.params.id);
+  const dynamic = db.prepare('SELECT * FROM dynamics WHERE id = ?').get(id);
+  if (!dynamic) return res.status(404).json({ error: 'Dinámica no encontrada' });
+
+  const rows = db.prepare(`
+    SELECT
+      u.id AS user_id, u.name, u.email,
+      COALESCE(NULLIF(TRIM(u.display_name), ''), u.name) AS display_name,
+      ud.points_awarded, ud.participated, ud.notes, ud.assigned_at
+    FROM expedition_members em
+    JOIN users u ON u.id = em.user_id
+    LEFT JOIN user_dynamics ud ON ud.user_id = u.id AND ud.dynamic_id = ?
+    WHERE em.expedition_id = ?
+    ORDER BY u.name ASC
+  `).all(id, dynamic.expedition_id);
+
+  res.json({ dynamic, users: rows });
+});
+
+// POST /api/admin/dynamics/:id/assign — bulk assign (array of {user_id, points, participated, notes})
+router.post('/dynamics/:id/assign', (req, res) => {
+  const id = parseInt(req.params.id);
+  const dynamic = db.prepare('SELECT * FROM dynamics WHERE id = ?').get(id);
+  if (!dynamic) return res.status(404).json({ error: 'Dinámica no encontrada' });
+
+  const assignments = Array.isArray(req.body?.assignments) ? req.body.assignments : null;
+  if (!assignments) return res.status(400).json({ error: 'assignments[] requerido' });
+
+  // Validate all user_ids belong to the expedition
+  const memberIds = new Set(
+    db.prepare('SELECT user_id FROM expedition_members WHERE expedition_id = ?')
+      .all(dynamic.expedition_id).map(r => r.user_id)
+  );
+
+  const affectedUsers = new Set();
+
+  db.transaction(() => {
+    for (const a of assignments) {
+      const uid = parseInt(a.user_id);
+      if (!memberIds.has(uid)) continue;
+      const newParticipated = a.participated ? 1 : 0;
+      const newPoints = newParticipated ? (parseInt(a.points) || 0) : 0;
+      const notes = a.notes != null ? String(a.notes).slice(0, 280) : null;
+
+      const existing = db.prepare('SELECT id, points_awarded FROM user_dynamics WHERE user_id = ? AND dynamic_id = ?').get(uid, id);
+      const oldPoints = existing ? (existing.points_awarded || 0) : 0;
+
+      if (existing) {
+        db.prepare(`
+          UPDATE user_dynamics
+          SET points_awarded = ?, participated = ?, notes = ?, assigned_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(newPoints, newParticipated, notes, existing.id);
+      } else {
+        db.prepare(`
+          INSERT INTO user_dynamics (user_id, dynamic_id, points_awarded, participated, notes)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(uid, id, newPoints, newParticipated, notes);
+      }
+
+      const delta = newPoints - oldPoints;
+      if (delta !== 0) {
+        db.prepare('UPDATE users SET points = MAX(0, points + ?) WHERE id = ?').run(delta, uid);
+        affectedUsers.add(uid);
+      }
+    }
+  })();
+
+  for (const uid of affectedUsers) _updateLevel(uid);
+
+  // Return refreshed list
+  const rows = db.prepare(`
+    SELECT u.id AS user_id, u.name,
+      COALESCE(NULLIF(TRIM(u.display_name), ''), u.name) AS display_name,
+      ud.points_awarded, ud.participated, ud.notes
+    FROM expedition_members em
+    JOIN users u ON u.id = em.user_id
+    LEFT JOIN user_dynamics ud ON ud.user_id = u.id AND ud.dynamic_id = ?
+    WHERE em.expedition_id = ?
+    ORDER BY u.name ASC
+  `).all(id, dynamic.expedition_id);
+
+  res.json({ success: true, users: rows });
+});
+
 module.exports = router;

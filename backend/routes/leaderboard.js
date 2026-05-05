@@ -13,10 +13,13 @@ router.get('/', authenticateToken, (req, res) => {
 
   const leaders = db.prepare(`
     SELECT
-      id, name, points, level, trips_count,
+      id,
+      COALESCE(NULLIF(TRIM(display_name), ''), name) AS name,
+      points, level, trips_count,
       total_co2, compensated_co2,
       CASE WHEN total_co2 > 0 THEN ROUND((compensated_co2 / total_co2) * 100, 1) ELSE 0 END as compensation_pct
     FROM users
+    WHERE role != 'admin'
     ORDER BY points DESC
     LIMIT ? OFFSET ?
   `).all(limit, offset).map(l => ({

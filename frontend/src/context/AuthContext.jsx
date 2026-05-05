@@ -40,8 +40,12 @@ export function AuthProvider({ children }) {
     return u
   }
 
-  async function register(name, email, password) {
-    const res = await axios.post(`${API}/auth/register`, { name, email, password })
+  async function register(payload, email, password) {
+    // Backwards-compatible: accepts either (name, email, password) or a payload object
+    const body = typeof payload === 'object' && payload !== null
+      ? payload
+      : { name: payload, email, password }
+    const res = await axios.post(`${API}/auth/register`, body)
     const { token: t, user: u } = res.data
     localStorage.setItem('op_token', t)
     axios.defaults.headers.common['Authorization'] = `Bearer ${t}`

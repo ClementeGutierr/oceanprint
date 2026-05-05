@@ -8,6 +8,7 @@ import {
   Thermometer, Leaf, RefreshCw, CreditCard, Sparkles, Lightbulb,
   Brain, Users, X, Check, Search, Recycle, Globe, Frown, Map,
   Pencil, Camera, MapPin, AtSign, Phone, Plus, Settings, BarChart2,
+  Calendar, Award, Zap,
 } from 'lucide-react'
 
 /* ─────────────────────────────────────────────
@@ -50,6 +51,9 @@ export const PhoneIcon        = lucide(Phone)
 export const PlusIcon         = lucide(Plus)
 export const SettingsIcon     = lucide(Settings)
 export const BarChartIcon     = lucide(BarChart2)
+export const CalendarIcon     = lucide(Calendar)
+export const AwardIcon        = lucide(Award)
+export const ZapIcon          = lucide(Zap)
 
 /* ─────────────────────────────────────────────
    LEVEL SYSTEM

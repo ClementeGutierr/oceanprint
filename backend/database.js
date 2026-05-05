@@ -198,9 +198,40 @@ function initDatabase() {
     "ALTER TABLE destinations ADD COLUMN lng REAL",
     "ALTER TABLE destinations DROP COLUMN local_km",
     "ALTER TABLE compensation_options ADD COLUMN is_volunteering INTEGER DEFAULT 0",
+    // Privacy fields — display_name shown publicly, hide_email defaults true
+    "ALTER TABLE users ADD COLUMN display_name TEXT",
+    "ALTER TABLE users ADD COLUMN hide_email INTEGER DEFAULT 1",
   ]) {
     try { db.exec(sql) } catch {}
   }
+
+  // Dynamics tables (kahoot, acción verificada, bonus)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS dynamics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      expedition_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      points INTEGER NOT NULL DEFAULT 0,
+      type TEXT NOT NULL DEFAULT 'bonus',
+      date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (expedition_id) REFERENCES expeditions(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_dynamics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      dynamic_id INTEGER NOT NULL,
+      points_awarded INTEGER NOT NULL DEFAULT 0,
+      participated INTEGER NOT NULL DEFAULT 1,
+      notes TEXT,
+      assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (dynamic_id) REFERENCES dynamics(id) ON DELETE CASCADE,
+      UNIQUE(user_id, dynamic_id)
+    );
+  `);
 
   seedData();
 }

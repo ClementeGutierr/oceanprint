@@ -8,7 +8,7 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, display_name, hide_email } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
@@ -25,11 +25,14 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = db.prepare(
-      'INSERT INTO users (name, email, password) VALUES (?, ?, ?)'
-    ).run(name, email, hashedPassword);
+    const dn = display_name && String(display_name).trim() ? String(display_name).trim().slice(0, 60) : null;
+    const he = hide_email === false ? 0 : 1; // default oculto
 
-    const user = db.prepare('SELECT id, name, email, points, level, total_co2, compensated_co2, trips_count FROM users WHERE id = ?').get(result.lastInsertRowid);
+    const result = db.prepare(
+      'INSERT INTO users (name, email, password, display_name, hide_email) VALUES (?, ?, ?, ?, ?)'
+    ).run(name, email, hashedPassword, dn, he);
+
+    const user = db.prepare('SELECT id, name, email, display_name, hide_email, points, level, total_co2, compensated_co2, trips_count FROM users WHERE id = ?').get(result.lastInsertRowid);
 
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
 

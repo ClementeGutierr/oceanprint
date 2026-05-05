@@ -6,7 +6,7 @@ import { OceanWaveIcon, DiveMaskIcon } from '../components/OceanIcons'
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [form, setForm] = useState({ name: '', display_name: '', email: '', password: '', hide_email: true })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { login, register } = useAuth()
@@ -20,7 +20,13 @@ export default function AuthPage() {
       if (isLogin) {
         await login(form.email, form.password)
       } else {
-        await register(form.name, form.email, form.password)
+        await register({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          display_name: form.display_name?.trim() || null,
+          hide_email: !!form.hide_email,
+        })
       }
       navigate('/calculator')
     } catch (err) {
@@ -73,17 +79,35 @@ export default function AuthPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <div>
-              <label className="text-xs text-ocean-foam/60 font-medium mb-1.5 block">Nombre</label>
-              <input
-                type="text"
-                placeholder="Tu nombre de buceador"
-                className="input-field"
-                value={form.name}
-                onChange={e => setForm({ ...form, name: e.target.value })}
-                required={!isLogin}
-              />
-            </div>
+            <>
+              <div>
+                <label className="text-xs text-ocean-foam/60 font-medium mb-1.5 block">Nombre real</label>
+                <input
+                  type="text"
+                  placeholder="Tu nombre completo"
+                  className="input-field"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  required={!isLogin}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-ocean-foam/60 font-medium mb-1.5 block">
+                  Nombre público <span className="text-ocean-foam/30">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Nickname que verán otros buceadores"
+                  className="input-field"
+                  value={form.display_name}
+                  onChange={e => setForm({ ...form, display_name: e.target.value })}
+                  maxLength={60}
+                />
+                <p className="text-[11px] text-ocean-foam/30 mt-1">
+                  Si lo dejas vacío usaremos tu nombre real en el ranking.
+                </p>
+              </div>
+            </>
           )}
           <div>
             <label className="text-xs text-ocean-foam/60 font-medium mb-1.5 block">Email</label>
@@ -107,6 +131,25 @@ export default function AuthPage() {
               required
             />
           </div>
+          {!isLogin && (
+            <label
+              className="flex items-start gap-2.5 py-2 px-3 rounded-xl cursor-pointer"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <input
+                type="checkbox"
+                checked={!!form.hide_email}
+                onChange={e => setForm({ ...form, hide_email: e.target.checked })}
+                className="mt-0.5"
+              />
+              <span className="text-[12px] text-ocean-foam/70 leading-snug">
+                Ocultar mi email en el ranking y vistas públicas
+                <span className="block text-[10px] text-ocean-foam/40 mt-0.5">
+                  Los administradores siempre podrán contactarte.
+                </span>
+              </span>
+            </label>
+          )}
 
           {error && (
             <div className="text-coral text-sm text-center py-2 px-4 rounded-xl"

@@ -7,6 +7,7 @@ import Layout from './components/Layout'
 import Calculator from './pages/Calculator'
 import Results from './pages/Results'
 import Missions from './pages/Missions'
+import Dynamics from './pages/Dynamics'
 import Compensation from './pages/Compensation'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="/calculator" element={<Calculator />} />
         <Route path="/results" element={<Results />} />
         <Route path="/missions" element={<Missions />} />
+        <Route path="/dynamics" element={<Dynamics />} />
         <Route path="/compensation" element={<Compensation />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/profile" element={<Profile />} />

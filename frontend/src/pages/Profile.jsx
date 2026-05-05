@@ -22,11 +22,13 @@ const NEXT_LEVEL_THRESHOLD = {
 function EditProfileModal({ profile, onClose, onSaved }) {
   const { API } = useAuth()
   const [form, setForm] = useState({
-    name:        profile.name        || '',
-    origin_city: profile.origin_city || '',
-    bio:         profile.bio         || '',
-    instagram:   profile.instagram   || '',
-    whatsapp:    profile.whatsapp    || '',
+    name:         profile.name         || '',
+    display_name: profile.display_name || '',
+    hide_email:   profile.hide_email == null ? true : !!profile.hide_email,
+    origin_city:  profile.origin_city  || '',
+    bio:          profile.bio          || '',
+    instagram:    profile.instagram    || '',
+    whatsapp:     profile.whatsapp     || '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
@@ -40,6 +42,7 @@ function EditProfileModal({ profile, onClose, onSaved }) {
   async function handleSave() {
     const name = form.name.trim()
     if (name.length < 2) return setError('El nombre debe tener al menos 2 caracteres')
+    if (form.display_name && form.display_name.trim().length === 1) return setError('El nombre público debe tener al menos 2 caracteres')
     if (form.bio.length > 160) return setError('La bio no puede superar 160 caracteres')
 
     setSaving(true)
@@ -47,10 +50,12 @@ function EditProfileModal({ profile, onClose, onSaved }) {
     try {
       const res = await axios.put(`${API}/profile`, {
         name,
-        origin_city: form.origin_city.trim(),
-        bio:         form.bio.trim(),
-        instagram:   form.instagram.trim().replace(/^@/, ''),
-        whatsapp:    form.whatsapp.trim(),
+        display_name: form.display_name.trim(),
+        hide_email:   !!form.hide_email,
+        origin_city:  form.origin_city.trim(),
+        bio:          form.bio.trim(),
+        instagram:    form.instagram.trim().replace(/^@/, ''),
+        whatsapp:     form.whatsapp.trim(),
       })
       setSaved(true)
       setTimeout(() => {
@@ -155,7 +160,48 @@ function EditProfileModal({ profile, onClose, onSaved }) {
               maxLength={60}
               placeholder="Tu nombre de buceador"
             />
+            <p className="text-[11px] text-ocean-foam/30 mt-1">
+              Lo ven los administradores. No se muestra en público si llenas el nombre público.
+            </p>
           </div>
+
+          {/* ── NOMBRE PÚBLICO ── */}
+          <div className="mb-4">
+            <label className="text-xs text-ocean-foam/50 font-semibold uppercase tracking-wider mb-1.5 block">
+              Nombre público <span className="text-ocean-foam/30 normal-case font-normal">(opcional)</span>
+            </label>
+            <input
+              className="input-field"
+              value={form.display_name}
+              onChange={e => set('display_name', e.target.value)}
+              maxLength={60}
+              placeholder="Nickname que verán otros buceadores"
+            />
+            <p className="text-[11px] text-ocean-foam/30 mt-1">
+              Aparece en el ranking y leaderboards de expediciones. Si lo dejas vacío usaremos tu nombre real.
+            </p>
+          </div>
+
+          {/* ── PRIVACIDAD EMAIL ── */}
+          <label
+            className="mb-4 flex items-start gap-3 p-3 rounded-2xl cursor-pointer"
+            style={{ background: 'rgba(0,180,216,0.05)', border: '1px solid rgba(0,180,216,0.15)' }}
+          >
+            <input
+              type="checkbox"
+              checked={!!form.hide_email}
+              onChange={e => set('hide_email', e.target.checked)}
+              className="mt-0.5"
+            />
+            <span className="flex-1">
+              <span className="text-white text-sm font-semibold flex items-center gap-2">
+                <LockIcon size={14} /> Ocultar mi email
+              </span>
+              <span className="block text-[11px] text-ocean-foam/40 mt-0.5">
+                En el ranking y vistas públicas solo se mostrará tu nombre. Los administradores siempre lo verán para contacto.
+              </span>
+            </span>
+          </label>
 
           {/* ── BIO ── */}
           <div className="mb-4">

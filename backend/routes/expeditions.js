@@ -128,7 +128,9 @@ router.get('/:id/leaderboard', authenticateToken, (req, res) => {
 
   const leaders = db.prepare(`
     SELECT
-      u.id, u.name, u.level,
+      u.id,
+      COALESCE(NULLIF(TRIM(u.display_name), ''), u.name) AS name,
+      u.level,
       COUNT(t.id) AS trip_count,
       COUNT(t.id) * 10 AS expedition_points,
       u.total_co2,

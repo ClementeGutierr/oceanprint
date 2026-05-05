@@ -2,6 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import {
   OceanWaveIcon, TrophyIcon, UsersIcon, LeafIcon, PencilIcon, ThermometerIcon, RefreshIcon, MapPinIcon,
+  CalendarIcon,
 } from '../../components/OceanIcons'
 import AdminDashboard   from './AdminDashboard'
 import AdminExpeditions from './AdminExpeditions'
@@ -10,6 +11,7 @@ import AdminEmissions   from './AdminEmissions'
 import AdminContent     from './AdminContent'
 import AdminImport      from './AdminImport'
 import AdminRoutes      from './AdminRoutes'
+import AdminDynamics    from './AdminDynamics'
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 export function authCfg(token) {
@@ -19,6 +21,7 @@ export function authCfg(token) {
 const NAV = [
   { id: 'dashboard',   label: 'Dashboard',       Icon: OceanWaveIcon  },
   { id: 'expeditions', label: 'Expediciones',    Icon: TrophyIcon     },
+  { id: 'dynamics',    label: 'Dinámicas',       Icon: CalendarIcon   },
   { id: 'users',       label: 'Usuarios',        Icon: UsersIcon      },
   { id: 'emissions',   label: 'Emisiones',       Icon: LeafIcon       },
   { id: 'routes',      label: 'Destinos y Rutas',Icon: MapPinIcon     },
@@ -196,6 +199,7 @@ export default function AdminApp() {
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             {section === 'dashboard'   && <AdminDashboard   token={token} />}
             {section === 'expeditions' && <AdminExpeditions token={token} />}
+            {section === 'dynamics'    && <AdminDynamics    token={token} />}
             {section === 'users'       && <AdminUsers       token={token} />}
             {section === 'emissions'   && <AdminEmissions   token={token} />}
             {section === 'routes'      && <AdminRoutes      token={token} />}

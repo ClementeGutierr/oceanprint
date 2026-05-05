@@ -6,14 +6,16 @@ import { useAuth } from '../context/AuthContext'
 import {
   LevelIcon, MedalIcon, OceanWaveIcon, SettingsIcon,
   ThermometerIcon, TargetIcon, LeafIcon, TrophyIcon, DiveMaskIcon,
+  CalendarIcon,
 } from './OceanIcons'
 
 const navItems = [
-  { to: '/calculator',   Icon: ThermometerIcon, label: 'Huella'   },
-  { to: '/missions',     Icon: TargetIcon,       label: 'Misiones' },
-  { to: '/compensation', Icon: LeafIcon,          label: 'Compensar'},
-  { to: '/leaderboard',  Icon: TrophyIcon,        label: 'Ranking'  },
-  { to: '/profile',      Icon: DiveMaskIcon,      label: 'Perfil'   },
+  { to: '/calculator',   Icon: ThermometerIcon, label: 'Huella'    },
+  { to: '/missions',     Icon: TargetIcon,      label: 'Misiones'  },
+  { to: '/dynamics',     Icon: CalendarIcon,    label: 'Dinámicas' },
+  { to: '/compensation', Icon: LeafIcon,        label: 'Compensar' },
+  { to: '/leaderboard',  Icon: TrophyIcon,      label: 'Ranking'   },
+  { to: '/profile',      Icon: DiveMaskIcon,    label: 'Perfil'    },
 ]
 
 function DesktopRightSidebar() {
