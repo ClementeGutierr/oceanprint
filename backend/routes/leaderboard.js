@@ -9,7 +9,7 @@ router.get('/', authenticateToken, (req, res) => {
   const limit  = Math.min(parseInt(req.query.limit)  || 20, 100);
   const offset = Math.max(parseInt(req.query.offset) || 0,  0);
 
-  const total = db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin'").get().count;
+  const total = db.prepare("SELECT COUNT(*) as count FROM users").get().count;
 
   const leaders = db.prepare(`
     SELECT
@@ -19,7 +19,6 @@ router.get('/', authenticateToken, (req, res) => {
       total_co2, compensated_co2,
       CASE WHEN total_co2 > 0 THEN ROUND((compensated_co2 / total_co2) * 100, 1) ELSE 0 END as compensation_pct
     FROM users
-    WHERE role != 'admin'
     ORDER BY points DESC
     LIMIT ? OFFSET ?
   `).all(limit, offset).map(l => ({
